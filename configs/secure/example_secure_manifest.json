@@ -1,0 +1,28 @@
+{
+  "dataset": "toy",
+  "secure_federated": {
+    "enabled": true,
+    "id_strategy": {
+      "mode": "hmac_deterministic_ids",
+      "key_source": "environment",
+      "env_var": "SIMGRAG_SETUP_KEY"
+    },
+    "query_privacy": {
+      "scheme": "fss_dpf"
+    },
+    "aggregation": {
+      "scheme": "additive_secret_sharing",
+      "future": "prio_vdaf"
+    },
+    "ranking": {
+      "scheme": "mock_topk",
+      "future": "garbled_circuit_topk"
+    },
+    "semantic_search": {
+      "enabled": false,
+      "future": "private_lsh_bucket_search"
+    }
+  },
+  "parties": []
+}
+
