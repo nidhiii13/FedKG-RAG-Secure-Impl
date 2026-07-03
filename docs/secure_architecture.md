@@ -1,11 +1,64 @@
 # Secure Federated Retrieval Architecture
 
-This document will describe the secure retrieval flow:
+This repository implements the first secure exact-retrieval slice of the planned
+federated KG-RAG architecture. The implementation currently focuses on HMAC
+encoding, real two-party DPF lookup, raw eval-share aggregation, and preserving
+the encoded structural retrieval path.
 
-1. Party-local offline preparation.
-2. Query gateway private token generation.
-3. FSS/DPF private lookup.
-4. Secret-shared score aggregation.
-5. Garbled-circuit top-k ranking.
-6. Controlled evidence reveal.
+## Current implemented flow
 
+1. Party-local offline preparation
+   - Load each party graph from the existing SimGRAG MetaQA manifest.
+   - Normalize entity, relation, and type strings.
+   - Encode them with HMAC-SHA256 using `FEDKG_SETUP_KEY`.
+   - Check that the current DPF projection, `hmac_sha256_prefix64`, has no
+     collisions inside entity, relation, or type IDs.
+
+2. Query preparation
+   - Compile query graph labels into HMAC exact IDs.
+   - Generate real two-party DPF key shares with `tools/fss_cli/fedkg-fss-cli`.
+   - The query plaintext is not sent to parties; parties receive only their DPF
+     key shares.
+
+3. Shared opaque evaluation universe
+   - For each query node/relation/type label, build a shared set of encoded
+     points that all parties must evaluate.
+   - The universe contains HMAC IDs, not plaintext labels.
+   - This is required because DPF outputs are shares; reconstruction only works
+     when parties evaluate the same point.
+
+4. Party-side private evaluation
+   - Each party evaluates its DPF key share over the shared encoded universe.
+   - The party returns raw uint64 eval shares, not local match decisions.
+   - A single party's eval value must never be interpreted as a boolean match.
+
+5. Private lookup aggregation
+   - The aggregator combines party eval shares modulo `2^64`.
+   - A reconstructed nonzero value indicates the queried HMAC ID matched that
+     encoded point.
+   - The aggregator emits candidate IDs only for parties that actually own the
+     matched encoded point locally.
+
+6. Structural retrieval
+   - The resulting encoded candidates can feed the existing DFS/cross-party
+     structural matching layer.
+   - Edge direction, relation constraints, type constraints, and alignment-based
+     cross-party traversal remain encoded.
+
+7. Later stages
+   - Semantic bucket lookup will use the same pattern: bucket token generation,
+     DPF/FSS evaluation, and share aggregation.
+   - Score aggregation can later be strengthened with Prio/VDAF-style validation.
+   - Top-k ranking remains planned as a garbled-circuit ranking stage.
+
+## Prototype boundary
+
+The native FSS backend currently uses a 64-bit projection of 256-bit HMAC IDs.
+This is acceptable for the first engineering prototype only because index build
+now rejects projection collisions. The production direction should use a wider
+DPF domain, preferably 128 bits or higher, if supported by the backend.
+
+The current shared evaluation universe is built from encoded party indexes. This
+keeps plaintext private, but the universe size and encoded-point overlap pattern
+are still visible to the component coordinating evaluation. A stronger version
+should add padding, batching, and possibly VDAF/Prio-style validity checks.

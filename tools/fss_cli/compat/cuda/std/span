@@ -1,0 +1,69 @@
+#pragma once
+
+#include <cstddef>
+#include <tuple>
+#include <type_traits>
+#include <cuda/std/array>
+
+namespace cuda::std {
+
+template <typename T, ::std::size_t Extent>
+class span {
+public:
+  using element_type = T;
+  using value_type = T;
+  using size_type = ::std::size_t;
+  using pointer = T *;
+  using reference = T &;
+  using iterator = pointer;
+
+  __host__ __device__ span() : data_(nullptr) {}
+  __host__ __device__ explicit span(pointer ptr) : data_(ptr) {}
+  __host__ __device__ span(pointer ptr, size_type size) : data_(ptr) { (void)size; }
+
+  template <typename U>
+  __host__ __device__ span(cuda::std::array<U, Extent> &arr) : data_(arr.data()) {}
+
+  template <typename U>
+  __host__ __device__ span(const cuda::std::array<U, Extent> &arr) : data_(arr.data()) {}
+
+  __host__ __device__ reference operator[](size_type idx) const { return data_[idx]; }
+  __host__ __device__ pointer data() const { return data_; }
+  __host__ __device__ size_type size() const { return Extent; }
+  __host__ __device__ iterator begin() const { return data_; }
+  __host__ __device__ iterator end() const { return data_ + Extent; }
+
+private:
+  pointer data_;
+};
+
+
+}  // namespace cuda::std
+
+namespace std {
+
+template <typename T, ::std::size_t N>
+struct tuple_size<cuda::std::array<T, N>> : integral_constant<::std::size_t, N> {};
+
+template <::std::size_t I, typename T, ::std::size_t N>
+struct tuple_element<I, cuda::std::array<T, N>> {
+  using type = T;
+};
+
+}  // namespace std
+
+namespace cuda::std {
+
+template <::std::size_t I, typename T, ::std::size_t N>
+__host__ __device__ T &get(cuda::std::array<T, N> &arr) {
+  static_assert(I < N, "cuda::std::array get index out of bounds");
+  return arr[I];
+}
+
+template <::std::size_t I, typename T, ::std::size_t N>
+__host__ __device__ const T &get(const cuda::std::array<T, N> &arr) {
+  static_assert(I < N, "cuda::std::array get index out of bounds");
+  return arr[I];
+}
+
+}  // namespace cuda::std

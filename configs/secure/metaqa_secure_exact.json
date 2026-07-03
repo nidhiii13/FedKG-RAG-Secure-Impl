@@ -1,0 +1,17 @@
+{
+  "source_manifest": "../SimGRAG/configs/federated/metaqa_manifest.json",
+  "setup_key_env": "FEDKG_SETUP_KEY",
+  "secure_stage": "hmac_encoded_exact_retrieval_foundation",
+  "dpf_backend": {
+    "status": "required_not_configured",
+    "expected_adapter": "myl7/fss wrapper"
+  },
+  "semantic_route": {
+    "enabled": false,
+    "planned": "embedding_to_lsh_bucket_to_hmac_bucket_token_to_dpf"
+  },
+  "ranking": {
+    "current": "encoded_exact_parity_only",
+    "planned": "garbled_circuit_topk"
+  }
+}
