@@ -34,10 +34,16 @@ class FssCliBackendError(RuntimeError):
 class FssCliBackend:
     command: Sequence[str]
     timeout_seconds: float = 30.0
+    max_eval_batch_size: int = 256
 
     @classmethod
-    def from_executable(cls, executable: str | Path, timeout_seconds: float = 30.0) -> "FssCliBackend":
-        return cls((str(executable),), timeout_seconds=timeout_seconds)
+    def from_executable(
+        cls,
+        executable: str | Path,
+        timeout_seconds: float = 30.0,
+        max_eval_batch_size: int = 256,
+    ) -> "FssCliBackend":
+        return cls((str(executable),), timeout_seconds=timeout_seconds, max_eval_batch_size=max_eval_batch_size)
 
     def _call(self, request: Mapping[str, object]) -> Mapping[str, object]:
         try:
@@ -84,3 +90,21 @@ class FssCliBackend:
         if not isinstance(value, int):
             raise FssCliBackendError("FSS/DPF CLI eval response must contain an integer value")
         return value
+
+    def eval_many(self, key_share: DpfKeyShare, points: Sequence[str]) -> list[int]:
+        point_list = list(points)
+        if not point_list:
+            return []
+        values: list[int] = []
+        batch_size = max(1, self.max_eval_batch_size)
+        for offset in range(0, len(point_list), batch_size):
+            batch = point_list[offset : offset + batch_size]
+            response = self._call({"op": "eval_many", "share": key_share.payload, "points": batch})
+            batch_values = response.get("values")
+            if not isinstance(batch_values, list) or not all(isinstance(value, int) for value in batch_values):
+                raise FssCliBackendError("FSS/DPF CLI eval_many response must contain an integer values array")
+            if len(batch_values) != len(batch):
+                raise FssCliBackendError("FSS/DPF CLI eval_many response length does not match request")
+            values.extend(batch_values)
+        return values
+

@@ -1,5 +1,6 @@
 import unittest
 
+from src.common.types import EntityRef, RelationRef, SecurePartyCandidates
 from src.crypto.dpf_domain import DpfProjectionCollisionError
 from src.crypto.hmac_ids import HmacIdProvider
 from src.gateway.query_compiler import ExactQueryCompiler
@@ -34,6 +35,30 @@ class SecureIndexTest(unittest.TestCase):
                 ("Tom Hanks", "acted in", "Forrest Gump"),
                 ("Forrest Gump", "has genre", "Drama"),
             ],
+        )
+
+    def test_retrieve_from_candidates_accepts_private_lookup_candidates(self):
+        ids = HmacIdProvider(b"test-key")
+        p0 = SecurePartyIndex.from_plain_graph(
+            "p0",
+            {"Tom Hanks": {"acted in": ["Forrest Gump"]}, "Forrest Gump": {}},
+            {"movie": ["Forrest Gump"]},
+            ids,
+        )
+        query = [("Tom Hanks", "acted in", "UNKNOWN movie 1")]
+        candidates = SecurePartyCandidates(
+            nodes={
+                "Tom Hanks": {EntityRef("p0", ids.entity_id("Tom Hanks")): 0.0},
+                "UNKNOWN movie 1": {EntityRef("p0", ids.entity_id("Forrest Gump")): 0.0},
+            },
+            relations={"acted in": {RelationRef("p0", ids.relation_id("acted in")): 0.0}},
+        )
+
+        result = EncodedExactRetriever([p0], final_topk=1).retrieve_from_candidates(query, candidates)
+
+        self.assertEqual(
+            result["results"][0].edges,
+            [("Tom Hanks", "acted in", "Forrest Gump")],
         )
 
     def test_rejects_dpf_projection_collision_in_party_index(self):

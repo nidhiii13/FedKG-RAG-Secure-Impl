@@ -127,8 +127,6 @@ class EncodedExactRetriever:
         )
 
     def retrieve(self, query_graph: Sequence[QueryEdge], exact_ids, mode: str = "greedy"):
-        if mode != "greedy":
-            raise ValueError("EncodedExactRetriever currently supports greedy mode only")
         terms = query_terms(query_graph)
         party_candidates = {
             party_id: party.exact_candidates(
@@ -153,6 +151,18 @@ class EncodedExactRetriever:
                 nodes[label].update(local)
             for label, local in candidates.relations.items():
                 relations.setdefault(label, {}).update(local)
+        return self._retrieve_from_maps(query_graph, nodes, relations, mode)
+
+    def retrieve_from_candidates(self, query_graph: Sequence[QueryEdge], candidates, mode: str = "greedy"):
+        terms = query_terms(query_graph)
+        nodes = {node: dict(candidates.nodes.get(node) or {}) for node in terms.query_nodes}
+        nodes.update({node: dict(candidates.nodes.get(node) or {}) for node in terms.unknown_nodes})
+        relations = {relation: dict(candidates.relations.get(relation) or {}) for relation in terms.query_relations}
+        return self._retrieve_from_maps(query_graph, nodes, relations, mode)
+
+    def _retrieve_from_maps(self, query_graph: Sequence[QueryEdge], nodes, relations, mode: str):
+        if mode != "greedy":
+            raise ValueError("EncodedExactRetriever currently supports greedy mode only")
 
         root_options = [node for node, candidates in nodes.items() if candidates]
         if not root_options:

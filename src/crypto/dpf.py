@@ -22,6 +22,9 @@ class DpfBackend(Protocol):
     def eval(self, key_share: DpfKeyShare, point: str) -> int:
         ...
 
+    def eval_many(self, key_share: DpfKeyShare, points: Sequence[str]) -> Sequence[int]:
+        ...
+
 
 class UnconfiguredDpfBackend:
     """Fail-closed backend used until a real FSS/DPF implementation is wired."""
@@ -32,6 +35,11 @@ class UnconfiguredDpfBackend:
         )
 
     def eval(self, key_share: DpfKeyShare, point: str) -> int:
+        raise NotImplementedError(
+            "Real FSS/DPF backend required. Configure a myl7/fss wrapper before private lookup."
+        )
+
+    def eval_many(self, key_share: DpfKeyShare, points: Sequence[str]) -> Sequence[int]:
         raise NotImplementedError(
             "Real FSS/DPF backend required. Configure a myl7/fss wrapper before private lookup."
         )

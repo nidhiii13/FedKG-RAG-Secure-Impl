@@ -78,3 +78,31 @@ Response:
 ```
 
 `value` is this party's uint64 output share. Combining both party output shares modulo `2^64` must reconstruct `beta` at `x = alpha` and zero otherwise. A single party's value is not a boolean match.
+
+
+## Operation: eval_many
+
+Request:
+
+```json
+{
+  "op": "eval_many",
+  "share": {
+    "party": 0,
+    "seed": "...",
+    "correction_words": "...",
+    "domain_bits": 64,
+    "group": "uint64",
+    "projection": "hmac_sha256_prefix64"
+  },
+  "points": ["hex-domain-point-1", "hex-domain-point-2"]
+}
+```
+
+Response:
+
+```json
+{"values": [0, 123]}
+```
+
+`values[i]` is the uint64 output share for `points[i]`. The Python adapter chunks large requests; the current conservative default is 256 HMAC IDs per native CLI call because the temporary regex-based C++ JSON parser is unstable on larger real-HMAC payloads.

@@ -2,8 +2,9 @@
 
 This repository implements the first secure exact-retrieval slice of the planned
 federated KG-RAG architecture. The implementation currently focuses on HMAC
-encoding, real two-party DPF lookup, raw eval-share aggregation, and preserving
-the encoded structural retrieval path.
+encoding, real two-party DPF lookup, raw eval-share aggregation, shared opaque
+evaluation universes, and private exact retrieval through the encoded structural
+DFS path.
 
 ## Current implemented flow
 
@@ -40,8 +41,8 @@ the encoded structural retrieval path.
      matched encoded point locally.
 
 6. Structural retrieval
-   - The resulting encoded candidates can feed the existing DFS/cross-party
-     structural matching layer.
+   - `PrivateExactRetriever` now orchestrates the full exact private lookup path.
+   - Aggregated encoded candidates are passed into `EncodedExactRetriever.retrieve_from_candidates`.
    - Edge direction, relation constraints, type constraints, and alignment-based
      cross-party traversal remain encoded.
 
@@ -62,3 +63,39 @@ The current shared evaluation universe is built from encoded party indexes. This
 keeps plaintext private, but the universe size and encoded-point overlap pattern
 are still visible to the component coordinating evaluation. A stronger version
 should add padding, batching, and possibly VDAF/Prio-style validity checks.
+
+
+## Running the current exact private path
+
+Build the native FSS CLI first:
+
+```bash
+cmake --build build/fss_cli
+```
+
+A small native-backend smoke test can be run with a query-ID universe:
+
+```bash
+FEDKG_SETUP_KEY=dev-smoke-test-key python3 scripts/run_private_exact_query.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --edge 'Kismet|starred_actors|Marlene Dietrich' \
+  --universe query-ids
+```
+
+`--universe query-ids` validates the real DPF backend and retrieval wiring, but
+it is not private because the evaluated universe is exactly the queried IDs.
+The intended private mode is `--universe full`, where all parties evaluate the
+same opaque HMAC universe. Full mode is guarded because the current CLI backend
+starts one process per eval point; batch eval should be implemented next before
+running full MetaQA-scale private lookup.
+
+
+## Batch eval status
+
+The native CLI supports `eval_many`, and `FssCliBackend` chunks party-side
+evaluation requests. On the current MetaQA sample query
+`Kismet|starred_actors|Marlene Dietrich`, full-universe private exact lookup
+uses 80,311 eval points and completed in about 36 seconds with batch size 256.
+The next performance improvement is replacing the temporary regex-based C++ JSON
+parser with a proper parser or binary protocol so larger batches can be used
+safely.

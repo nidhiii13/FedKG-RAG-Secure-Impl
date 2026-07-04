@@ -287,6 +287,31 @@ std::string HandleEval(const std::string &json) {
   return out.str();
 }
 
+std::string HandleEvalMany(const std::string &json) {
+  const std::vector<std::string> point_strings = RequireStringArray(json, "points");
+  const SharePayload share = ParseShare(json);
+
+  const std::vector<uint64_t> values = WithDpf([&](Dpf &dpf) {
+    std::vector<uint64_t> out;
+    out.reserve(point_strings.size());
+    for (const auto &point_s : point_strings) {
+      const In point = ProjectHexToDomain(point_s);
+      int4 y = dpf.Eval(share.party == 1, share.seed, share.cws.data(), point);
+      out.push_back(Int4ToUint64(y));
+    }
+    return out;
+  });
+
+  std::ostringstream out;
+  out << "{\"values\":[";
+  for (size_t i = 0; i < values.size(); ++i) {
+    if (i) out << ',';
+    out << values[i];
+  }
+  out << "]}";
+  return out.str();
+}
+
 }  // namespace
 
 int main() {
@@ -299,6 +324,10 @@ int main() {
     }
     if (op == "eval") {
       std::cout << HandleEval(request) << '\n';
+      return 0;
+    }
+    if (op == "eval_many") {
+      std::cout << HandleEvalMany(request) << '\n';
       return 0;
     }
     throw std::runtime_error("unsupported op: " + op);
