@@ -124,6 +124,35 @@ starts one process per eval point; batch eval should be implemented next before
 running full MetaQA-scale private lookup.
 
 
+
+## Party-local structural matching status
+
+The initial exact-retrieval prototype used central encoded DFS after DPF/FSS lookup.
+That preserved correctness, but the orchestrator still needed internal party-route
+metadata to call each party index.
+
+The stronger path now implemented is party-local structural matching:
+
+1. Each party checks exact structural paths inside its own HMAC-encoded KG.
+2. The party returns only opaque path IDs plus additive score/support shares.
+3. The aggregator ranks opaque candidates with the `SecureTopK` interface.
+4. Selected evidence is revealed only by parties that hold the chosen opaque path
+   IDs.
+
+This removes party ownership from aggregator-side structural DFS for local paths.
+
+Cross-party multi-hop handoff is now implemented as prototype plumbing:
+
+1. The first party derives an opaque frontier token for the intermediate entity.
+2. DPF/FSS key shares are generated for that frontier token.
+3. All parties evaluate the shares against their local frontier indexes.
+4. Matching parties can continue the second hop from their local KG.
+5. The aggregator receives opaque path shares and selected evidence only.
+
+This currently supports exact chain-shaped multi-hop frontier handoff. Production hardening still
+needs batching, padding, token-linkage hiding, and a fully network-separated
+party execution model.
+
 ## End-to-end ranked retrieval status
 
 `PrivateExactRetriever.retrieve_ranked(...)` now runs the implemented exact
