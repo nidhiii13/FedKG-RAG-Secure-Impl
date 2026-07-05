@@ -37,7 +37,6 @@ class MatchResult:
     score: float
     edges: List[Tuple[str, str, str]]
     reuse_nodes: bool
-    parties: List[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

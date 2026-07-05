@@ -114,7 +114,7 @@ def main() -> int:
         "universe": args.universe,
         "universe_eval_points": size,
         "results": [
-            {"score": item.score, "edges": item.edges, "parties": item.parties, "reuse_nodes": item.reuse_nodes}
+            {"score": item.score, "edges": item.edges, "reuse_nodes": item.reuse_nodes}
             for item in result["results"]
         ],
     }

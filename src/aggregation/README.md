@@ -2,11 +2,14 @@
 
 Secure score and support aggregation.
 
-Initial version:
+Implemented now:
 
-- Additive secret-share aggregation.
+- `MatchScoreShareBuilder` converts each retrieved structural match into an
+  opaque candidate ID plus additive fixed-point score/support shares.
+- `ShareAggregator` merges shares for the same candidate ID.
+- `reveal_candidate_score` exists for tests and prototype ranking only.
 
-Future version:
+Planned next:
 
-- Prio/VDAF-style validation and aggregation.
-
+- Prio/VDAF-style validation before accepting score/support shares.
+- Stronger policy checks around malformed, missing, or adversarial shares.

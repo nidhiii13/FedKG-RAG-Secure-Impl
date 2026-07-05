@@ -171,9 +171,9 @@ class EncodedExactRetriever:
         sequence = self._dfs_edge_sequence(query_graph, root)
         results = _TopK(self.final_topk)
 
-        def match(index, matching, alignment_matching, edges, score, reuse, parties):
+        def match(index, matching, alignment_matching, edges, score, reuse):
             if index == len(sequence):
-                results.add(MatchResult(score=score, edges=edges, reuse_nodes=reuse, parties=parties))
+                results.add(MatchResult(score=score, edges=edges, reuse_nodes=reuse))
                 return
             query_source, query_relation, query_target = sequence[index]
             current = matching[query_source]
@@ -203,9 +203,8 @@ class EncodedExactRetriever:
                     edges + [self._format_edge(expansion)],
                     next_score,
                     next_reuse,
-                    parties + [expansion.source.party_id],
                 )
 
         for root_entity, root_distance in sorted(nodes[root].items(), key=lambda item: (item[1], item[0])):
-            match(0, {root: root_entity}, {root: self._alignment_key(root_entity)}, [], root_distance, False, [])
+            match(0, {root: root_entity}, {root: self._alignment_key(root_entity)}, [], root_distance, False)
         return {"mode": mode, "root": root, "results": results.get()}

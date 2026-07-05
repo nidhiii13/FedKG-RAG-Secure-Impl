@@ -24,17 +24,15 @@ def main():
 
     ids = HmacIdProvider.from_env(args.key_env)
     manifest = load_manifest(args.manifest)
-    summary = {"dataset": manifest.dataset, "parties": []}
+    summary = {"dataset": manifest.dataset, "party_count": len(manifest.parties), "party_summaries": []}
     for spec in manifest.parties:
         graph, types = load_party_payload(spec.data_path)
         index = SecurePartyIndex.from_plain_graph(spec.party_id, graph, types, ids)
-        summary["parties"].append(
+        summary["party_summaries"].append(
             {
-                "party_id": spec.party_id,
                 "nodes": len(index.adjacency),
                 "relations": len(index.local_relations),
                 "types": len(index.type_index),
-                "source_data": str(spec.data_path),
             }
         )
     output = Path(args.output)
