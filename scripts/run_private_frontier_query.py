@@ -54,6 +54,17 @@ def main() -> int:
     parser.add_argument("--topk", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--eval-batch-size", type=int, default=256)
+    parser.add_argument(
+        "--semantic-relations",
+        action="store_true",
+        help="Use private semantic bucket routing for relation labels before exact path expansion",
+    )
+    parser.add_argument(
+        "--semantic-relation-penalty",
+        type=float,
+        default=0.25,
+        help="Score penalty added for each relation matched through semantic buckets instead of exact HMAC",
+    )
     args = parser.parse_args()
 
     executable = Path(args.fss_cli)
@@ -74,6 +85,8 @@ def main() -> int:
         ids=ids,
         backend=backend,
         share_builder=MatchScoreShareBuilder(share_count=share_count),
+        enable_semantic_relations=args.semantic_relations,
+        semantic_relation_penalty=args.semantic_relation_penalty,
     )
     ranked = matcher.retrieve_ranked(
         query_graph,
@@ -84,6 +97,7 @@ def main() -> int:
     output = {
         "query": query_graph,
         "party_count": len(parties),
+        "semantic_relations": args.semantic_relations,
         "selected_candidate_ids": ranked.selected_ids,
         "results": [
             {"score": item.score, "edges": item.edges, "reuse_nodes": item.reuse_nodes}

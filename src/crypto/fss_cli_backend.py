@@ -99,12 +99,21 @@ class FssCliBackend:
         batch_size = max(1, self.max_eval_batch_size)
         for offset in range(0, len(point_list), batch_size):
             batch = point_list[offset : offset + batch_size]
-            response = self._call({"op": "eval_many", "share": key_share.payload, "points": batch})
-            batch_values = response.get("values")
-            if not isinstance(batch_values, list) or not all(isinstance(value, int) for value in batch_values):
-                raise FssCliBackendError("FSS/DPF CLI eval_many response must contain an integer values array")
-            if len(batch_values) != len(batch):
-                raise FssCliBackendError("FSS/DPF CLI eval_many response length does not match request")
-            values.extend(batch_values)
+            values.extend(self._eval_many_batch(key_share, batch))
         return values
 
+    def _eval_many_batch(self, key_share: DpfKeyShare, points: Sequence[str]) -> list[int]:
+        try:
+            response = self._call({"op": "eval_many", "share": key_share.payload, "points": list(points)})
+        except FssCliBackendError:
+            if len(points) <= 1:
+                raise
+            midpoint = len(points) // 2
+            return self._eval_many_batch(key_share, points[:midpoint]) + self._eval_many_batch(key_share, points[midpoint:])
+
+        values = response.get("values")
+        if not isinstance(values, list) or not all(isinstance(value, int) for value in values):
+            raise FssCliBackendError("FSS/DPF CLI eval_many response must contain an integer values array")
+        if len(values) != len(points):
+            raise FssCliBackendError("FSS/DPF CLI eval_many response length does not match request")
+        return values

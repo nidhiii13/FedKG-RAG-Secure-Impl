@@ -53,6 +53,28 @@ if req["op"] == "eval_many":
             self.assertEqual(values, [1, 2, 3, 4, 5])
             self.assertEqual(log.read_text().splitlines(), ["2", "2", "1"])
 
+    def test_eval_many_retries_smaller_batches_after_cli_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "calls.txt"
+            stub = Path(tmp) / "stub_cli.py"
+            stub.write_text(
+                f"""import json, os, signal, sys
+from pathlib import Path
+req = json.loads(sys.stdin.read())
+if req["op"] == "eval_many":
+    with Path({str(log)!r}).open("a") as handle:
+        handle.write(str(len(req["points"])) + "\\n")
+    if len(req["points"]) > 2:
+        os.kill(os.getpid(), signal.SIGSEGV)
+    print(json.dumps({{"values": [len(point) for point in req["points"]]}}))
+"""
+            )
+            backend = FssCliBackend((sys.executable, str(stub)), max_eval_batch_size=4)
+            values = backend.eval_many(type("Share", (), {"payload": {}})(), ["a", "bb", "ccc", "dddd"])
+
+            self.assertEqual(values, [1, 2, 3, 4])
+            self.assertEqual(log.read_text().splitlines(), ["4", "2", "2"])
+
 
 if __name__ == "__main__":
     unittest.main()
