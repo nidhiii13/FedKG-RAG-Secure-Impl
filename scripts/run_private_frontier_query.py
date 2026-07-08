@@ -60,10 +60,39 @@ def main() -> int:
         help="Use private semantic bucket routing for relation labels before exact path expansion",
     )
     parser.add_argument(
+        "--semantic-entities",
+        action="store_true",
+        help="Use private semantic bucket routing for known entity labels before exact path expansion",
+    )
+    parser.add_argument(
+        "--semantic-bucket-mode",
+        choices=["alias", "lsh", "hybrid"],
+        default="hybrid",
+        help="Semantic relation bucket family used by private routing",
+    )
+    parser.add_argument(
         "--semantic-relation-penalty",
         type=float,
         default=0.25,
-        help="Score penalty added for each relation matched through semantic buckets instead of exact HMAC",
+        help="Score penalty added for each alias/lexical semantic relation match instead of exact HMAC",
+    )
+    parser.add_argument(
+        "--semantic-lsh-relation-penalty",
+        type=float,
+        default=0.5,
+        help="Score penalty added for each LSH semantic relation match instead of exact HMAC",
+    )
+    parser.add_argument(
+        "--semantic-entity-penalty",
+        type=float,
+        default=0.2,
+        help="Score penalty added for each alias/lexical semantic entity match instead of exact HMAC",
+    )
+    parser.add_argument(
+        "--semantic-lsh-entity-penalty",
+        type=float,
+        default=0.45,
+        help="Score penalty added for each LSH semantic entity match instead of exact HMAC",
     )
     args = parser.parse_args()
 
@@ -86,7 +115,12 @@ def main() -> int:
         backend=backend,
         share_builder=MatchScoreShareBuilder(share_count=share_count),
         enable_semantic_relations=args.semantic_relations,
+        enable_semantic_entities=args.semantic_entities,
+        semantic_bucket_mode=args.semantic_bucket_mode,
         semantic_relation_penalty=args.semantic_relation_penalty,
+        semantic_lsh_relation_penalty=args.semantic_lsh_relation_penalty,
+        semantic_entity_penalty=args.semantic_entity_penalty,
+        semantic_lsh_entity_penalty=args.semantic_lsh_entity_penalty,
     )
     ranked = matcher.retrieve_ranked(
         query_graph,
@@ -98,6 +132,8 @@ def main() -> int:
         "query": query_graph,
         "party_count": len(parties),
         "semantic_relations": args.semantic_relations,
+        "semantic_entities": args.semantic_entities,
+        "semantic_bucket_mode": args.semantic_bucket_mode if args.semantic_relations or args.semantic_entities else None,
         "selected_candidate_ids": ranked.selected_ids,
         "results": [
             {"score": item.score, "edges": item.edges, "reuse_nodes": item.reuse_nodes}

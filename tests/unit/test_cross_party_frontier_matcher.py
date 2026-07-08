@@ -170,6 +170,44 @@ class CrossPartyFrontierMatcherTest(unittest.TestCase):
         )
         self.assertEqual(ranked.evidence[0].score, 0.5)
 
+    def test_semantic_entity_routing_matches_partial_entity_label(self):
+        ids = HmacIdProvider(b"test-key")
+        p0 = SecurePartyIndex.from_plain_graph(
+            "p0",
+            {"Kismet": {"starred_actors": ["Marlene Dietrich"]}, "Marlene Dietrich": {}},
+            {},
+            ids,
+        )
+        p1 = SecurePartyIndex.from_plain_graph(
+            "p1",
+            {"Marlene Dietrich": {"starred_actors": ["A Foreign Affair"]}, "A Foreign Affair": {}},
+            {},
+            ids,
+        )
+        query = [
+            ("Kismet", "starred_actors", "UNKNOWN"),
+            ("UNKNOWN", "starred_actors", "Foreign Affair"),
+        ]
+        matcher = CrossPartyFrontierMatcher(
+            [p0, p1],
+            ids,
+            LocalAnyPartyDpfBackend(),
+            MatchScoreShareBuilder(share_count=3),
+            enable_semantic_entities=True,
+            semantic_entity_penalty=0.2,
+        )
+
+        ranked = matcher.retrieve_ranked(query, LocalGarbledCircuitTopK(party_count=3), k=1)
+
+        self.assertEqual(
+            ranked.evidence[0].edges,
+            [
+                ("Kismet", "starred_actors", "Marlene Dietrich"),
+                ("Marlene Dietrich", "starred_actors", "A Foreign Affair"),
+            ],
+        )
+        self.assertEqual(ranked.evidence[0].score, 0.2)
+
 
 if __name__ == "__main__":
     unittest.main()
