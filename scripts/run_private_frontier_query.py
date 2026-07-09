@@ -19,6 +19,7 @@ from src.orchestration.cross_party_frontier_matcher import CrossPartyFrontierMat
 from src.party.secure_index import SecurePartyIndex
 from src.ranking.garbled_circuit import LocalGarbledCircuitTopK
 from src.runtime.simgrag_loader import load_manifest, load_party_payload
+from src.semantic.simgrag_embeddings import embedder_from_config
 
 
 def parse_edge(value: str) -> QueryEdge:
@@ -71,6 +72,24 @@ def main() -> int:
         help="Semantic relation bucket family used by private routing",
     )
     parser.add_argument(
+        "--embedding-backend",
+        choices=["hashing", "simgrag"],
+        default="hashing",
+        help="Embedding source for semantic LSH buckets and L2 scores",
+    )
+    parser.add_argument(
+        "--embedding-config",
+        help="SimGRAG config JSON containing embedding_model; defaults to the first party config",
+    )
+    parser.add_argument(
+        "--embedding-model-path",
+        help="Override embedding_model.model_path for --embedding-backend simgrag",
+    )
+    parser.add_argument(
+        "--embedding-device",
+        help="Override embedding_model.device for --embedding-backend simgrag, e.g. cpu or cuda:0",
+    )
+    parser.add_argument(
         "--semantic-relation-penalty",
         type=float,
         default=0.25,
@@ -101,8 +120,20 @@ def main() -> int:
         raise SystemExit(f"FSS CLI not found: {executable}. Build it with: cmake --build build/fss_cli")
 
     ids = HmacIdProvider.from_env(args.key_env)
-    parties = load_indexes(args.manifest, ids)
+    manifest = load_manifest(args.manifest)
+    parties = [
+        SecurePartyIndex.from_plain_graph(spec.party_id, *load_party_payload(spec.data_path), ids)
+        for spec in manifest.parties
+    ]
     query_graph = list(args.edge)
+    semantic_embedder = None
+    if args.embedding_backend == "simgrag":
+        embedding_config = args.embedding_config or manifest.parties[0].config_path
+        semantic_embedder = embedder_from_config(
+            embedding_config,
+            model_path=args.embedding_model_path,
+            device=args.embedding_device,
+        )
     backend = FssCliBackend.from_executable(
         executable,
         timeout_seconds=args.timeout,
@@ -121,6 +152,7 @@ def main() -> int:
         semantic_lsh_relation_penalty=args.semantic_lsh_relation_penalty,
         semantic_entity_penalty=args.semantic_entity_penalty,
         semantic_lsh_entity_penalty=args.semantic_lsh_entity_penalty,
+        semantic_embedder=semantic_embedder,
     )
     ranked = matcher.retrieve_ranked(
         query_graph,
@@ -134,6 +166,7 @@ def main() -> int:
         "semantic_relations": args.semantic_relations,
         "semantic_entities": args.semantic_entities,
         "semantic_bucket_mode": args.semantic_bucket_mode if args.semantic_relations or args.semantic_entities else None,
+        "embedding_backend": args.embedding_backend if args.semantic_relations or args.semantic_entities else None,
         "selected_candidate_ids": ranked.selected_ids,
         "results": [
             {"score": item.score, "edges": item.edges, "reuse_nodes": item.reuse_nodes}

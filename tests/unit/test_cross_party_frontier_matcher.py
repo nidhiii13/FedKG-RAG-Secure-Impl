@@ -6,6 +6,7 @@ from src.crypto.hmac_ids import HmacIdProvider
 from src.orchestration.cross_party_frontier_matcher import CrossPartyFrontierMatcher
 from src.party.secure_index import SecurePartyIndex
 from src.ranking.garbled_circuit import LocalGarbledCircuitTopK
+from src.semantic.lsh import HashingTextEmbedder, simgrag_distance
 
 
 class LocalAnyPartyDpfBackend:
@@ -168,7 +169,12 @@ class CrossPartyFrontierMatcherTest(unittest.TestCase):
                 ("Marlene Dietrich", "starred_actors", "A Foreign Affair"),
             ],
         )
-        self.assertEqual(ranked.evidence[0].score, 0.5)
+        embedder = HashingTextEmbedder()
+        expected_score = 2 * simgrag_distance(
+            embedder.embed("acted in"),
+            embedder.embed("starred_actors"),
+        )
+        self.assertAlmostEqual(ranked.evidence[0].score, expected_score)
 
     def test_semantic_entity_routing_matches_partial_entity_label(self):
         ids = HmacIdProvider(b"test-key")
@@ -206,7 +212,12 @@ class CrossPartyFrontierMatcherTest(unittest.TestCase):
                 ("Marlene Dietrich", "starred_actors", "A Foreign Affair"),
             ],
         )
-        self.assertEqual(ranked.evidence[0].score, 0.2)
+        embedder = HashingTextEmbedder()
+        expected_score = simgrag_distance(
+            embedder.embed("Foreign Affair"),
+            embedder.embed("A Foreign Affair"),
+        )
+        self.assertAlmostEqual(ranked.evidence[0].score, expected_score)
 
 
 if __name__ == "__main__":

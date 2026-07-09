@@ -30,6 +30,7 @@ from src.party.private_structural_matcher import OpaquePathShare, PartyEvidenceV
 from src.party.secure_index import SecurePartyIndex
 from src.ranking.secure_topk import SecureTopK
 from src.semantic.entity_buckets import EntitySemanticIndex
+from src.semantic.lsh import TextEmbedder
 from src.semantic.relation_buckets import RelationSemanticIndex, SemanticBucketMode
 
 
@@ -55,6 +56,7 @@ class CrossPartyFrontierMatcher:
     semantic_lsh_relation_penalty: float = 0.5
     semantic_entity_penalty: float = 0.2
     semantic_lsh_entity_penalty: float = 0.45
+    semantic_embedder: TextEmbedder | None = None
 
     def retrieve_ranked(
         self,
@@ -264,6 +266,7 @@ class CrossPartyFrontierMatcher:
                 party,
                 self.ids,
                 mode=self.semantic_bucket_mode,
+                embedder=self.semantic_embedder,
             )
             for party in self.parties
         }
@@ -274,6 +277,7 @@ class CrossPartyFrontierMatcher:
             bucket_mode=self.semantic_bucket_mode,
             alias_penalty=self.semantic_relation_penalty,
             lsh_penalty=self.semantic_lsh_relation_penalty,
+            embedder=self.semantic_embedder,
         ).route(labels, semantic_indexes)
 
     def _semantic_entity_routing(
@@ -296,6 +300,7 @@ class CrossPartyFrontierMatcher:
                 party,
                 self.ids,
                 mode=self.semantic_bucket_mode,
+                embedder=self.semantic_embedder,
             )
             for party in self.parties
         }
@@ -306,6 +311,7 @@ class CrossPartyFrontierMatcher:
             bucket_mode=self.semantic_bucket_mode,
             alias_penalty=self.semantic_entity_penalty,
             lsh_penalty=self.semantic_lsh_entity_penalty,
+            embedder=self.semantic_embedder,
         ).route(labels, semantic_indexes)
 
     def _entity_candidates(

@@ -85,6 +85,7 @@ def relation_bucket_tokens(
 @dataclass(frozen=True)
 class RelationSemanticIndex:
     bucket_to_relations: Dict[str, list[str]]
+    relation_vectors: Dict[str, tuple[float, ...]]
 
     @classmethod
     def from_secure_index(
@@ -96,10 +97,22 @@ class RelationSemanticIndex:
         lsh: SimHashLsh | None = None,
     ) -> "RelationSemanticIndex":
         bucket_to_relations: Dict[str, list[str]] = {}
-        for relation_id, display in index.display_relations.items():
+        relation_vectors: Dict[str, tuple[float, ...]] = {}
+        embedder = embedder or HashingTextEmbedder()
+        relation_items = list(index.display_relations.items())
+        embed_many = getattr(embedder, "embed_many", None)
+        if callable(embed_many):
+            vectors = embed_many([display for _, display in relation_items])
+        else:
+            vectors = [embedder.embed(display) for _, display in relation_items]
+        for (relation_id, display), vector in zip(relation_items, vectors):
+            relation_vectors[relation_id] = tuple(vector)
             for token in relation_bucket_tokens(ids, display, mode=mode, embedder=embedder, lsh=lsh):
                 bucket_to_relations.setdefault(token, []).append(relation_id)
-        return cls({token: sorted(set(values)) for token, values in bucket_to_relations.items()})
+        return cls(
+            {token: sorted(set(values)) for token, values in bucket_to_relations.items()},
+            relation_vectors,
+        )
 
     @property
     def tokens(self) -> list[str]:
@@ -107,6 +120,9 @@ class RelationSemanticIndex:
 
     def relations_for(self, token: str) -> list[str]:
         return list(self.bucket_to_relations.get(token, []))
+
+    def vector_for(self, relation_id: str) -> tuple[float, ...] | None:
+        return self.relation_vectors.get(relation_id)
 
 
 def relation_ids_for_bucket_matches(

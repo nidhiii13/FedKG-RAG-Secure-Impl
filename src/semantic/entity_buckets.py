@@ -69,6 +69,7 @@ def entity_bucket_tokens(
 @dataclass(frozen=True)
 class EntitySemanticIndex:
     bucket_to_entities: Dict[str, list[str]]
+    entity_vectors: Dict[str, tuple[float, ...]]
 
     @classmethod
     def from_secure_index(
@@ -80,10 +81,22 @@ class EntitySemanticIndex:
         lsh: SimHashLsh | None = None,
     ) -> "EntitySemanticIndex":
         bucket_to_entities: Dict[str, list[str]] = {}
-        for entity_id, display in index.display_entities.items():
+        entity_vectors: Dict[str, tuple[float, ...]] = {}
+        embedder = embedder or HashingTextEmbedder()
+        entity_items = list(index.display_entities.items())
+        embed_many = getattr(embedder, "embed_many", None)
+        if callable(embed_many):
+            vectors = embed_many([display for _, display in entity_items])
+        else:
+            vectors = [embedder.embed(display) for _, display in entity_items]
+        for (entity_id, display), vector in zip(entity_items, vectors):
+            entity_vectors[entity_id] = tuple(vector)
             for token in entity_bucket_tokens(ids, display, mode=mode, embedder=embedder, lsh=lsh):
                 bucket_to_entities.setdefault(token, []).append(entity_id)
-        return cls({token: sorted(set(values)) for token, values in bucket_to_entities.items()})
+        return cls(
+            {token: sorted(set(values)) for token, values in bucket_to_entities.items()},
+            entity_vectors,
+        )
 
     @property
     def tokens(self) -> list[str]:
@@ -91,3 +104,6 @@ class EntitySemanticIndex:
 
     def entities_for(self, token: str) -> list[str]:
         return list(self.bucket_to_entities.get(token, []))
+
+    def vector_for(self, entity_id: str) -> tuple[float, ...] | None:
+        return self.entity_vectors.get(entity_id)

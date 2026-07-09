@@ -18,6 +18,18 @@ class TextEmbedder(Protocol):
         ...
 
 
+def squared_l2_distance(left: Sequence[float], right: Sequence[float]) -> float:
+    if len(left) != len(right):
+        raise ValueError("Vectors must have the same dimension")
+    return sum((a - b) * (a - b) for a, b in zip(left, right))
+
+
+def simgrag_distance(left: Sequence[float], right: Sequence[float]) -> float:
+    """Return the same score shape used by SimGRAG: sqrt(L2 search distance)."""
+
+    return math.sqrt(squared_l2_distance(left, right))
+
+
 @dataclass(frozen=True)
 class HashingTextEmbedder:
     """Deterministic local text embedder used until an external model is wired.
