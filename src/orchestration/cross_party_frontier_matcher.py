@@ -190,41 +190,46 @@ class CrossPartyFrontierMatcher:
                         points=frontier_universe,
                     )
                 )
-        frontier_matches = handoff.reconstruct(eval_batches)
+        continuation_sources = handoff.resolve_sources(eval_batches, frontier_indexes)
 
         next_states: list[FrontierPathState] = []
         final_shares: list[OpaquePathShare] = []
-        for frontier_match in frontier_matches:
-            previous = state_by_request[frontier_match.request_id]
-            for party in self.parties:
-                for source_id in frontier_indexes[party.party_id].entities_for(frontier_match.frontier_token):
-                    for relation_id in relation_ids:
-                        for target_id in party.adjacency.get(source_id, {}).get(relation_id, []):
-                            if target_candidates is not None and target_id not in target_candidates:
-                                continue
-                            edge_display = (
-                                party.display_entities.get(source_id, source_id),
-                                party.display_relations.get(relation_id, relation_id),
-                                party.display_entities.get(target_id, target_id),
+        party_by_id = {party.party_id: party for party in self.parties}
+        for source in continuation_sources:
+            previous = state_by_request[source.request_id]
+            party = party_by_id[source.party_id]
+            for relation_id in relation_ids:
+                for target_id in party.adjacency.get(source.source_id, {}).get(relation_id, []):
+                    if target_candidates is not None and target_id not in target_candidates:
+                        continue
+                    edge_display = (
+                        party.display_entities.get(source.source_id, source.source_id),
+                        party.display_relations.get(relation_id, relation_id),
+                        party.display_entities.get(target_id, target_id),
+                    )
+                    path_edges = previous.edges + [edge_display]
+                    path_score = (
+                        previous.score
+                        + self._relation_score(edge[1], relation_id, exact, semantic_routing)
+                        + self._entity_score(edge[2], target_id, exact, semantic_entity_routing)
+                    )
+                    if is_final:
+                        final_shares.append(self._share_final_path(path_edges, path_score))
+                    else:
+                        target_display = party.display_entities.get(target_id, target_id)
+                        next_states.append(
+                            FrontierPathState(
+                                request_id=self._request_id(
+                                    source.source_id,
+                                    relation_id,
+                                    target_id,
+                                    len(path_edges) - 1,
+                                ),
+                                frontier_token=frontier_token(self.ids, target_display),
+                                edges=path_edges,
+                                score=path_score,
                             )
-                            path_edges = previous.edges + [edge_display]
-                            path_score = (
-                                previous.score
-                                + self._relation_score(edge[1], relation_id, exact, semantic_routing)
-                                + self._entity_score(edge[2], target_id, exact, semantic_entity_routing)
-                            )
-                            if is_final:
-                                final_shares.append(self._share_final_path(path_edges, path_score))
-                            else:
-                                target_display = party.display_entities.get(target_id, target_id)
-                                next_states.append(
-                                    FrontierPathState(
-                                        request_id=self._request_id(source_id, relation_id, target_id, len(path_edges) - 1),
-                                        frontier_token=frontier_token(self.ids, target_display),
-                                        edges=path_edges,
-                                        score=path_score,
-                                    )
-                                )
+                        )
         return next_states, final_shares
 
     def _target_candidates(

@@ -33,14 +33,12 @@ class SemanticBucketEvalShares:
 @dataclass(frozen=True)
 class SemanticRelationRouting:
     relation_ids_by_label: Dict[str, set[str]]
-    matched_bucket_tokens_by_label: Dict[str, set[str]]
     relation_penalties_by_label: Dict[str, Dict[str, float]]
 
 
 @dataclass(frozen=True)
 class SemanticEntityRouting:
     entity_ids_by_label: Dict[str, set[str]]
-    matched_bucket_tokens_by_label: Dict[str, set[str]]
     entity_penalties_by_label: Dict[str, Dict[str, float]]
 
 
@@ -82,7 +80,6 @@ class PrivateSemanticRelationRouter:
             relation_penalties_by_label[label] = relation_penalties
         return SemanticRelationRouting(
             relation_ids_by_label=relation_ids_by_label,
-            matched_bucket_tokens_by_label=matched_by_label,
             relation_penalties_by_label=relation_penalties_by_label,
         )
 
@@ -227,7 +224,6 @@ class PrivateSemanticEntityRouter:
             entity_penalties_by_label[label] = entity_penalties
         return SemanticEntityRouting(
             entity_ids_by_label=entity_ids_by_label,
-            matched_bucket_tokens_by_label=matched_by_label,
             entity_penalties_by_label=entity_penalties_by_label,
         )
 

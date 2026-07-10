@@ -195,10 +195,9 @@ auto WithDpf(Fn fn) {
   return result;
 }
 
-std::string ShareJson(int party, const std::string &party_id, int4 seed, const std::array<Dpf::Cw, kDomainBits + 1> &cws) {
+std::string ShareJson(int party, int4 seed, const std::array<Dpf::Cw, kDomainBits + 1> &cws) {
   std::ostringstream out;
   out << "{\"party\":" << party
-      << ",\"party_id\":\"" << EscapeJson(party_id) << "\""
       << ",\"seed\":" << Int4Json(seed)
       << ",\"correction_words\":[";
   for (size_t i = 0; i < cws.size(); ++i) {
@@ -245,9 +244,9 @@ SharePayload ParseShare(const std::string &json) {
 std::string HandleGen(const std::string &json) {
   const std::string alpha_s = RequireString(json, "alpha");
   const uint64_t beta = RequireUint(json, "beta");
-  const auto party_ids = RequireStringArray(json, "party_ids");
-  if (party_ids.size() != 2) {
-    throw std::runtime_error("myl7/fss DPF backend requires exactly two party_ids");
+  const auto share_count = RequireUint(json, "share_count");
+  if (share_count != 2) {
+    throw std::runtime_error("myl7/fss DPF backend requires share_count 2");
   }
 
   const In alpha = ProjectHexToDomain(alpha_s);
@@ -265,10 +264,10 @@ std::string HandleGen(const std::string &json) {
   });
 
   std::ostringstream out;
-  out << "{\"shares\":{"
-      << "\"" << EscapeJson(party_ids[0]) << "\":" << ShareJson(0, party_ids[0], seeds[0], cws) << ','
-      << "\"" << EscapeJson(party_ids[1]) << "\":" << ShareJson(1, party_ids[1], seeds[1], cws)
-      << "}}";
+  out << "{\"shares\":["
+      << ShareJson(0, seeds[0], cws) << ','
+      << ShareJson(1, seeds[1], cws)
+      << "]}";
   return out.str();
 }
 

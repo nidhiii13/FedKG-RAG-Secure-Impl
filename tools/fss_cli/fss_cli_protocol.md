@@ -23,7 +23,7 @@ Request:
   "op": "gen",
   "alpha": "hex-domain-point",
   "beta": 1,
-  "party_ids": ["party_0", "party_1"]
+  "share_count": 2
 }
 ```
 
@@ -31,8 +31,8 @@ Response:
 
 ```json
 {
-  "shares": {
-    "party_0": {
+  "shares": [
+    {
       "party": 0,
       "seed": "...",
       "correction_words": "...",
@@ -40,7 +40,7 @@ Response:
       "group": "uint64",
       "projection": "hmac_sha256_prefix64"
     },
-    "party_1": {
+    {
       "party": 1,
       "seed": "...",
       "correction_words": "...",
@@ -48,9 +48,13 @@ Response:
       "group": "uint64",
       "projection": "hmac_sha256_prefix64"
     }
-  }
+  ]
 }
 ```
+
+The native crypto helper does not receive real party identifiers. It returns
+ordered shares, and the trusted Python orchestration layer maps `shares[0]`,
+`shares[1]`, ... to session-local parties.
 
 ## Operation: eval
 

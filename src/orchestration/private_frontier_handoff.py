@@ -38,6 +38,13 @@ class FrontierMatch:
 
 
 @dataclass(frozen=True)
+class FrontierContinuationSource:
+    request_id: str
+    party_id: str
+    source_id: str
+
+
+@dataclass(frozen=True)
 class PrivateFrontierHandoff:
     backend: DpfBackend
     party_ids: Sequence[str]
@@ -93,3 +100,23 @@ class PrivateFrontierHandoff:
                     if sum(values) % self.modulus != 0:
                         matches.append(FrontierMatch(request_id=request_id, frontier_token=token))
         return matches
+
+    def resolve_sources(
+        self,
+        eval_batches: Iterable[FrontierEvalShares],
+        frontier_indexes: Mapping[str, FrontierIndex],
+    ) -> list[FrontierContinuationSource]:
+        """Resolve handoff matches to local source IDs without exposing tokens to callers."""
+
+        sources: list[FrontierContinuationSource] = []
+        for match in self.reconstruct(eval_batches):
+            for party_id, index in frontier_indexes.items():
+                for source_id in index.entities_for(match.frontier_token):
+                    sources.append(
+                        FrontierContinuationSource(
+                            request_id=match.request_id,
+                            party_id=party_id,
+                            source_id=source_id,
+                        )
+                    )
+        return sources

@@ -10,14 +10,18 @@ The Python side expects a stateless JSON protocol over stdin/stdout.
 Input:
 
 ```json
-{"op":"gen","alpha":"<hex-or-domain-id>","beta":1,"party_ids":["party_0","party_1"]}
+{"op":"gen","alpha":"<hex-or-domain-id>","beta":1,"share_count":2}
 ```
 
 Output:
 
 ```json
-{"shares":{"party_0":{...},"party_1":{...}}}
+{"shares":[{"party":0,...},{"party":1,...}]}
 ```
+
+The CLI receives only a share count and returns ordered shares. Real party
+identifiers stay in the Python orchestration layer, which maps `shares[0]`,
+`shares[1]`, ... to session participants locally.
 
 Each party share must contain everything needed for that party to evaluate the
 DPF share independently, typically:
@@ -52,6 +56,3 @@ The cloned `myl7/fss` package currently requires:
 - CMake >= 3.22
 - CUDA toolkit / `nvcc` >= 12.0
 - OpenSSL development headers for the CPU AES-128 MMO PRG path
-
-This environment was checked and currently lacks `cmake`, `nvcc`, and OpenSSL
-pkg-config metadata, so this backend cannot be compiled here yet.

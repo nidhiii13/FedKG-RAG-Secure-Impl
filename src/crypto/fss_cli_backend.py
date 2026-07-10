@@ -7,8 +7,8 @@ backend is implemented with myl7/fss, a pybind module, or a standalone binary.
 Expected CLI protocol:
 
 Generate:
-  stdin:  {"op":"gen","alpha":"...","beta":1,"party_ids":["p0","p1"]}
-  stdout: {"shares":{"p0": <json payload>, "p1": <json payload>}}
+  stdin:  {"op":"gen","alpha":"...","beta":1,"share_count":2}
+  stdout: {"shares":[<json payload>, <json payload>]}
 
 Evaluate:
   stdin:  {"op":"eval","share": <json payload>, "point":"..."}
@@ -74,15 +74,14 @@ class FssCliBackend:
 
     def gen(self, alpha: str, beta: int, party_ids: Sequence[str]) -> Dict[str, DpfKeyShare]:
         response = self._call(
-            {"op": "gen", "alpha": alpha, "beta": beta, "party_ids": list(party_ids)}
+            {"op": "gen", "alpha": alpha, "beta": beta, "share_count": len(party_ids)}
         )
         shares = response.get("shares")
-        if not isinstance(shares, dict):
-            raise FssCliBackendError("FSS/DPF CLI gen response must contain a shares object")
-        missing = set(party_ids) - set(shares)
-        if missing:
-            raise FssCliBackendError(f"FSS/DPF CLI omitted shares for parties: {sorted(missing)}")
-        return {party_id: DpfKeyShare(party_id, shares[party_id]) for party_id in party_ids}
+        if not isinstance(shares, list):
+            raise FssCliBackendError("FSS/DPF CLI gen response must contain a shares array")
+        if len(shares) != len(party_ids):
+            raise FssCliBackendError("FSS/DPF CLI gen response length does not match party count")
+        return {party_id: DpfKeyShare(party_id, shares[index]) for index, party_id in enumerate(party_ids)}
 
     def eval(self, key_share: DpfKeyShare, point: str) -> int:
         response = self._call({"op": "eval", "share": key_share.payload, "point": point})

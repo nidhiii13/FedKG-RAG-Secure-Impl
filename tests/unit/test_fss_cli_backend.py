@@ -19,7 +19,7 @@ class FssCliBackendTest(unittest.TestCase):
                 """import json, sys
 req = json.loads(sys.stdin.read())
 if req["op"] == "gen":
-    print(json.dumps({"shares": {p: {"p": p, "alpha": req["alpha"]} for p in req["party_ids"]}}))
+    print(json.dumps({"shares": [{"party": i, "alpha": req["alpha"]} for i in range(req["share_count"])]}))
 elif req["op"] == "eval":
     print(json.dumps({"value": int(req["share"]["alpha"] == req["point"])}))
 elif req["op"] == "eval_many":
