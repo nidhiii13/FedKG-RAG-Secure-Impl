@@ -133,6 +133,41 @@ class CrossPartyFrontierMatcherTest(unittest.TestCase):
             ],
         )
 
+    def test_undirected_query_topology_uses_reverse_relation_index(self):
+        ids = HmacIdProvider(b"test-key")
+        p0 = SecurePartyIndex.from_plain_graph(
+            "p0",
+            {"Anchor": {"first_relation": ["Join"]}, "Join": {}},
+            {},
+            ids,
+        )
+        p1 = SecurePartyIndex.from_plain_graph(
+            "p1",
+            {"Answer": {"second_relation": ["Join"]}, "Join": {}},
+            {},
+            ids,
+        )
+        query = [
+            ("Anchor", "first_relation", "UNKNOWN join 1"),
+            ("UNKNOWN answer 1", "second_relation", "UNKNOWN join 1"),
+        ]
+        matcher = CrossPartyFrontierMatcher(
+            [p0, p1],
+            ids,
+            LocalAnyPartyDpfBackend(),
+            MatchScoreShareBuilder(share_count=3),
+        )
+
+        ranked = matcher.retrieve_ranked(query, LocalGarbledCircuitTopK(party_count=3), k=1)
+
+        self.assertEqual(
+            ranked.evidence[0].edges,
+            [
+                ("Anchor", "first_relation", "Join"),
+                ("Answer", "second_relation", "Join"),
+            ],
+        )
+
     def test_semantic_relation_routing_matches_alias_relation_labels(self):
         ids = HmacIdProvider(b"test-key")
         p0 = SecurePartyIndex.from_plain_graph(
@@ -218,6 +253,30 @@ class CrossPartyFrontierMatcherTest(unittest.TestCase):
             embedder.embed("A Foreign Affair"),
         )
         self.assertAlmostEqual(ranked.evidence[0].score, expected_score)
+
+    def test_trailing_s_entity_alias_avoids_semantic_entity_fallback(self):
+        ids = HmacIdProvider(b"test-key")
+        p0 = SecurePartyIndex.from_plain_graph(
+            "p0",
+            {"Lorenzo Quinteros": {"starred_actors": ["Man Facing Southeast"]}, "Man Facing Southeast": {}},
+            {},
+            ids,
+        )
+        query = [("Lorenzo Quintero", "starred_actors", "UNKNOWN film 1")]
+        matcher = CrossPartyFrontierMatcher(
+            [p0],
+            ids,
+            LocalAnyPartyDpfBackend(),
+            MatchScoreShareBuilder(share_count=3),
+            enable_semantic_entities=True,
+        )
+
+        ranked = matcher.retrieve_ranked(query, LocalGarbledCircuitTopK(party_count=3), k=1)
+
+        self.assertEqual(
+            ranked.evidence[0].edges,
+            [("Lorenzo Quinteros", "starred_actors", "Man Facing Southeast")],
+        )
 
 
 if __name__ == "__main__":

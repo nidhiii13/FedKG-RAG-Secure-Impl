@@ -17,6 +17,7 @@ class SecurePartyIndex:
     display_entities: Dict[str, str] = field(default_factory=dict)
     display_relations: Dict[str, str] = field(default_factory=dict)
     alignment_index: Dict[str, List[str]] = field(default_factory=dict)
+    reverse_adjacency: Dict[str, Dict[str, List[str]]] = field(default_factory=dict)
 
     @classmethod
     def from_plain_graph(
@@ -59,21 +60,38 @@ class SecurePartyIndex:
         assert_no_projection_collisions(f"{party_id}:relations", display_relations)
         assert_no_projection_collisions(f"{party_id}:types", type_labels)
 
+        encoded_adjacency = {
+            source: {relation: sorted(set(targets)) for relation, targets in rels.items()}
+            for source, rels in adjacency.items()
+        }
+        reverse_adjacency: Dict[str, Dict[str, List[str]]] = {}
+        for source_id, rels in encoded_adjacency.items():
+            for relation_id, target_ids in rels.items():
+                for target_id in target_ids:
+                    reverse_adjacency.setdefault(target_id, {}).setdefault(relation_id, []).append(source_id)
+
         return cls(
             party_id=str(party_id),
-            adjacency={
-                source: {relation: sorted(set(targets)) for relation, targets in rels.items()}
-                for source, rels in adjacency.items()
-            },
+            adjacency=encoded_adjacency,
             type_index=type_index,
             display_entities=display_entities,
             display_relations=display_relations,
             alignment_index={key: sorted(set(values)) for key, values in alignment_index.items()},
+            reverse_adjacency={
+                target: {relation: sorted(set(sources)) for relation, sources in rels.items()}
+                for target, rels in reverse_adjacency.items()
+            },
         )
 
     @property
     def local_relations(self) -> Set[str]:
         return {relation for rels in self.adjacency.values() for relation in rels}
+
+    def relation_targets(self, source_id: str, relation_id: str, reverse: bool = False) -> List[str]:
+        """Return outgoing targets, or incoming sources for reverse traversal."""
+
+        index = self.reverse_adjacency if reverse else self.adjacency
+        return index.get(source_id, {}).get(relation_id, [])
 
     def exact_candidates(
         self,

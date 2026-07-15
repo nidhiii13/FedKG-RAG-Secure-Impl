@@ -1,2 +1,5 @@
 sentence-transformers
 torch
+einops
+openai
+pytest

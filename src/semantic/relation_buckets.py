@@ -15,7 +15,19 @@ _TOKEN_RE = re.compile(r"[a-z0-9]+")
 SemanticBucketMode = Literal["alias", "lsh", "hybrid"]
 
 _ALIASES = {
-    "actor": {"actor", "actors", "acted", "acting", "star", "stars", "starred", "cast"},
+    "actor": {
+        "actor",
+        "actors",
+        "acted",
+        "acting",
+        "appear",
+        "appeared",
+        "appears",
+        "cast",
+        "star",
+        "stars",
+        "starred",
+    },
     "director": {"direct", "directed", "director", "directors"},
     "writer": {"write", "writes", "written", "writer", "writers", "screenwriter"},
     "genre": {"genre", "genres", "type", "types"},

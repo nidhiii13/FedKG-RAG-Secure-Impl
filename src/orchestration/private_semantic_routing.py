@@ -16,8 +16,6 @@ from src.semantic.relation_buckets import RelationSemanticIndex, SemanticBucketM
 @dataclass(frozen=True)
 class SemanticBucketRequest:
     label: str
-    bucket_token: str
-    penalty: float
     query_vector: tuple[float, ...]
     key_shares: Mapping[str, DpfKeyShare]
 
@@ -26,7 +24,6 @@ class SemanticBucketRequest:
 class SemanticBucketEvalShares:
     party_id: str
     label: str
-    bucket_token: str
     eval_shares: Dict[str, int]
 
 
@@ -59,25 +56,32 @@ class PrivateSemanticRelationRouter:
         indexes: Mapping[str, RelationSemanticIndex],
     ) -> SemanticRelationRouting:
         universe = sorted({token for index in indexes.values() for token in index.tokens})
+        token_to_relations = self._global_token_to_relations(indexes.values())
         requests = self._requests(relation_labels)
         eval_batches = [
             self._evaluate(party_id, request, universe)
             for request in requests
             for party_id in self.party_ids
         ]
-        matched_by_label = self._reconstruct(eval_batches)
         query_vectors = self._query_vectors(requests)
         relation_ids_by_label: Dict[str, set[str]] = {}
         relation_penalties_by_label: Dict[str, Dict[str, float]] = {}
-        for label, tokens in matched_by_label.items():
-            relation_ids, relation_penalties = self._relations_for_tokens(
+        relation_share_totals = self._relation_share_totals(eval_batches, token_to_relations)
+        for label, relation_totals in relation_share_totals.items():
+            relation_ids = {
+                relation_id
+                for relation_id, value in relation_totals.items()
+                if value % self.modulus != 0
+            }
+            if not relation_ids:
+                continue
+            relation_ids_by_label[label] = relation_ids
+            relation_penalties_by_label[label] = self._penalties_for_relations(
                 indexes.values(),
-                tokens,
+                relation_ids,
                 query_vectors[label],
                 self.lsh_penalty,
             )
-            relation_ids_by_label[label] = relation_ids
-            relation_penalties_by_label[label] = relation_penalties
         return SemanticRelationRouting(
             relation_ids_by_label=relation_ids_by_label,
             relation_penalties_by_label=relation_penalties_by_label,
@@ -95,8 +99,6 @@ class PrivateSemanticRelationRouter:
                 requests.append(
                     SemanticBucketRequest(
                         label=label,
-                        bucket_token=token,
-                        penalty=self._bucket_penalty(bucket_name),
                         query_vector=query_vector,
                         key_shares=generated,
                     )
@@ -118,60 +120,66 @@ class PrivateSemanticRelationRouter:
         return SemanticBucketEvalShares(
             party_id=party_id,
             label=request.label,
-            bucket_token=request.bucket_token,
             eval_shares=dict(zip(universe, values)),
         )
 
-    def _reconstruct(self, eval_batches: Iterable[SemanticBucketEvalShares]) -> Dict[str, set[str]]:
-        grouped: Dict[tuple[str, str], Dict[str, SemanticBucketEvalShares]] = {}
-        for batch in eval_batches:
-            grouped.setdefault((batch.label, batch.bucket_token), {})[batch.party_id] = batch
+    @staticmethod
+    def _global_token_to_relations(
+        indexes: Iterable[RelationSemanticIndex],
+    ) -> Dict[str, set[str]]:
+        token_to_relations: Dict[str, set[str]] = {}
+        for index in indexes:
+            for token in index.tokens:
+                token_to_relations.setdefault(token, set()).update(index.relations_for(token))
+        return token_to_relations
 
-        matched_by_label: Dict[str, set[str]] = {}
-        for (label, _), by_party in grouped.items():
-            missing = set(self.party_ids) - set(by_party)
-            if missing:
-                raise ValueError(f"Missing semantic eval shares for parties: {sorted(missing)}")
-            candidate_tokens = set()
-            for batch in by_party.values():
-                candidate_tokens.update(batch.eval_shares)
-            for token in candidate_tokens:
-                values = []
-                for party_id in self.party_ids:
-                    party_values = by_party[party_id].eval_shares
-                    if token not in party_values:
-                        break
-                    values.append(party_values[token])
-                else:
-                    if sum(values) % self.modulus != 0:
-                        matched_by_label.setdefault(label, set()).add(token)
-        return matched_by_label
+    def _relation_share_totals(
+        self,
+        eval_batches: Iterable[SemanticBucketEvalShares],
+        token_to_relations: Mapping[str, set[str]],
+    ) -> Dict[str, Dict[str, int]]:
+        """Project DPF eval shares directly into relation-output shares.
+
+        This avoids returning matched bucket tokens from the routing step. Each
+        party contributes its DPF output share to every relation output slot
+        associated with that bucket token in the shared semantic-output universe.
+        Non-matching buckets cancel when all party shares are summed; matching
+        buckets reconstruct to beta and therefore leave a nonzero candidate
+        relation total.
+        """
+
+        totals: Dict[str, Dict[str, int]] = {}
+        for batch in eval_batches:
+            label_totals = totals.setdefault(batch.label, {})
+            for token, value in batch.eval_shares.items():
+                for relation_id in token_to_relations.get(token, set()):
+                    label_totals[relation_id] = (
+                        label_totals.get(relation_id, 0) + value
+                    ) % self.modulus
+        return totals
 
     @staticmethod
-    def _relations_for_tokens(
+    def _penalties_for_relations(
         indexes: Iterable[RelationSemanticIndex],
-        tokens: Iterable[str],
+        relation_ids: Iterable[str],
         query_vector: Sequence[float],
         fallback_penalty: float,
-    ) -> tuple[set[str], Dict[str, float]]:
-        token_set = set(tokens)
-        relation_ids: set[str] = set()
-        relation_penalties: Dict[str, float] = {}
+    ) -> Dict[str, float]:
+        wanted = set(relation_ids)
+        penalties: Dict[str, float] = {}
         for index in indexes:
-            for token in token_set:
-                for relation_id in index.relations_for(token):
-                    relation_ids.add(relation_id)
-                    candidate_vector = index.vector_for(relation_id)
-                    penalty = (
-                        fallback_penalty
-                        if candidate_vector is None
-                        else simgrag_distance(query_vector, candidate_vector)
-                    )
-                    relation_penalties[relation_id] = min(
-                        penalty,
-                        relation_penalties.get(relation_id, penalty),
-                    )
-        return relation_ids, relation_penalties
+            for relation_id in wanted:
+                candidate_vector = index.vector_for(relation_id)
+                if candidate_vector is None:
+                    continue
+                penalty = simgrag_distance(query_vector, candidate_vector)
+                penalties[relation_id] = min(
+                    penalty,
+                    penalties.get(relation_id, penalty),
+                )
+        for relation_id in wanted:
+            penalties.setdefault(relation_id, fallback_penalty)
+        return penalties
 
     @staticmethod
     def _query_vectors(requests: Iterable[SemanticBucketRequest]) -> Dict[str, tuple[float, ...]]:
@@ -179,12 +187,6 @@ class PrivateSemanticRelationRouter:
         for request in requests:
             query_vectors.setdefault(request.label, request.query_vector)
         return query_vectors
-
-    def _bucket_penalty(self, bucket_name: str) -> float:
-        if bucket_name.startswith("lsh:"):
-            return self.lsh_penalty
-        return self.alias_penalty
-
 
 @dataclass(frozen=True)
 class PrivateSemanticEntityRouter:
@@ -203,25 +205,32 @@ class PrivateSemanticEntityRouter:
         indexes: Mapping[str, EntitySemanticIndex],
     ) -> SemanticEntityRouting:
         universe = sorted({token for index in indexes.values() for token in index.tokens})
+        token_to_entities = self._global_token_to_entities(indexes.values())
         requests = self._requests(entity_labels)
         eval_batches = [
             self._evaluate(party_id, request, universe)
             for request in requests
             for party_id in self.party_ids
         ]
-        matched_by_label = self._reconstruct(eval_batches)
         query_vectors = self._query_vectors(requests)
         entity_ids_by_label: Dict[str, set[str]] = {}
         entity_penalties_by_label: Dict[str, Dict[str, float]] = {}
-        for label, tokens in matched_by_label.items():
-            entity_ids, entity_penalties = self._entities_for_tokens(
+        entity_share_totals = self._entity_share_totals(eval_batches, token_to_entities)
+        for label, entity_totals in entity_share_totals.items():
+            entity_ids = {
+                entity_id
+                for entity_id, value in entity_totals.items()
+                if value % self.modulus != 0
+            }
+            if not entity_ids:
+                continue
+            entity_ids_by_label[label] = entity_ids
+            entity_penalties_by_label[label] = self._penalties_for_entities(
                 indexes.values(),
-                tokens,
+                entity_ids,
                 query_vectors[label],
                 self.lsh_penalty,
             )
-            entity_ids_by_label[label] = entity_ids
-            entity_penalties_by_label[label] = entity_penalties
         return SemanticEntityRouting(
             entity_ids_by_label=entity_ids_by_label,
             entity_penalties_by_label=entity_penalties_by_label,
@@ -238,8 +247,6 @@ class PrivateSemanticEntityRouter:
                 requests.append(
                     SemanticBucketRequest(
                         label=label,
-                        bucket_token=token,
-                        penalty=self._bucket_penalty(bucket_name),
                         query_vector=query_vector,
                         key_shares=generated,
                     )
@@ -261,60 +268,56 @@ class PrivateSemanticEntityRouter:
         return SemanticBucketEvalShares(
             party_id=party_id,
             label=request.label,
-            bucket_token=request.bucket_token,
             eval_shares=dict(zip(universe, values)),
         )
 
-    def _reconstruct(self, eval_batches: Iterable[SemanticBucketEvalShares]) -> Dict[str, set[str]]:
-        grouped: Dict[tuple[str, str], Dict[str, SemanticBucketEvalShares]] = {}
-        for batch in eval_batches:
-            grouped.setdefault((batch.label, batch.bucket_token), {})[batch.party_id] = batch
+    @staticmethod
+    def _global_token_to_entities(
+        indexes: Iterable[EntitySemanticIndex],
+    ) -> Dict[str, set[str]]:
+        token_to_entities: Dict[str, set[str]] = {}
+        for index in indexes:
+            for token in index.tokens:
+                token_to_entities.setdefault(token, set()).update(index.entities_for(token))
+        return token_to_entities
 
-        matched_by_label: Dict[str, set[str]] = {}
-        for (label, _), by_party in grouped.items():
-            missing = set(self.party_ids) - set(by_party)
-            if missing:
-                raise ValueError(f"Missing semantic entity eval shares for parties: {sorted(missing)}")
-            candidate_tokens = set()
-            for batch in by_party.values():
-                candidate_tokens.update(batch.eval_shares)
-            for token in candidate_tokens:
-                values = []
-                for party_id in self.party_ids:
-                    party_values = by_party[party_id].eval_shares
-                    if token not in party_values:
-                        break
-                    values.append(party_values[token])
-                else:
-                    if sum(values) % self.modulus != 0:
-                        matched_by_label.setdefault(label, set()).add(token)
-        return matched_by_label
+    def _entity_share_totals(
+        self,
+        eval_batches: Iterable[SemanticBucketEvalShares],
+        token_to_entities: Mapping[str, set[str]],
+    ) -> Dict[str, Dict[str, int]]:
+        totals: Dict[str, Dict[str, int]] = {}
+        for batch in eval_batches:
+            label_totals = totals.setdefault(batch.label, {})
+            for token, value in batch.eval_shares.items():
+                for entity_id in token_to_entities.get(token, set()):
+                    label_totals[entity_id] = (
+                        label_totals.get(entity_id, 0) + value
+                    ) % self.modulus
+        return totals
 
     @staticmethod
-    def _entities_for_tokens(
+    def _penalties_for_entities(
         indexes: Iterable[EntitySemanticIndex],
-        tokens: Iterable[str],
+        entity_ids: Iterable[str],
         query_vector: Sequence[float],
         fallback_penalty: float,
-    ) -> tuple[set[str], Dict[str, float]]:
-        token_set = set(tokens)
-        entity_ids: set[str] = set()
-        entity_penalties: Dict[str, float] = {}
+    ) -> Dict[str, float]:
+        wanted = set(entity_ids)
+        penalties: Dict[str, float] = {}
         for index in indexes:
-            for token in token_set:
-                for entity_id in index.entities_for(token):
-                    entity_ids.add(entity_id)
-                    candidate_vector = index.vector_for(entity_id)
-                    penalty = (
-                        fallback_penalty
-                        if candidate_vector is None
-                        else simgrag_distance(query_vector, candidate_vector)
-                    )
-                    entity_penalties[entity_id] = min(
-                        penalty,
-                        entity_penalties.get(entity_id, penalty),
-                    )
-        return entity_ids, entity_penalties
+            for entity_id in wanted:
+                candidate_vector = index.vector_for(entity_id)
+                if candidate_vector is None:
+                    continue
+                penalty = simgrag_distance(query_vector, candidate_vector)
+                penalties[entity_id] = min(
+                    penalty,
+                    penalties.get(entity_id, penalty),
+                )
+        for entity_id in wanted:
+            penalties.setdefault(entity_id, fallback_penalty)
+        return penalties
 
     @staticmethod
     def _query_vectors(requests: Iterable[SemanticBucketRequest]) -> Dict[str, tuple[float, ...]]:
@@ -322,8 +325,3 @@ class PrivateSemanticEntityRouter:
         for request in requests:
             query_vectors.setdefault(request.label, request.query_vector)
         return query_vectors
-
-    def _bucket_penalty(self, bucket_name: str) -> float:
-        if bucket_name.startswith("entity_lsh:"):
-            return self.lsh_penalty
-        return self.alias_penalty
