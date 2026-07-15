@@ -1,0 +1,16 @@
+{
+  "local_simulation": true,
+  "data_parties": [
+    {"role_id": "party_0", "authority": "metaqa_partition_0", "endpoint": "local://party_0"},
+    {"role_id": "party_1", "authority": "metaqa_partition_1", "endpoint": "local://party_1"}
+  ],
+  "fss_evaluators": [
+    {"role_id": "fss_evaluator_0", "authority": "lookup_operator_0", "endpoint": "local://fss_evaluator_0"},
+    {"role_id": "fss_evaluator_1", "authority": "lookup_operator_1", "endpoint": "local://fss_evaluator_1"}
+  ],
+  "prio_aggregators": [
+    {"role_id": "prio_aggregator_0", "authority": "aggregate_operator_0", "endpoint": "local://prio_aggregator_0"},
+    {"role_id": "prio_aggregator_1", "authority": "aggregate_operator_1", "endpoint": "local://prio_aggregator_1"},
+    {"role_id": "prio_aggregator_2", "authority": "aggregate_operator_2", "endpoint": "local://prio_aggregator_2"}
+  ]
+}
