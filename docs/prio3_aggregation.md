@@ -125,3 +125,94 @@ does not learn which exact or semantic bucket produced them. Avoiding even this
 candidate-set leakage requires keeping the combined slots secret-shared and
 adding a share-conversion protocol into Prio/MPC ranking; that is not provided
 by Prio3 directly.
+
+## Automatic exact projection and query orchestration
+
+`src/runtime/fss_projection_builder.py` derives a query-independent global
+projection for exact entity, relation, type, and frontier domains. Exact points
+map to their corresponding candidate IDs; type and frontier points map to their
+encoded member entities. All real candidates and dummy slots receive
+session-scoped handles.
+
+`src/orchestration/role_separated_fss_query.py` generates exactly two native DPF
+shares, invokes evaluator indices 0 and 1, combines their projected responses,
+and resolves only nonzero candidate handles through the authorized local handle
+map. `scripts/run_role_separated_fss_query.py` exposes this local simulation as
+a standalone command. The projection is global rather than query-specific;
+otherwise its sparse point mapping would disclose the requested point to each
+evaluator.
+
+## Semantic projection and encoded traversal
+
+Opaque snapshots may optionally include HMAC-only relation and entity semantic
+bucket mappings. Enable them during export with `--semantic-buckets`; the
+selected `--semantic-bucket-mode` is recorded in the snapshot and must match
+online routing. No plaintext labels, setup keys, or display maps are added.
+
+`src/orchestration/role_separated_semantic_routing.py` derives the query's
+alias/LSH bucket names at the trusted gateway and issues one projected DPF
+lookup for each HMAC bucket token. Each evaluator projects its bucket
+evaluation share directly into relation or entity candidate slots. The
+coordinator combines candidate slots, not matched bucket positions. Candidate
+penalties are deterministic bucket-coverage penalties because raw embedding
+vectors are intentionally excluded from evaluator snapshots.
+
+`src/orchestration/role_separated_encoded_matcher.py` consumes exact and
+semantic candidate IDs and traverses the union of replicated HMAC adjacency
+snapshots. It supports path-shaped multi-hop query graphs, reverse traversal,
+and type constraints. Complete encoded paths are hashed into opaque candidate
+IDs. Each supporting opaque partition contributes a presence row, the path
+score, and its edge-support count to the Prio candidate pipeline.
+
+`scripts/run_role_separated_secure_retrieval.py` connects these stages for
+local validation:
+
+```text
+projected exact/semantic FSS lookup
+  -> encoded multi-hop traversal
+  -> per-partition CandidateContribution rows
+  -> Prio3 presence/score/support aggregation
+  -> local top-k validation
+```
+
+This command requires `--allow-local-reconstruction`. It loads both evaluator
+stores and the Rust Prio implementation in one process, so the coordinator can
+observe opaque candidate IDs and reconstructed aggregate values. A production
+deployment still needs network-separated evaluators, share-preserving
+FSS-to-ranking conversion, and distributed MPC/GC ranking.
+
+For a local MetaQA export using the same local embedding configuration as
+SimGRAG:
+
+```bash
+FEDKG_SETUP_KEY="dev-secure-test-key" \
+python3 scripts/export_opaque_fss_snapshots.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --topology configs/secure/metaqa_prio3_roles.local.json \
+  --output-dir /tmp/fedkg-opaque-semantic \
+  --semantic-buckets \
+  --semantic-bucket-mode hybrid \
+  --embedding-backend simgrag \
+  --embedding-config ../SimGRAG/configs/federated/metaqa_party_0.json
+```
+
+The online command must use the same bucket mode and embedding backend:
+
+```bash
+FEDKG_SETUP_KEY="dev-secure-test-key" \
+FEDKG_PRIO_HANDLE_KEY="dev-prio-handle-key" \
+python3 scripts/run_role_separated_secure_retrieval.py \
+  --store-0 /tmp/fedkg-opaque-semantic/fss_evaluator_0 \
+  --store-1 /tmp/fedkg-opaque-semantic/fss_evaluator_1 \
+  --edge 'Kismet|acted in|UNKNOWN' \
+  --edge 'UNKNOWN|acted in|A Foreign Affair' \
+  --request-id metaqa-semantic-two-hop \
+  --query-nonce metaqa-query-0001 \
+  --semantic-bucket-mode hybrid \
+  --embedding-backend simgrag \
+  --embedding-config ../SimGRAG/configs/federated/metaqa_party_0.json \
+  --prio-aggregators 3 \
+  --candidate-capacity 256 \
+  --topk 3 \
+  --allow-local-reconstruction
+```

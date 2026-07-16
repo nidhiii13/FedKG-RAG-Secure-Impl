@@ -18,6 +18,7 @@ from src.party.secure_index import SecurePartyIndex
 from src.runtime.opaque_index_replication import replicate_opaque_snapshots, verify_replicas
 from src.runtime.secure_roles import SecureRoleTopology
 from src.runtime.simgrag_loader import load_manifest, load_party_payload
+from src.semantic.simgrag_embeddings import embedder_from_config
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,6 +29,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--topology", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--key-env", default="FEDKG_SETUP_KEY")
+    parser.add_argument(
+        "--semantic-buckets",
+        action="store_true",
+        help="Include HMAC relation/entity semantic bucket mappings in evaluator snapshots.",
+    )
+    parser.add_argument(
+        "--semantic-bucket-mode",
+        choices=("alias", "lsh", "hybrid"),
+        default="hybrid",
+    )
+    parser.add_argument(
+        "--embedding-backend",
+        choices=("hashing", "simgrag"),
+        default="hashing",
+    )
+    parser.add_argument("--embedding-config", type=Path)
+    parser.add_argument("--embedding-model-path", type=Path)
+    parser.add_argument("--embedding-device")
     return parser.parse_args()
 
 
@@ -39,11 +58,29 @@ def main() -> int:
     topology.validate_contributor_ids(manifest_party_ids)
 
     ids = HmacIdProvider.from_env(args.key_env)
+    semantic_embedder = None
+    if args.semantic_buckets and args.embedding_backend == "simgrag":
+        if args.embedding_config is None:
+            raise SystemExit("--embedding-config is required for --embedding-backend simgrag")
+        semantic_embedder = embedder_from_config(
+            args.embedding_config,
+            model_path=args.embedding_model_path,
+            device=args.embedding_device,
+        )
     snapshots = []
     for party in manifest.parties:
         graph, types = load_party_payload(party.data_path)
         secure_index = SecurePartyIndex.from_plain_graph(party.party_id, graph, types, ids)
-        snapshots.append(OpaqueIndexSnapshot.from_secure_index(secure_index, ids))
+        snapshots.append(
+            OpaqueIndexSnapshot.from_secure_index(
+                secure_index,
+                ids,
+                semantic_bucket_mode=(
+                    args.semantic_bucket_mode if args.semantic_buckets else None
+                ),
+                semantic_embedder=semantic_embedder,
+            )
+        )
 
     replicas = replicate_opaque_snapshots(
         snapshots,
@@ -58,6 +95,12 @@ def main() -> int:
                 "partition_count": len(snapshots),
                 "fss_evaluator_count": len(replicas),
                 "replicas_identical": True,
+                "semantic_bucket_mode": (
+                    args.semantic_bucket_mode if args.semantic_buckets else None
+                ),
+                "embedding_backend": (
+                    args.embedding_backend if args.semantic_buckets else None
+                ),
                 "output_dir": str(args.output_dir),
             },
             indent=2,
@@ -69,4 +112,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

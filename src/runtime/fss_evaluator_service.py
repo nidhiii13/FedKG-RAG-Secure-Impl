@@ -15,7 +15,14 @@ from src.runtime.fss_candidate_projection import (
     ProjectedFssEvaluatorResponse,
 )
 
-EvaluationDomain = Literal["entity", "relation", "type", "frontier"]
+EvaluationDomain = Literal[
+    "entity",
+    "relation",
+    "type",
+    "frontier",
+    "relation_bucket",
+    "entity_bucket",
+]
 
 
 @dataclass(frozen=True)
@@ -77,6 +84,10 @@ class FssEvaluatorStore:
             )
         if domain == "frontier":
             return self.index.frontier_points
+        if domain == "relation_bucket":
+            return self.index.relation_bucket_points
+        if domain == "entity_bucket":
+            return self.index.entity_bucket_points
         raise ValueError(f"unsupported evaluation domain: {domain}")
 
 
