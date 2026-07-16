@@ -1,0 +1,40 @@
+from Compiler.library import print_ln
+from Compiler.types import Array, sint
+
+ROWS_PER_PARTY = {rows_per_party}
+DATA_PARTIES = {data_parties}
+CANDIDATE_CAPACITY = {candidate_capacity}
+
+# P0 is the query input provider in this local simulation. In the intended
+# client-excluded model, these values are supplied as secret input shares by the
+# query gateway, and the gateway does not participate after input setup.
+query_source = sint.get_input_from(0)
+query_relation = sint.get_input_from(0)
+
+support = Array(CANDIDATE_CAPACITY, sint)
+score = Array(CANDIDATE_CAPACITY, sint)
+
+for candidate_slot in range(CANDIDATE_CAPACITY):
+    support[candidate_slot] = sint(0)
+    score[candidate_slot] = sint(0)
+
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    for row in range(ROWS_PER_PARTY):
+        source_id = sint.get_input_from(player)
+        relation_id = sint.get_input_from(player)
+        target_slot = sint.get_input_from(player)
+        row_score = sint.get_input_from(player)
+
+        row_matches = (source_id == query_source) * (relation_id == query_relation)
+
+        for candidate_slot in range(CANDIDATE_CAPACITY):
+            slot_matches = target_slot == sint(candidate_slot)
+            include = row_matches * slot_matches
+            support[candidate_slot] = support[candidate_slot] + include
+            score[candidate_slot] = score[candidate_slot] + include * row_score
+
+print_ln("candidate_slot support score")
+for candidate_slot in range(CANDIDATE_CAPACITY):
+    print_ln("%s %s %s", candidate_slot, support[candidate_slot].reveal(), score[candidate_slot].reveal())
+

@@ -1,0 +1,81 @@
+from Compiler.library import print_ln
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+EDGE_ROWS_PER_PARTY = {edge_rows_per_party}
+DATA_PARTIES = {data_parties}
+TOTAL_EDGE_ROWS = EDGE_ROWS_PER_PARTY * DATA_PARTIES
+TOP_K = {top_k}
+NO_SELECTION = TOTAL_EDGE_ROWS * TOTAL_EDGE_ROWS
+RANK_BASE = 4
+
+# P0 is the query input provider in this local simulation. In the intended
+# client-excluded model, the query gateway provides these secret values/shares
+# during setup and then leaves the online computation.
+query_source = sint.get_input_from(0)
+query_relation_1 = sint.get_input_from(0)
+query_relation_2 = sint.get_input_from(0)
+query_target = sint.get_input_from(0)
+target_is_unknown = sint.get_input_from(0)
+
+edge_source = Array(TOTAL_EDGE_ROWS, sint)
+edge_relation = Array(TOTAL_EDGE_ROWS, sint)
+edge_target = Array(TOTAL_EDGE_ROWS, sint)
+edge_valid = Array(TOTAL_EDGE_ROWS, sint)
+
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    base = party_offset * EDGE_ROWS_PER_PARTY
+    for row in range(EDGE_ROWS_PER_PARTY):
+        slot = base + row
+        edge_source[slot] = sint.get_input_from(player)
+        edge_relation[slot] = sint.get_input_from(player)
+        edge_target[slot] = sint.get_input_from(player)
+        edge_valid[slot] = sint.get_input_from(player)
+
+selected_pair = Array(TOP_K, sint)
+for rank in range(TOP_K):
+    selected_pair[rank] = sint(NO_SELECTION)
+
+print_ln("rank selected_edge_pair_slot")
+
+for rank in range(TOP_K):
+    best_pair = sint(NO_SELECTION)
+    best_key = sint(0)
+
+    for left in range(TOTAL_EDGE_ROWS):
+        left_matches = (
+            edge_valid[left]
+            * (edge_source[left] == query_source)
+            * (edge_relation[left] == query_relation_1)
+        )
+
+        for right in range(TOTAL_EDGE_ROWS):
+            pair_slot = left * TOTAL_EDGE_ROWS + right
+            already_selected = sint(0)
+            for old_rank in range(TOP_K):
+                already_selected = already_selected + (selected_pair[old_rank] == sint(pair_slot))
+
+            target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (
+                edge_target[right] == query_target
+            )
+            pair_matches = (
+                left_matches
+                * edge_valid[right]
+                * (edge_target[left] == edge_source[right])
+                * (edge_relation[right] == query_relation_2)
+                * target_matches
+            )
+
+            not_selected = sint(1) - (already_selected > sint(0))
+            # Smaller pair_slot wins ties to keep output deterministic.
+            rank_key = pair_matches * not_selected * sint(RANK_BASE)
+            better = rank_key > best_key
+            best_pair = better.if_else(sint(pair_slot), best_pair)
+            best_key = better.if_else(rank_key, best_key)
+
+    has_selection = best_key > sint(0)
+    output_pair = has_selection.if_else(best_pair, sint(NO_SELECTION))
+    selected_pair[rank] = output_pair
+    print_ln("%s %s", rank, output_pair.reveal())

@@ -1,0 +1,79 @@
+from Compiler.library import print_ln
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+ROWS_PER_PARTY = {rows_per_party}
+DATA_PARTIES = {data_parties}
+PATH_CAPACITY = {path_capacity}
+TOP_K = {top_k}
+NO_SELECTION = PATH_CAPACITY
+MAX_SCORE = {max_score}
+RANK_BASE = MAX_SCORE + 1
+
+# P0 is the query input provider in this local simulation. In the intended
+# client-excluded model, the query gateway supplies these values as secret
+# inputs/shares and is not involved after input setup.
+query_source = sint.get_input_from(0)
+query_relation_1 = sint.get_input_from(0)
+query_relation_2 = sint.get_input_from(0)
+query_target = sint.get_input_from(0)
+target_is_unknown = sint.get_input_from(0)
+
+support = Array(PATH_CAPACITY, sint)
+score = Array(PATH_CAPACITY, sint)
+selected = Array(PATH_CAPACITY, sint)
+
+for path_slot in range(PATH_CAPACITY):
+    support[path_slot] = sint(0)
+    score[path_slot] = sint(0)
+    selected[path_slot] = sint(0)
+
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    for row in range(ROWS_PER_PARTY):
+        source_id = sint.get_input_from(player)
+        relation_1_id = sint.get_input_from(player)
+        relation_2_id = sint.get_input_from(player)
+        target_id = sint.get_input_from(player)
+        path_slot_value = sint.get_input_from(player)
+        row_score = sint.get_input_from(player)
+
+        source_matches = source_id == query_source
+        relation_1_matches = relation_1_id == query_relation_1
+        relation_2_matches = relation_2_id == query_relation_2
+        target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (target_id == query_target)
+        row_matches = source_matches * relation_1_matches * relation_2_matches * target_matches
+
+        for path_slot in range(PATH_CAPACITY):
+            slot_matches = path_slot_value == sint(path_slot)
+            include = row_matches * slot_matches
+            support[path_slot] = support[path_slot] + include
+            score[path_slot] = score[path_slot] + include * row_score
+
+print_ln("rank selected_path_slot")
+
+for rank in range(TOP_K):
+    best_slot = sint(NO_SELECTION)
+    best_key = sint(0)
+
+    for path_slot in range(PATH_CAPACITY):
+        not_selected = sint(1) - selected[path_slot]
+        has_support = support[path_slot] > sint(0)
+
+        # Larger key is better: support dominates, then lower score wins.
+        # Empty or already selected slots get key 0 and cannot win.
+        rank_key = support[path_slot] * sint(RANK_BASE) + (sint(MAX_SCORE) - score[path_slot])
+        effective_key = not_selected * has_support * rank_key
+        better = effective_key > best_key
+
+        best_slot = better.if_else(sint(path_slot), best_slot)
+        best_key = better.if_else(effective_key, best_key)
+
+    has_selection = best_key > sint(0)
+    output_slot = has_selection.if_else(best_slot, sint(NO_SELECTION))
+    print_ln("%s %s", rank, output_slot.reveal())
+
+    for path_slot in range(PATH_CAPACITY):
+        mark_selected = has_selection * (best_slot == sint(path_slot))
+        selected[path_slot] = selected[path_slot] + mark_selected
