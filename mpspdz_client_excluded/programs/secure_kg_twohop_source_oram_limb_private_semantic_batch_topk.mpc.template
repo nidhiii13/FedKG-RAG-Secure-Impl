@@ -1,0 +1,401 @@
+from Compiler.library import for_range, print_ln
+from Compiler.oram import OptimalORAM
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+DATA_PARTIES = {data_parties}
+NUM_QUERIES = {num_queries}
+ENTITY_DIRECTORY_CAPACITY = {entity_directory_capacity}
+ENTITY_EDGE_CAPACITY = {entity_edge_capacity}
+RELATION_BUCKET_DIRECTORY_CAPACITY = {relation_bucket_directory_capacity}
+RELATION_BUCKET_EDGE_CAPACITY = {relation_bucket_edge_capacity}
+ENTITY_PROBE_LIMIT = {entity_probe_limit}
+RELATION_BUCKET_PROBE_LIMIT = {relation_bucket_probe_limit}
+MAX_CANDIDATES = {max_candidates}
+MAX_RELATION_CANDIDATES = {max_relation_candidates}
+MAX_QUERY_BUCKETS = {max_query_buckets}
+TOP_K = {top_k}
+
+ENTITY_DIRECTORY_TOTAL = ENTITY_DIRECTORY_CAPACITY * DATA_PARTIES
+ENTITY_EDGE_TOTAL = ENTITY_EDGE_CAPACITY * DATA_PARTIES
+RELATION_BUCKET_DIRECTORY_TOTAL = RELATION_BUCKET_DIRECTORY_CAPACITY * DATA_PARTIES
+RELATION_BUCKET_EDGE_TOTAL = RELATION_BUCKET_EDGE_CAPACITY * DATA_PARTIES
+CANDIDATE_TOTAL = MAX_CANDIDATES * DATA_PARTIES
+RELATION_CANDIDATE_TOTAL = MAX_QUERY_BUCKETS * MAX_RELATION_CANDIDATES * DATA_PARTIES
+
+query_source_0 = Array(NUM_QUERIES, sint)
+query_source_1 = Array(NUM_QUERIES, sint)
+query_source_2 = Array(NUM_QUERIES, sint)
+query_source_3 = Array(NUM_QUERIES, sint)
+query_relation_1_bucket_0 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_1_bucket_1 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_1_bucket_2 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_1_bucket_3 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_direction_1 = Array(NUM_QUERIES, sint)
+query_relation_2_bucket_0 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_2_bucket_1 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_2_bucket_2 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_2_bucket_3 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_reverse_direction_2 = Array(NUM_QUERIES, sint)
+query_target_0 = Array(NUM_QUERIES, sint)
+query_target_1 = Array(NUM_QUERIES, sint)
+query_target_2 = Array(NUM_QUERIES, sint)
+query_target_3 = Array(NUM_QUERIES, sint)
+target_is_unknown = Array(NUM_QUERIES, sint)
+type_identity_mode = Array(NUM_QUERIES, sint)
+source_probe_slots = Array(NUM_QUERIES * ENTITY_PROBE_LIMIT, sint)
+reverse_probe_slots = Array(NUM_QUERIES * ENTITY_PROBE_LIMIT, sint)
+relation_1_bucket_probe_slots = Array(NUM_QUERIES * MAX_QUERY_BUCKETS * RELATION_BUCKET_PROBE_LIMIT, sint)
+relation_2_bucket_probe_slots = Array(NUM_QUERIES * MAX_QUERY_BUCKETS * RELATION_BUCKET_PROBE_LIMIT, sint)
+
+for query in range(NUM_QUERIES):
+    query_source_0[query] = sint.get_input_from(0)
+    query_source_1[query] = sint.get_input_from(0)
+    query_source_2[query] = sint.get_input_from(0)
+    query_source_3[query] = sint.get_input_from(0)
+    for bucket in range(MAX_QUERY_BUCKETS):
+        bucket_slot = query * MAX_QUERY_BUCKETS + bucket
+        query_relation_1_bucket_0[bucket_slot] = sint.get_input_from(0)
+        query_relation_1_bucket_1[bucket_slot] = sint.get_input_from(0)
+        query_relation_1_bucket_2[bucket_slot] = sint.get_input_from(0)
+        query_relation_1_bucket_3[bucket_slot] = sint.get_input_from(0)
+    query_direction_1[query] = sint.get_input_from(0)
+    for bucket in range(MAX_QUERY_BUCKETS):
+        bucket_slot = query * MAX_QUERY_BUCKETS + bucket
+        query_relation_2_bucket_0[bucket_slot] = sint.get_input_from(0)
+        query_relation_2_bucket_1[bucket_slot] = sint.get_input_from(0)
+        query_relation_2_bucket_2[bucket_slot] = sint.get_input_from(0)
+        query_relation_2_bucket_3[bucket_slot] = sint.get_input_from(0)
+    query_reverse_direction_2[query] = sint.get_input_from(0)
+    query_target_0[query] = sint.get_input_from(0)
+    query_target_1[query] = sint.get_input_from(0)
+    query_target_2[query] = sint.get_input_from(0)
+    query_target_3[query] = sint.get_input_from(0)
+    target_is_unknown[query] = sint.get_input_from(0)
+    type_identity_mode[query] = sint.get_input_from(0)
+    for probe in range(ENTITY_PROBE_LIMIT):
+        source_probe_slots[query * ENTITY_PROBE_LIMIT + probe] = sint.get_input_from(0)
+    for probe in range(ENTITY_PROBE_LIMIT):
+        reverse_probe_slots[query * ENTITY_PROBE_LIMIT + probe] = sint.get_input_from(0)
+    for bucket in range(MAX_QUERY_BUCKETS):
+        for probe in range(RELATION_BUCKET_PROBE_LIMIT):
+            relation_1_bucket_probe_slots[
+                (query * MAX_QUERY_BUCKETS + bucket) * RELATION_BUCKET_PROBE_LIMIT + probe
+            ] = sint.get_input_from(0)
+    for bucket in range(MAX_QUERY_BUCKETS):
+        for probe in range(RELATION_BUCKET_PROBE_LIMIT):
+            relation_2_bucket_probe_slots[
+                (query * MAX_QUERY_BUCKETS + bucket) * RELATION_BUCKET_PROBE_LIMIT + probe
+            ] = sint.get_input_from(0)
+
+entity_directory_entry_size = (32, 32, 32, 32, 1, {entity_edge_index_bits}, {candidate_count_bits}, 1)
+entity_edge_entry_size = (32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 61, 1)
+relation_bucket_directory_entry_size = (32, 32, 32, 32, {relation_bucket_edge_index_bits}, {relation_candidate_count_bits}, 1)
+relation_bucket_edge_entry_size = (32, 32, 32, 32, 1)
+
+entity_directory = OptimalORAM(ENTITY_DIRECTORY_TOTAL, entry_size=entity_directory_entry_size)
+entity_edges = OptimalORAM(ENTITY_EDGE_TOTAL, entry_size=entity_edge_entry_size)
+relation_bucket_directory = OptimalORAM(
+    RELATION_BUCKET_DIRECTORY_TOTAL,
+    entry_size=relation_bucket_directory_entry_size,
+)
+relation_bucket_edges = OptimalORAM(
+    RELATION_BUCKET_EDGE_TOTAL,
+    entry_size=relation_bucket_edge_entry_size,
+)
+
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    entity_directory_base = party_offset * ENTITY_DIRECTORY_CAPACITY
+
+    @for_range(ENTITY_DIRECTORY_CAPACITY)
+    def _(slot):
+        entity_directory[entity_directory_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(8)
+        )
+
+    entity_edge_base = party_offset * ENTITY_EDGE_CAPACITY
+
+    @for_range(ENTITY_EDGE_CAPACITY)
+    def _(slot):
+        entity_edges[entity_edge_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(14)
+        )
+
+    bucket_directory_base = party_offset * RELATION_BUCKET_DIRECTORY_CAPACITY
+
+    @for_range(RELATION_BUCKET_DIRECTORY_CAPACITY)
+    def _(slot):
+        relation_bucket_directory[bucket_directory_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(7)
+        )
+
+    bucket_edge_base = party_offset * RELATION_BUCKET_EDGE_CAPACITY
+
+    @for_range(RELATION_BUCKET_EDGE_CAPACITY)
+    def _(slot):
+        relation_bucket_edges[bucket_edge_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(5)
+        )
+
+left_rel_0 = Array(RELATION_CANDIDATE_TOTAL, sint)
+left_rel_1 = Array(RELATION_CANDIDATE_TOTAL, sint)
+left_rel_2 = Array(RELATION_CANDIDATE_TOTAL, sint)
+left_rel_3 = Array(RELATION_CANDIDATE_TOTAL, sint)
+left_rel_valid = Array(RELATION_CANDIDATE_TOTAL, sint)
+right_rel_0 = Array(RELATION_CANDIDATE_TOTAL, sint)
+right_rel_1 = Array(RELATION_CANDIDATE_TOTAL, sint)
+right_rel_2 = Array(RELATION_CANDIDATE_TOTAL, sint)
+right_rel_3 = Array(RELATION_CANDIDATE_TOTAL, sint)
+right_rel_valid = Array(RELATION_CANDIDATE_TOTAL, sint)
+
+left_source_0 = Array(CANDIDATE_TOTAL, sint)
+left_source_1 = Array(CANDIDATE_TOTAL, sint)
+left_source_2 = Array(CANDIDATE_TOTAL, sint)
+left_source_3 = Array(CANDIDATE_TOTAL, sint)
+left_relation_0 = Array(CANDIDATE_TOTAL, sint)
+left_relation_1 = Array(CANDIDATE_TOTAL, sint)
+left_relation_2 = Array(CANDIDATE_TOTAL, sint)
+left_relation_3 = Array(CANDIDATE_TOTAL, sint)
+left_target_0 = Array(CANDIDATE_TOTAL, sint)
+left_target_1 = Array(CANDIDATE_TOTAL, sint)
+left_target_2 = Array(CANDIDATE_TOTAL, sint)
+left_target_3 = Array(CANDIDATE_TOTAL, sint)
+left_evidence = Array(CANDIDATE_TOTAL, sint)
+left_valid = Array(CANDIDATE_TOTAL, sint)
+right_source_0 = Array(CANDIDATE_TOTAL, sint)
+right_source_1 = Array(CANDIDATE_TOTAL, sint)
+right_source_2 = Array(CANDIDATE_TOTAL, sint)
+right_source_3 = Array(CANDIDATE_TOTAL, sint)
+right_relation_0 = Array(CANDIDATE_TOTAL, sint)
+right_relation_1 = Array(CANDIDATE_TOTAL, sint)
+right_relation_2 = Array(CANDIDATE_TOTAL, sint)
+right_relation_3 = Array(CANDIDATE_TOTAL, sint)
+right_target_0 = Array(CANDIDATE_TOTAL, sint)
+right_target_1 = Array(CANDIDATE_TOTAL, sint)
+right_target_2 = Array(CANDIDATE_TOTAL, sint)
+right_target_3 = Array(CANDIDATE_TOTAL, sint)
+right_evidence = Array(CANDIDATE_TOTAL, sint)
+right_valid = Array(CANDIDATE_TOTAL, sint)
+selected_left = Array(TOP_K, sint)
+selected_right = Array(TOP_K, sint)
+
+print_ln("query rank left_evidence_handle right_evidence_handle")
+@for_range(NUM_QUERIES)
+def _(query):
+    for party_offset in range(DATA_PARTIES):
+        entity_directory_base = party_offset * ENTITY_DIRECTORY_CAPACITY
+        entity_edge_base = party_offset * ENTITY_EDGE_CAPACITY
+        bucket_directory_base = party_offset * RELATION_BUCKET_DIRECTORY_CAPACITY
+        bucket_edge_base = party_offset * RELATION_BUCKET_EDGE_CAPACITY
+
+        for bucket in range(MAX_QUERY_BUCKETS):
+            bucket_slot = query * MAX_QUERY_BUCKETS + bucket
+            rel1_found = sint(0)
+            rel1_offset = sint(0)
+            rel1_count = sint(0)
+            rel2_found = sint(0)
+            rel2_offset = sint(0)
+            rel2_count = sint(0)
+            for probe in range(RELATION_BUCKET_PROBE_LIMIT):
+                rel1_slot = relation_1_bucket_probe_slots[
+                    bucket_slot * RELATION_BUCKET_PROBE_LIMIT + probe
+                ]
+                rel1_entry = relation_bucket_directory[bucket_directory_base + rel1_slot]
+                rel1_match = (
+                    rel1_entry[6]
+                    * (rel1_entry[0] == query_relation_1_bucket_0[bucket_slot])
+                    * (rel1_entry[1] == query_relation_1_bucket_1[bucket_slot])
+                    * (rel1_entry[2] == query_relation_1_bucket_2[bucket_slot])
+                    * (rel1_entry[3] == query_relation_1_bucket_3[bucket_slot])
+                    * (sint(1) - rel1_found)
+                )
+                rel1_offset = rel1_offset + rel1_match * rel1_entry[4]
+                rel1_count = rel1_count + rel1_match * rel1_entry[5]
+                rel1_found = rel1_found + rel1_match
+
+                rel2_slot = relation_2_bucket_probe_slots[
+                    bucket_slot * RELATION_BUCKET_PROBE_LIMIT + probe
+                ]
+                rel2_entry = relation_bucket_directory[bucket_directory_base + rel2_slot]
+                rel2_match = (
+                    rel2_entry[6]
+                    * (rel2_entry[0] == query_relation_2_bucket_0[bucket_slot])
+                    * (rel2_entry[1] == query_relation_2_bucket_1[bucket_slot])
+                    * (rel2_entry[2] == query_relation_2_bucket_2[bucket_slot])
+                    * (rel2_entry[3] == query_relation_2_bucket_3[bucket_slot])
+                    * (sint(1) - rel2_found)
+                    * (sint(1) - type_identity_mode[query])
+                )
+                rel2_offset = rel2_offset + rel2_match * rel2_entry[4]
+                rel2_count = rel2_count + rel2_match * rel2_entry[5]
+                rel2_found = rel2_found + rel2_match
+
+            for row in range(MAX_RELATION_CANDIDATES):
+                slot = (
+                    (party_offset * MAX_QUERY_BUCKETS + bucket)
+                    * MAX_RELATION_CANDIDATES
+                    + row
+                )
+                rel1 = relation_bucket_edges[bucket_edge_base + rel1_offset + sint(row)]
+                left_rel_0[slot] = rel1[0]
+                left_rel_1[slot] = rel1[1]
+                left_rel_2[slot] = rel1[2]
+                left_rel_3[slot] = rel1[3]
+                left_rel_valid[slot] = rel1_found * (sint(row) < rel1_count) * rel1[4]
+
+                rel2 = relation_bucket_edges[bucket_edge_base + rel2_offset + sint(row)]
+                right_rel_0[slot] = rel2[0]
+                right_rel_1[slot] = rel2[1]
+                right_rel_2[slot] = rel2[2]
+                right_rel_3[slot] = rel2[3]
+                right_rel_valid[slot] = rel2_found * (sint(row) < rel2_count) * rel2[4]
+
+        left_found = sint(0)
+        left_offset = sint(0)
+        left_count = sint(0)
+        reverse_found = sint(0)
+        reverse_offset = sint(0)
+        reverse_count = sint(0)
+        for probe in range(ENTITY_PROBE_LIMIT):
+            left_slot = source_probe_slots[query * ENTITY_PROBE_LIMIT + probe]
+            left_entry = entity_directory[entity_directory_base + left_slot]
+            left_match = (
+                left_entry[7]
+                * (left_entry[0] == query_source_0[query])
+                * (left_entry[1] == query_source_1[query])
+                * (left_entry[2] == query_source_2[query])
+                * (left_entry[3] == query_source_3[query])
+                * (left_entry[4] == query_direction_1[query])
+                * (sint(1) - left_found)
+            )
+            left_offset = left_offset + left_match * left_entry[5]
+            left_count = left_count + left_match * left_entry[6]
+            left_found = left_found + left_match
+
+            reverse_slot = reverse_probe_slots[query * ENTITY_PROBE_LIMIT + probe]
+            reverse_entry = entity_directory[entity_directory_base + reverse_slot]
+            reverse_match = (
+                reverse_entry[7]
+                * (reverse_entry[0] == query_target_0[query])
+                * (reverse_entry[1] == query_target_1[query])
+                * (reverse_entry[2] == query_target_2[query])
+                * (reverse_entry[3] == query_target_3[query])
+                * (reverse_entry[4] == query_reverse_direction_2[query])
+                * (sint(1) - reverse_found)
+                * (sint(1) - target_is_unknown[query])
+                * (sint(1) - type_identity_mode[query])
+            )
+            reverse_offset = reverse_offset + reverse_match * reverse_entry[5]
+            reverse_count = reverse_count + reverse_match * reverse_entry[6]
+            reverse_found = reverse_found + reverse_match
+
+        for row in range(MAX_CANDIDATES):
+            slot = party_offset * MAX_CANDIDATES + row
+            left = entity_edges[entity_edge_base + left_offset + sint(row)]
+            left_source_0[slot] = left[0]
+            left_source_1[slot] = left[1]
+            left_source_2[slot] = left[2]
+            left_source_3[slot] = left[3]
+            left_relation_0[slot] = left[4]
+            left_relation_1[slot] = left[5]
+            left_relation_2[slot] = left[6]
+            left_relation_3[slot] = left[7]
+            left_target_0[slot] = left[8]
+            left_target_1[slot] = left[9]
+            left_target_2[slot] = left[10]
+            left_target_3[slot] = left[11]
+            left_evidence[slot] = left[12]
+            left_valid[slot] = left_found * (sint(row) < left_count) * left[13]
+
+            reverse = entity_edges[entity_edge_base + reverse_offset + sint(row)]
+            right_source_0[slot] = reverse[8]
+            right_source_1[slot] = reverse[9]
+            right_source_2[slot] = reverse[10]
+            right_source_3[slot] = reverse[11]
+            right_relation_0[slot] = reverse[4]
+            right_relation_1[slot] = reverse[5]
+            right_relation_2[slot] = reverse[6]
+            right_relation_3[slot] = reverse[7]
+            right_target_0[slot] = reverse[0]
+            right_target_1[slot] = reverse[1]
+            right_target_2[slot] = reverse[2]
+            right_target_3[slot] = reverse[3]
+            right_evidence[slot] = reverse[12]
+            right_valid[slot] = reverse_found * (sint(row) < reverse_count) * reverse[13]
+
+    for rank in range(TOP_K):
+        selected_left[rank] = sint(0)
+        selected_right[rank] = sint(0)
+
+    match_prefix_count = sint(0)
+    for left in range(CANDIDATE_TOTAL):
+        left_relation_ok = sint(0)
+        for rel in range(RELATION_CANDIDATE_TOTAL):
+            left_relation_match = (
+                left_rel_valid[rel]
+                * (left_relation_0[left] == left_rel_0[rel])
+                * (left_relation_1[left] == left_rel_1[rel])
+                * (left_relation_2[left] == left_rel_2[rel])
+                * (left_relation_3[left] == left_rel_3[rel])
+            )
+            left_relation_ok = left_relation_ok + left_relation_match * (sint(1) - left_relation_ok)
+        left_ok = (
+            left_valid[left]
+            * left_relation_ok
+            * (left_source_0[left] == query_source_0[query])
+            * (left_source_1[left] == query_source_1[query])
+            * (left_source_2[left] == query_source_2[query])
+            * (left_source_3[left] == query_source_3[query])
+        )
+        for right in range(CANDIDATE_TOTAL):
+            right_relation_ok = sint(0)
+            for rel in range(RELATION_CANDIDATE_TOTAL):
+                right_relation_match = (
+                    right_rel_valid[rel]
+                    * (right_relation_0[right] == right_rel_0[rel])
+                    * (right_relation_1[right] == right_rel_1[rel])
+                    * (right_relation_2[right] == right_rel_2[rel])
+                    * (right_relation_3[right] == right_rel_3[rel])
+                )
+                right_relation_ok = right_relation_ok + right_relation_match * (sint(1) - right_relation_ok)
+            right_ok = (
+                right_valid[right]
+                * right_relation_ok
+                * (right_target_0[right] == query_target_0[query])
+                * (right_target_1[right] == query_target_1[query])
+                * (right_target_2[right] == query_target_2[query])
+                * (right_target_3[right] == query_target_3[query])
+            )
+            middle_equal = (
+                (left_target_0[left] == right_source_0[right])
+                * (left_target_1[left] == right_source_1[right])
+                * (left_target_2[left] == right_source_2[right])
+                * (left_target_3[left] == right_source_3[right])
+            )
+            known_target_support = (
+                left_ok
+                * right_ok
+                * middle_equal
+                * (sint(1) - type_identity_mode[query])
+            )
+            type_support = left_ok * type_identity_mode[query] * (sint(right) == sint(0))
+            support = known_target_support + type_support
+            match_prefix_count = match_prefix_count + support
+            for rank in range(TOP_K):
+                selected = support * (match_prefix_count == sint(rank + 1))
+                selected_left[rank] = selected_left[rank] + selected * left_evidence[left]
+                selected_right[rank] = (
+                    selected_right[rank]
+                    + selected * right_evidence[right] * (sint(1) - type_identity_mode[query])
+                )
+
+    for rank in range(TOP_K):
+        print_ln(
+            "%s %s %s %s",
+            query,
+            rank,
+            selected_left[rank].reveal(),
+            selected_right[rank].reveal(),
+        )

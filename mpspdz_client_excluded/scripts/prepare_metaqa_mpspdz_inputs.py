@@ -18,6 +18,29 @@ from pathlib import Path
 
 
 FIELD_MASK = (1 << 61) - 1
+UNKNOWN = "UNKNOWN"
+FORWARD_STARRED_ACTOR_RELATIONS = {
+    "acted by",
+    "is acted by",
+    "appeared by",
+    "has actor",
+    "has actors",
+    "have actor",
+    "have actors",
+    "is starred by",
+    "starred by",
+    "starred_actors",
+}
+REVERSE_STARRED_ACTOR_RELATIONS = {
+    "act in",
+    "acted in",
+    "actor of",
+    "appear in",
+    "appears in",
+    "star in",
+    "star of",
+    "starred in",
+}
 
 
 def _repo_root() -> Path:
@@ -32,6 +55,21 @@ def _load_party(path: Path) -> tuple[dict, dict | None]:
 
 def _canonical_text(value: str) -> str:
     return " ".join(str(value).strip().lower().split())
+
+
+def _is_unknown(value: str) -> bool:
+    return _canonical_text(value).startswith("unknown")
+
+
+def _normalize_relation(relation: str, *, semantic_relations: bool) -> tuple[str, str]:
+    if not semantic_relations:
+        return relation, "forward"
+    canonical = _canonical_text(relation)
+    if canonical in FORWARD_STARRED_ACTOR_RELATIONS:
+        return "starred_actors", "forward"
+    if canonical in REVERSE_STARRED_ACTOR_RELATIONS:
+        return "starred_actors", "reverse"
+    return relation, "forward"
 
 
 def _hmac_int(setup_key: str, namespace: str, value: str) -> int:
@@ -57,6 +95,7 @@ def _party_edges(
     setup_key: str,
     source_filter: str,
     relation_filter: str,
+    direction: str,
     candidate_slots: dict[str, int],
     rows_per_party: int,
 ) -> list[tuple[int, int, int, int]]:
@@ -69,13 +108,19 @@ def _party_edges(
     # would use fixed public tables or padded private tables independent of one
     # query instance.
     for source, adjacency in graph.items():
-        if _canonical_text(source) != _canonical_text(source_filter):
-            continue
         for relation, targets in adjacency.items():
             if _canonical_text(relation) != _canonical_text(relation_filter):
                 continue
             for target in targets:
-                slot = candidate_slots.get(str(target))
+                if direction == "reverse":
+                    logical_source = str(target)
+                    logical_target = str(source)
+                else:
+                    logical_source = str(source)
+                    logical_target = str(target)
+                if _canonical_text(logical_source) != _canonical_text(source_filter):
+                    continue
+                slot = candidate_slots.get(logical_target)
                 if slot is None:
                     continue
                 rows.append((source_id, relation_id, slot, 1))
@@ -92,6 +137,7 @@ def _candidate_slots(
     setup_key: str,
     source: str,
     relation: str,
+    direction: str,
     capacity: int,
 ) -> tuple[dict[str, int], list[dict]]:
     candidates: list[str] = []
@@ -99,17 +145,22 @@ def _candidate_slots(
     for party in parties:
         graph, _ = _load_party(Path(party["data"]))
         for graph_source, adjacency in graph.items():
-            if _canonical_text(graph_source) != _canonical_text(source):
-                continue
             for graph_relation, targets in adjacency.items():
                 if _canonical_text(graph_relation) != _canonical_text(relation):
                     continue
                 for target in targets:
-                    target = str(target)
-                    if target in seen:
+                    if direction == "reverse":
+                        logical_source = str(target)
+                        logical_target = str(graph_source)
+                    else:
+                        logical_source = str(graph_source)
+                        logical_target = str(target)
+                    if _canonical_text(logical_source) != _canonical_text(source):
                         continue
-                    seen.add(target)
-                    candidates.append(target)
+                    if logical_target in seen:
+                        continue
+                    seen.add(logical_target)
+                    candidates.append(logical_target)
 
     candidates = candidates[:capacity]
     slots = {candidate: index for index, candidate in enumerate(candidates)}
@@ -136,14 +187,16 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--rows-per-party", type=int, default=256)
     parser.add_argument("--candidate-capacity", type=int, default=64)
+    parser.add_argument("--semantic-relations", action="store_true")
     args = parser.parse_args()
 
     setup_key = os.environ.get("FEDKG_SETUP_KEY")
     if not setup_key:
         raise SystemExit("FEDKG_SETUP_KEY is required")
 
-    source, relation, target = args.edge
-    if target.upper() != "UNKNOWN":
+    source, original_relation, target = args.edge
+    relation, direction = _normalize_relation(original_relation, semantic_relations=args.semantic_relations)
+    if not _is_unknown(target):
         raise SystemExit("this prototype expects TARGET to be UNKNOWN")
 
     manifest = _load_manifest(Path(args.manifest))
@@ -156,6 +209,7 @@ def main() -> int:
         setup_key=setup_key,
         source=source,
         relation=relation,
+        direction=direction,
         capacity=args.candidate_capacity,
     )
 
@@ -182,6 +236,7 @@ def main() -> int:
             setup_key=setup_key,
             source_filter=source,
             relation_filter=relation,
+            direction=direction,
             candidate_slots=candidate_slots,
             rows_per_party=args.rows_per_party,
         )
@@ -199,7 +254,10 @@ def main() -> int:
     mapping = {
         "query": {
             "source": source,
+            "original_relation": original_relation,
             "relation": relation,
+            "direction": direction,
+            "semantic_relations": args.semantic_relations,
             "target": target,
             "source_id": query_values[0],
             "relation_id": query_values[1],
@@ -221,4 +279,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

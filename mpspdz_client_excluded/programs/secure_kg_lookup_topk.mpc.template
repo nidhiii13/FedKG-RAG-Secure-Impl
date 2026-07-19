@@ -1,6 +1,8 @@
 from Compiler.library import print_ln
 from Compiler.types import Array, sint
 
+program.use_edabit(True)
+
 ROWS_PER_PARTY = {rows_per_party}
 DATA_PARTIES = {data_parties}
 CANDIDATE_CAPACITY = {candidate_capacity}
@@ -37,4 +39,3 @@ for party_offset in range(DATA_PARTIES):
 print_ln("candidate_slot support score")
 for candidate_slot in range(CANDIDATE_CAPACITY):
     print_ln("%s %s %s", candidate_slot, support[candidate_slot].reveal(), score[candidate_slot].reveal())
-

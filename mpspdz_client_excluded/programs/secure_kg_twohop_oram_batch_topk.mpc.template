@@ -1,0 +1,202 @@
+from Compiler.library import for_range, print_ln
+from Compiler.oram import OptimalORAM
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+DATA_PARTIES = {data_parties}
+NUM_QUERIES = {num_queries}
+DIRECTORY_CAPACITY = {directory_capacity}
+SOURCE_EDGE_CAPACITY = {source_edge_capacity}
+TARGET_EDGE_CAPACITY = {target_edge_capacity}
+PROBE_LIMIT = {probe_limit}
+MAX_CANDIDATES = {max_candidates}
+TOP_K = {top_k}
+
+DIRECTORY_TOTAL = DIRECTORY_CAPACITY * DATA_PARTIES
+SOURCE_EDGE_TOTAL = SOURCE_EDGE_CAPACITY * DATA_PARTIES
+TARGET_EDGE_TOTAL = TARGET_EDGE_CAPACITY * DATA_PARTIES
+CANDIDATE_TOTAL = MAX_CANDIDATES * DATA_PARTIES
+
+query_source = Array(NUM_QUERIES, sint)
+query_relation_1 = Array(NUM_QUERIES, sint)
+query_direction_1 = Array(NUM_QUERIES, sint)
+query_relation_2 = Array(NUM_QUERIES, sint)
+query_direction_2 = Array(NUM_QUERIES, sint)
+query_target = Array(NUM_QUERIES, sint)
+target_is_unknown = Array(NUM_QUERIES, sint)
+type_identity_mode = Array(NUM_QUERIES, sint)
+source_probe_slots = Array(NUM_QUERIES * PROBE_LIMIT, sint)
+target_probe_slots = Array(NUM_QUERIES * PROBE_LIMIT, sint)
+
+# P0 is the dedicated query gateway, not an end client.
+for query in range(NUM_QUERIES):
+    query_source[query] = sint.get_input_from(0)
+    query_relation_1[query] = sint.get_input_from(0)
+    query_direction_1[query] = sint.get_input_from(0)
+    query_relation_2[query] = sint.get_input_from(0)
+    query_direction_2[query] = sint.get_input_from(0)
+    query_target[query] = sint.get_input_from(0)
+    target_is_unknown[query] = sint.get_input_from(0)
+    type_identity_mode[query] = sint.get_input_from(0)
+    for probe in range(PROBE_LIMIT):
+        source_probe_slots[query * PROBE_LIMIT + probe] = sint.get_input_from(0)
+    for probe in range(PROBE_LIMIT):
+        target_probe_slots[query * PROBE_LIMIT + probe] = sint.get_input_from(0)
+
+directory_entry_size = (61, 61, 1, {source_edge_index_bits}, {candidate_count_bits}, 1)
+target_directory_entry_size = (61, 61, 1, {target_edge_index_bits}, {candidate_count_bits}, 1)
+edge_entry_size = (61, 61, 61, 61, 1)
+
+source_directory = OptimalORAM(DIRECTORY_TOTAL, entry_size=directory_entry_size)
+target_directory = OptimalORAM(DIRECTORY_TOTAL, entry_size=target_directory_entry_size)
+source_edges = OptimalORAM(SOURCE_EDGE_TOTAL, entry_size=edge_entry_size)
+target_edges = OptimalORAM(TARGET_EDGE_TOTAL, entry_size=edge_entry_size)
+
+# Query-independent party indexes are loaded once and reused for every query.
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    directory_base = party_offset * DIRECTORY_CAPACITY
+
+    @for_range(DIRECTORY_CAPACITY)
+    def _(slot):
+        source_directory[directory_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(6)
+        )
+
+    @for_range(DIRECTORY_CAPACITY)
+    def _(slot):
+        target_directory[directory_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(6)
+        )
+
+    source_base = party_offset * SOURCE_EDGE_CAPACITY
+
+    @for_range(SOURCE_EDGE_CAPACITY)
+    def _(slot):
+        source_edges[source_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(5)
+        )
+
+    target_base = party_offset * TARGET_EDGE_CAPACITY
+
+    @for_range(TARGET_EDGE_CAPACITY)
+    def _(slot):
+        target_edges[target_base + slot] = tuple(
+            sint.get_input_from(player) for _ in range(5)
+        )
+
+left_source = Array(CANDIDATE_TOTAL, sint)
+left_relation = Array(CANDIDATE_TOTAL, sint)
+left_target = Array(CANDIDATE_TOTAL, sint)
+left_evidence = Array(CANDIDATE_TOTAL, sint)
+left_valid = Array(CANDIDATE_TOTAL, sint)
+right_source = Array(CANDIDATE_TOTAL, sint)
+right_relation = Array(CANDIDATE_TOTAL, sint)
+right_target = Array(CANDIDATE_TOTAL, sint)
+right_evidence = Array(CANDIDATE_TOTAL, sint)
+right_valid = Array(CANDIDATE_TOTAL, sint)
+selected_left = Array(TOP_K, sint)
+selected_right = Array(TOP_K, sint)
+
+print_ln("query rank left_evidence_handle right_evidence_handle")
+@for_range(NUM_QUERIES)
+def _(query):
+    for party_offset in range(DATA_PARTIES):
+        directory_base = party_offset * DIRECTORY_CAPACITY
+        source_edge_base = party_offset * SOURCE_EDGE_CAPACITY
+        target_edge_base = party_offset * TARGET_EDGE_CAPACITY
+        source_found = sint(0)
+        source_offset = sint(0)
+        source_count = sint(0)
+        target_found = sint(0)
+        target_offset = sint(0)
+        target_count = sint(0)
+
+        for probe in range(PROBE_LIMIT):
+            source_slot = source_probe_slots[query * PROBE_LIMIT + probe]
+            source_entry = source_directory[directory_base + source_slot]
+            source_match = (
+                source_entry[5]
+                * (source_entry[0] == query_source[query])
+                * (source_entry[1] == query_relation_1[query])
+                * (source_entry[2] == query_direction_1[query])
+                * (sint(1) - source_found)
+            )
+            source_offset = source_offset + source_match * source_entry[3]
+            source_count = source_count + source_match * source_entry[4]
+            source_found = source_found + source_match
+
+            target_slot = target_probe_slots[query * PROBE_LIMIT + probe]
+            target_entry = target_directory[directory_base + target_slot]
+            target_match = (
+                target_entry[5]
+                * (target_entry[0] == query_target[query])
+                * (target_entry[1] == query_relation_2[query])
+                * (target_entry[2] == query_direction_2[query])
+                * (sint(1) - target_found)
+                * (sint(1) - target_is_unknown[query])
+                * (sint(1) - type_identity_mode[query])
+            )
+            target_offset = target_offset + target_match * target_entry[3]
+            target_count = target_count + target_match * target_entry[4]
+            target_found = target_found + target_match
+
+        for row in range(MAX_CANDIDATES):
+            slot = party_offset * MAX_CANDIDATES + row
+            left = source_edges[source_edge_base + source_offset + sint(row)]
+            left_source[slot] = left[0]
+            left_relation[slot] = left[1]
+            left_target[slot] = left[2]
+            left_evidence[slot] = left[3]
+            left_valid[slot] = source_found * (sint(row) < source_count) * left[4]
+
+            right = target_edges[target_edge_base + target_offset + sint(row)]
+            right_source[slot] = right[0]
+            right_relation[slot] = right[1]
+            right_target[slot] = right[2]
+            right_evidence[slot] = right[3]
+            right_valid[slot] = target_found * (sint(row) < target_count) * right[4]
+
+    for rank in range(TOP_K):
+        selected_left[rank] = sint(0)
+        selected_right[rank] = sint(0)
+
+    match_prefix_count = sint(0)
+    for left in range(CANDIDATE_TOTAL):
+        left_ok = (
+            left_valid[left]
+            * (left_source[left] == query_source[query])
+            * (left_relation[left] == query_relation_1[query])
+        )
+        for right in range(CANDIDATE_TOTAL):
+            right_ok = (
+                right_valid[right]
+                * (right_relation[right] == query_relation_2[query])
+                * (right_target[right] == query_target[query])
+            )
+            known_target_support = (
+                left_ok
+                * right_ok
+                * (left_target[left] == right_source[right])
+                * (sint(1) - type_identity_mode[query])
+            )
+            type_support = left_ok * type_identity_mode[query] * (sint(right) == sint(0))
+            support = known_target_support + type_support
+            match_prefix_count = match_prefix_count + support
+            for rank in range(TOP_K):
+                selected = support * (match_prefix_count == sint(rank + 1))
+                selected_left[rank] = selected_left[rank] + selected * left_evidence[left]
+                selected_right[rank] = (
+                    selected_right[rank]
+                    + selected * right_evidence[right] * (sint(1) - type_identity_mode[query])
+                )
+
+    for rank in range(TOP_K):
+        print_ln(
+            "%s %s %s %s",
+            query,
+            rank,
+            selected_left[rank].reveal(),
+            selected_right[rank].reveal(),
+        )

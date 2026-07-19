@@ -1,0 +1,87 @@
+from Compiler.library import print_ln
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+LEFT_ROWS_PER_PARTY = {left_rows_per_party}
+RIGHT_ROWS_PER_PARTY = {right_rows_per_party}
+DATA_PARTIES = {data_parties}
+LEFT_TOTAL = LEFT_ROWS_PER_PARTY * DATA_PARTIES
+RIGHT_TOTAL = RIGHT_ROWS_PER_PARTY * DATA_PARTIES
+PAIR_CAPACITY = LEFT_TOTAL * RIGHT_TOTAL
+TOP_K = {top_k}
+NO_SELECTION = PAIR_CAPACITY
+
+# P0 is the query input provider in this local simulation.
+query_source = sint.get_input_from(0)
+query_relation_1 = sint.get_input_from(0)
+query_relation_2 = sint.get_input_from(0)
+query_target = sint.get_input_from(0)
+target_is_unknown = sint.get_input_from(0)
+
+left_source = Array(LEFT_TOTAL, sint)
+left_relation = Array(LEFT_TOTAL, sint)
+left_target = Array(LEFT_TOTAL, sint)
+left_valid = Array(LEFT_TOTAL, sint)
+right_source = Array(RIGHT_TOTAL, sint)
+right_relation = Array(RIGHT_TOTAL, sint)
+right_target = Array(RIGHT_TOTAL, sint)
+right_valid = Array(RIGHT_TOTAL, sint)
+
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    left_base = party_offset * LEFT_ROWS_PER_PARTY
+    for row in range(LEFT_ROWS_PER_PARTY):
+        slot = left_base + row
+        left_source[slot] = sint.get_input_from(player)
+        left_relation[slot] = sint.get_input_from(player)
+        left_target[slot] = sint.get_input_from(player)
+        left_valid[slot] = sint.get_input_from(player)
+
+    right_base = party_offset * RIGHT_ROWS_PER_PARTY
+    for row in range(RIGHT_ROWS_PER_PARTY):
+        slot = right_base + row
+        right_source[slot] = sint.get_input_from(player)
+        right_relation[slot] = sint.get_input_from(player)
+        right_target[slot] = sint.get_input_from(player)
+        right_valid[slot] = sint.get_input_from(player)
+
+left_ok = Array(LEFT_TOTAL, sint)
+right_ok = Array(RIGHT_TOTAL, sint)
+for left in range(LEFT_TOTAL):
+    left_ok[left] = (
+        left_valid[left]
+        * (left_source[left] == query_source)
+        * (left_relation[left] == query_relation_1)
+    )
+
+for right in range(RIGHT_TOTAL):
+    target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (
+        right_target[right] == query_target
+    )
+    right_ok[right] = right_valid[right] * (right_relation[right] == query_relation_2) * target_matches
+
+pair_support = Array(PAIR_CAPACITY, sint)
+for left in range(LEFT_TOTAL):
+    for right in range(RIGHT_TOTAL):
+        pair_slot = left * RIGHT_TOTAL + right
+        pair_support[pair_slot] = left_ok[left] * right_ok[right] * (
+            left_target[left] == right_source[right]
+        )
+
+selected_output = Array(TOP_K, sint)
+for rank in range(TOP_K):
+    selected_output[rank] = sint(NO_SELECTION)
+
+match_prefix_count = sint(0)
+for pair_slot in range(PAIR_CAPACITY):
+    match_prefix_count = match_prefix_count + pair_support[pair_slot]
+    for rank in range(TOP_K):
+        is_ranked_match = pair_support[pair_slot] * (match_prefix_count == sint(rank + 1))
+        selected_output[rank] = selected_output[rank] + is_ranked_match * (
+            sint(pair_slot) - sint(NO_SELECTION)
+        )
+
+print_ln("rank selected_split_pair_slot")
+for rank in range(TOP_K):
+    print_ln("%s %s", rank, selected_output[rank].reveal())

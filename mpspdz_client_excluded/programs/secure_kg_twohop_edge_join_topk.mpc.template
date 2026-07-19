@@ -8,7 +8,6 @@ DATA_PARTIES = {data_parties}
 TOTAL_EDGE_ROWS = EDGE_ROWS_PER_PARTY * DATA_PARTIES
 TOP_K = {top_k}
 NO_SELECTION = TOTAL_EDGE_ROWS * TOTAL_EDGE_ROWS
-RANK_BASE = 4
 
 # P0 is the query input provider in this local simulation. In the intended
 # client-excluded model, the query gateway provides these secret values/shares
@@ -23,6 +22,8 @@ edge_source = Array(TOTAL_EDGE_ROWS, sint)
 edge_relation = Array(TOTAL_EDGE_ROWS, sint)
 edge_target = Array(TOTAL_EDGE_ROWS, sint)
 edge_valid = Array(TOTAL_EDGE_ROWS, sint)
+first_hop_ok = Array(TOTAL_EDGE_ROWS, sint)
+second_hop_ok = Array(TOTAL_EDGE_ROWS, sint)
 
 for party_offset in range(DATA_PARTIES):
     player = party_offset + 1
@@ -34,48 +35,48 @@ for party_offset in range(DATA_PARTIES):
         edge_target[slot] = sint.get_input_from(player)
         edge_valid[slot] = sint.get_input_from(player)
 
-selected_pair = Array(TOP_K, sint)
-for rank in range(TOP_K):
-    selected_pair[rank] = sint(NO_SELECTION)
+for edge_slot in range(TOTAL_EDGE_ROWS):
+    first_hop_ok[edge_slot] = (
+        edge_valid[edge_slot]
+        * (edge_source[edge_slot] == query_source)
+        * (edge_relation[edge_slot] == query_relation_1)
+    )
+    target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (
+        edge_target[edge_slot] == query_target
+    )
+    second_hop_ok[edge_slot] = (
+        edge_valid[edge_slot]
+        * (edge_relation[edge_slot] == query_relation_2)
+        * target_matches
+    )
 
-print_ln("rank selected_edge_pair_slot")
+PAIR_CAPACITY = TOTAL_EDGE_ROWS * TOTAL_EDGE_ROWS
+pair_support = Array(PAIR_CAPACITY, sint)
+for pair_slot in range(PAIR_CAPACITY):
+    pair_support[pair_slot] = sint(0)
 
-for rank in range(TOP_K):
-    best_pair = sint(NO_SELECTION)
-    best_key = sint(0)
-
-    for left in range(TOTAL_EDGE_ROWS):
-        left_matches = (
-            edge_valid[left]
-            * (edge_source[left] == query_source)
-            * (edge_relation[left] == query_relation_1)
+for left in range(TOTAL_EDGE_ROWS):
+    for right in range(TOTAL_EDGE_ROWS):
+        pair_slot = left * TOTAL_EDGE_ROWS + right
+        pair_support[pair_slot] = (
+            first_hop_ok[left]
+            * second_hop_ok[right]
+            * (edge_target[left] == edge_source[right])
         )
 
-        for right in range(TOTAL_EDGE_ROWS):
-            pair_slot = left * TOTAL_EDGE_ROWS + right
-            already_selected = sint(0)
-            for old_rank in range(TOP_K):
-                already_selected = already_selected + (selected_pair[old_rank] == sint(pair_slot))
+selected_output = Array(TOP_K, sint)
+for rank in range(TOP_K):
+    selected_output[rank] = sint(NO_SELECTION)
 
-            target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (
-                edge_target[right] == query_target
-            )
-            pair_matches = (
-                left_matches
-                * edge_valid[right]
-                * (edge_target[left] == edge_source[right])
-                * (edge_relation[right] == query_relation_2)
-                * target_matches
-            )
+match_prefix_count = sint(0)
+for pair_slot in range(PAIR_CAPACITY):
+    match_prefix_count = match_prefix_count + pair_support[pair_slot]
+    for rank in range(TOP_K):
+        is_ranked_match = pair_support[pair_slot] * (match_prefix_count == sint(rank + 1))
+        selected_output[rank] = selected_output[rank] + is_ranked_match * (
+            sint(pair_slot) - sint(NO_SELECTION)
+        )
 
-            not_selected = sint(1) - (already_selected > sint(0))
-            # Smaller pair_slot wins ties to keep output deterministic.
-            rank_key = pair_matches * not_selected * sint(RANK_BASE)
-            better = rank_key > best_key
-            best_pair = better.if_else(sint(pair_slot), best_pair)
-            best_key = better.if_else(rank_key, best_key)
-
-    has_selection = best_key > sint(0)
-    output_pair = has_selection.if_else(best_pair, sint(NO_SELECTION))
-    selected_pair[rank] = output_pair
-    print_ln("%s %s", rank, output_pair.reveal())
+print_ln("rank selected_edge_pair_slot")
+for rank in range(TOP_K):
+    print_ln("%s %s", rank, selected_output[rank].reveal())

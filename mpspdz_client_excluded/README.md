@@ -289,6 +289,64 @@ the local smoke test checks all edge-row pairs inside MPC. The
 bounded table small; a production design needs fixed padded edge tables,
 batching, ORAM/PIR, or another access-pattern-hiding layer.
 
+The current template precomputes first-hop matches, second-hop matches, and
+pair support once before top-k ranking. It then selects the first top-k matching
+pairs using a secure prefix count instead of repeatedly running a full max
+comparison circuit. On the 16-row-per-party smoke test, this reduced the local
+run from roughly `49s` E2E / `7.67GB` global communication / `144k` rounds to
+roughly `12s` E2E / `1.55GB` global communication / `6.9k` rounds.
+
+## Split Edge-Table Join
+
+The split edge-table prototype separates bounded first-hop rows from bounded
+second-hop rows, reducing the MPC join space from `all_edges x all_edges` to
+`left_edges x right_edges`:
+
+```bash
+FEDKG_SETUP_KEY="dev-secure-test-key" \
+python3 mpspdz_client_excluded/scripts/run_twohop_split_edge_join_e2e.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --edge 'Kismet|acted in|UNKNOWN' \
+  --edge 'UNKNOWN|acted in|Angel' \
+  --output-dir /tmp/fedkg-mpspdz-split-edge-join \
+  --left-rows-per-party 4 \
+  --right-rows-per-party 8 \
+  --topk 3 \
+  --semantic-relations \
+  --prioritize-query-rows \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+On the same smoke query, this produced the selected path in roughly `2.4s` E2E,
+with `0.82s` MPC time, `195MB` global communication, and `1459` rounds. This is
+currently the fastest private-traversal prototype, but the bounded role-specific
+tables are still a research/protocol design choice that must be made privacy
+safe for production.
+
+For stricter query privacy against data parties, use query-independent table
+construction:
+
+```bash
+FEDKG_SETUP_KEY="dev-secure-test-key" \
+python3 mpspdz_client_excluded/scripts/run_twohop_split_edge_join_e2e.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --edge 'Stephen Furst|act in|UNKNOWN film 1' \
+  --edge 'UNKNOWN film 1|acted by|Stephen Furst' \
+  --output-dir /tmp/fedkg-mpspdz-private-tables \
+  --left-rows-per-party 8 \
+  --right-rows-per-party 8 \
+  --topk 3 \
+  --semantic-relations \
+  --private-tables \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+In `--private-tables` mode, party tables are built from fixed universal logical
+KG rows rather than by filtering on the query entity/relation. This is the
+correct privacy direction, but small row bounds may miss the answer because the
+needed edge might not be inside the bounded universal table. Larger bounds
+increase coverage and MPC cost.
+
 ## Simulating Parties On Different Hosts
 
 The default runner uses `Scripts/semi.sh`, which starts separate MP-SPDZ party
@@ -333,3 +391,180 @@ Compared with the 2-server DPF/FSS design:
 - lookup/scoring can happen inside MPC;
 - the client does not need to stay in the computation after input sharing;
 - scalability is harder because graph traversal becomes circuit work.
+
+## Query-Independent ORAM Adjacency Retrieval
+
+The ORAM path removes query-dependent plaintext table construction. Each data
+party first builds two private adjacency indexes without seeing an online
+query: a source/relation directory for hop 1 and a target/relation directory
+for hop 2. Directory records point to compact contiguous edge blocks. Both the
+directory and edge stores are accessed through MP-SPDZ `OptimalORAM` using
+secret indexes.
+
+Build the public `starred_actors` schema partition once:
+
+```bash
+FEDKG_SETUP_KEY="dev-secure-test-key" \
+python3 mpspdz_client_excluded/scripts/build_metaqa_oram_indexes.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --output-dir /tmp/fedkg-metaqa-oram-starred-index \
+  --relation starred_actors \
+  --max-candidates 64
+```
+
+Run a private two-hop query over those indexes:
+
+```bash
+FEDKG_SETUP_KEY="dev-secure-test-key" \
+python3 mpspdz_client_excluded/scripts/run_twohop_oram_e2e.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --index-dir /tmp/fedkg-metaqa-oram-starred-index \
+  --edge 'Kismet|acted in|UNKNOWN' \
+  --edge 'UNKNOWN|acted in|Angel' \
+  --output-dir /tmp/fedkg-metaqa-oram-kismet-angel \
+  --max-candidates 64 \
+  --topk 3 \
+  --semantic-relations \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+The online computation performs this sequence:
+
+```text
+secret HMAC query IDs
+  -> secret ORAM directory probes at every data party
+  -> fixed-size private adjacency blocks
+  -> cross-party middle-entity join inside MPC
+  -> secure prefix-count top-k
+  -> selected evidence handles only
+  -> party-local controlled plaintext reveal
+```
+
+The query gateway is represented by MP-SPDZ player 0 in local tests; it is a
+dedicated input provider, not the end client. Data parties are players 1..N.
+The N-party runner derives the player count from the generated input files.
+
+Current boundaries are explicit:
+
+- `--semantic-relations` currently applies the established MetaQA relation
+  alias mapping before secret input; full LSH semantic-bucket lookup inside
+  N-party MPC is not yet connected.
+- Known-target two-hop queries and synthetic MetaQA type-identity edges are
+  supported. Unknown-to-unknown second-hop expansion requires another private
+  frontier ORAM access round and is rejected.
+- `max-candidates` is a public padded adjacency bound. The builder reports the
+  maximum degree so truncation can be avoided.
+- The local runner initializes ORAM state for every process. A deployment and
+  meaningful performance benchmark should persist/preprocess ORAM state rather
+  than charge offline initialization to every query.
+- `query_gateway_receipt.json` and party evidence vaults are role-private
+  artifacts and must not be copied into data-party bundles or public results.
+
+## Source-Only ORAM Optimization
+
+`run_source_oram_metaqa_batch.py` is an optimized batch runner that keeps the
+baseline ORAM path unchanged. It uses only `source_directory` and
+`source_edges`. The offline index already contains reverse logical rows, so a
+second hop of the form:
+
+```text
+middle --relation--> known_target
+```
+
+is evaluated by privately looking up:
+
+```text
+known_target --relation(reverse_direction)--> middle
+```
+
+inside the same source ORAM. The MPC circuit swaps that row back into logical
+second-hop orientation before joining on the middle entity. This removes the
+target directory ORAM and target edge ORAM from the batch circuit, reducing the
+largest initialization cost while preserving the same controlled evidence reveal
+policy.
+
+Run the optimized 10-query batch:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 \
+  mpspdz_client_excluded/scripts/run_source_oram_metaqa_batch.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --index-dir /tmp/fedkg-metaqa-oram-starred-index \
+  --queries-jsonl examples/private_frontier_from_federated_q2_500.jsonl \
+  --output results/mpspdz_source_oram_q2_first10.jsonl \
+  --instance-dir /tmp/fedkg-mpspdz-source-oram-q2-first10 \
+  --max-queries 10 \
+  --max-candidates 64 \
+  --auto-tighten-max-candidates \
+  --require-full-fanout \
+  --topk 3 \
+  --semantic-relations \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+## Private Semantic Bucket ORAM
+
+`run_source_oram_limb_private_semantic_metaqa_batch.py` is a separate opt-in
+path for private relation semantic routing. The gateway secret-inputs HMAC
+relation-bucket IDs, such as `alias:actor`, and MP-SPDZ privately resolves:
+
+```text
+relation bucket ID -> candidate relation ID(s) -> entity-only ORAM edge filter
+```
+
+This is different from the older gateway-side semantic path, where the gateway
+resolved the bucket to `starred_actors` before MPC. To make the relation private
+inside MPC, this path uses an entity-only graph directory and filters relation
+IDs after the candidate edge block has been read.
+
+Build a private semantic 128-bit index:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 \
+  mpspdz_client_excluded/scripts/build_metaqa_oram_limb_private_semantic_indexes.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --output-dir /tmp/fedkg-metaqa-private-semantic-oram-index \
+  --relation starred_actors \
+  --semantic-bucket-mode hybrid \
+  --max-candidates 16 \
+  --max-relation-candidates 1
+```
+
+Run the private semantic batch path:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 \
+  mpspdz_client_excluded/scripts/run_source_oram_limb_private_semantic_metaqa_batch.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --index-dir /tmp/fedkg-metaqa-private-semantic-oram-index \
+  --queries-jsonl examples/private_frontier_from_federated_q2_500.jsonl \
+  --output results/mpspdz_private_semantic_oram_q2_first10.jsonl \
+  --instance-dir /tmp/fedkg-mpspdz-private-semantic-oram-q2-first10 \
+  --max-queries 10 \
+  --max-candidates 16 \
+  --max-relation-candidates 1 \
+  --max-query-buckets 4 \
+  --topk 3 \
+  --semantic-bucket-mode hybrid \
+  --ranking-backend local-gc-prototype \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+The runner supports padded multi-bucket routing per relation phrase through
+`--max-query-buckets`. The optimized default is `4`, ordered as high-value
+alias buckets, content-token buckets, content-bigram buckets, and then LSH
+buckets. The gateway still does not choose or see the resolved relation IDs
+from each party's bucket table.
+
+Cost boundary: increasing `--max-query-buckets` increases private bucket ORAM
+lookups and relation-candidate comparisons linearly. `--max-candidates` controls
+the padded entity-edge fanout. For local benchmarking, use a safe high build
+padding, then run with `--auto-tighten-max-candidates --require-full-fanout`.
+This compiles the smallest circuit needed by the selected batch without
+truncating candidate edges. In a production privacy model, the fanout bound
+should normally be fixed publicly because query-dependent runtime can leak a
+degree bound.
+
+For the current `starred_actors` MetaQA partition, `--max-relation-candidates 1`
+is sufficient because every matching semantic bucket maps to a single indexed
+relation.

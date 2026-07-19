@@ -32,6 +32,8 @@ RELATION_ALIASES = {
     "star in": "starred_actors",
     "starred in": "starred_actors",
     "stars in": "starred_actors",
+    "acted by": "starred_actors",
+    "is acted by": "starred_actors",
 }
 
 
