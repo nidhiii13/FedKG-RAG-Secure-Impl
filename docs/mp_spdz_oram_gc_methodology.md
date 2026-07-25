@@ -161,7 +161,15 @@ inside MP-SPDZ before graph traversal.
 6. Ranking boundary.
    The current tested MP-SPDZ path performs private top-k with a prefix-count
    circuit over secret match/support values and reveals only selected evidence
-   handles.
+   handles. This is the production-secure ranking mode available in the current
+   checkout:
+
+   ```text
+   --ranking-backend mpc --production-secure
+   ```
+
+   In this mode, candidate support aggregation and top-k selection remain inside
+   MP-SPDZ before controlled evidence reveal.
 
    The previous GC ranking prototype can be called after this boundary for local
    algorithm testing:
@@ -204,6 +212,11 @@ inside MP-SPDZ before graph traversal.
    an equivalent n-party private comparison protocol. The local
    `LocalGarbledCircuitTopK` module is only a prototype for the comparator logic,
    not the final distributed GC deployment.
+
+   The current optimized secure implementation therefore satisfies the
+   client-excluded N-party MPC lookup/traversal/scoring/aggregation/top-k
+   design, but it should be described as MPC top-k rather than distributed
+   garbled-circuit top-k.
 
 7. Controlled evidence reveal.
    After top-k, only selected evidence handles are opened. The evidence vault
@@ -282,6 +295,25 @@ truncating if the requested upper bound is too small. This is useful for
 accurate experiments, but a production privacy model should normally use a
 fixed public fanout bound because query-dependent runtime can leak a degree
 bound.
+
+For local timing experiments, the runner also supports
+`--compact-probed-benchmark`. This compacts the generated MP-SPDZ input instance
+to only the directory probe slots and edge blocks touched by the selected batch.
+It preserves the same MPC equality/filter/join logic for those compacted rows,
+but it is not production-secure because compact table sizes reveal
+query-dependent access-set information. It is intended for fast experimental
+comparison while the full ORAM path remains available for the cleaner privacy
+profile.
+
+To avoid query-specific optimization while still improving runtime, the code now
+supports public-bound compact profiles and compile caching. The analyzer
+`analyze_private_semantic_oram_bounds.py` computes dataset-wide fanout
+statistics from the offline index, such as p95/p99/max entity degree and
+relation-bucket degree. A fixed public profile can then be chosen for a dataset
+or benchmark suite and reused for all queries. The runner also hashes public
+circuit dimensions into the MP-SPDZ program name and supports
+`--skip-compile-if-present`, so repeated runs with the same public shape can
+reuse compiled bytecode without depending on a specific query.
 
 For the current `starred_actors` MetaQA partition, `--max-relation-candidates 1`
 is sufficient because each semantic bucket maps to one indexed relation.

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -244,6 +245,98 @@ def _entity_directory_count(index: dict, entity_id: tuple[int, ...], direction: 
     return 0
 
 
+def _remap_slots(slots: list[int], mapping: dict[int, int]) -> list[int]:
+    return [mapping[slot] for slot in slots]
+
+
+def _compact_party_index_for_probes(
+    index: dict,
+    *,
+    entity_slots: list[int],
+    relation_bucket_slots: list[int],
+    max_candidates: int,
+    max_relation_candidates: int,
+    fixed_entity_slots: int | None = None,
+    fixed_relation_slots: int | None = None,
+    fixed_entity_edge_rows: int | None = None,
+    fixed_relation_edge_rows: int | None = None,
+) -> tuple[dict, dict[int, int], dict[int, int]]:
+    unique_entity_slots = list(dict.fromkeys(entity_slots))
+    if fixed_entity_slots is not None and len(unique_entity_slots) > fixed_entity_slots:
+        raise ValueError(
+            f"compact entity slot bound too small: {len(unique_entity_slots)} > {fixed_entity_slots}"
+        )
+    entity_slot_map = {slot: new_slot for new_slot, slot in enumerate(unique_entity_slots)}
+    compact_entity_directory = []
+    compact_entity_edges = []
+    for old_slot in unique_entity_slots:
+        row = list(index["entity_directory"][old_slot])
+        if row[7]:
+            old_offset = int(row[5])
+            old_count = min(int(row[6]), max_candidates)
+            new_offset = len(compact_entity_edges)
+            compact_entity_edges.extend(index["entity_edges"][old_offset : old_offset + old_count])
+            row[5] = new_offset
+            row[6] = old_count
+        compact_entity_directory.append(row)
+    if fixed_entity_slots is not None:
+        compact_entity_directory.extend(
+            [[0] * 8 for _ in range(fixed_entity_slots - len(compact_entity_directory))]
+        )
+    compact_entity_edges.extend([[0] * 14 for _ in range(max_candidates)])
+    if fixed_entity_edge_rows is not None:
+        if len(compact_entity_edges) > fixed_entity_edge_rows:
+            raise ValueError(
+                f"compact entity edge bound too small: {len(compact_entity_edges)} > {fixed_entity_edge_rows}"
+            )
+        compact_entity_edges.extend(
+            [[0] * 14 for _ in range(fixed_entity_edge_rows - len(compact_entity_edges))]
+        )
+
+    unique_relation_slots = list(dict.fromkeys(relation_bucket_slots))
+    if fixed_relation_slots is not None and len(unique_relation_slots) > fixed_relation_slots:
+        raise ValueError(
+            f"compact relation slot bound too small: {len(unique_relation_slots)} > {fixed_relation_slots}"
+        )
+    relation_slot_map = {slot: new_slot for new_slot, slot in enumerate(unique_relation_slots)}
+    compact_relation_directory = []
+    compact_relation_edges = []
+    for old_slot in unique_relation_slots:
+        row = list(index["relation_bucket_directory"][old_slot])
+        if row[6]:
+            old_offset = int(row[4])
+            old_count = min(int(row[5]), max_relation_candidates)
+            new_offset = len(compact_relation_edges)
+            compact_relation_edges.extend(
+                index["relation_bucket_edges"][old_offset : old_offset + old_count]
+            )
+            row[4] = new_offset
+            row[5] = old_count
+        compact_relation_directory.append(row)
+    if fixed_relation_slots is not None:
+        compact_relation_directory.extend(
+            [[0] * 7 for _ in range(fixed_relation_slots - len(compact_relation_directory))]
+        )
+    compact_relation_edges.extend([[0] * 5 for _ in range(max_relation_candidates)])
+    if fixed_relation_edge_rows is not None:
+        if len(compact_relation_edges) > fixed_relation_edge_rows:
+            raise ValueError(
+                f"compact relation edge bound too small: {len(compact_relation_edges)} > {fixed_relation_edge_rows}"
+            )
+        compact_relation_edges.extend(
+            [[0] * 5 for _ in range(fixed_relation_edge_rows - len(compact_relation_edges))]
+        )
+
+    compact_index = {
+        **index,
+        "entity_directory": compact_entity_directory,
+        "entity_edges": compact_entity_edges,
+        "relation_bucket_directory": compact_relation_directory,
+        "relation_bucket_edges": compact_relation_edges,
+    }
+    return compact_index, entity_slot_map, relation_slot_map
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True)
@@ -270,9 +363,41 @@ def main() -> int:
     )
     parser.add_argument("--max-relation-candidates", type=int, default=1)
     parser.add_argument("--max-query-buckets", type=int, default=4)
+    parser.add_argument(
+        "--compact-probed-benchmark",
+        action="store_true",
+        help=(
+            "Local benchmark mode: compact party ORAM inputs to the directory probe slots "
+            "and edge blocks touched by this selected batch. This is not production-secure "
+            "because table size becomes query-dependent."
+        ),
+    )
+    parser.add_argument("--fixed-compact-entity-slots", type=int)
+    parser.add_argument("--fixed-compact-relation-slots", type=int)
+    parser.add_argument("--fixed-compact-edge-rows", type=int)
+    parser.add_argument("--fixed-compact-relation-rows", type=int)
     parser.add_argument("--topk", type=int, default=3)
     parser.add_argument("--semantic-bucket-mode", choices=["alias", "lsh", "hybrid"], default="hybrid")
     parser.add_argument("--mp-spdz-home", default="external/MP-SPDZ")
+    parser.add_argument(
+        "--mp-spdz-protocol",
+        choices=("semi", "semi2k", "replicated", "ring", "ps-rep-ring", "sy-rep-ring", "rep4-ring", "shamir"),
+        default="semi",
+        help="MP-SPDZ protocol script. Default preserves the existing semi-party path.",
+    )
+    parser.add_argument(
+        "--skip-compile-if-present",
+        action="store_true",
+        help="Reuse an existing MP-SPDZ compiled program when the public circuit profile matches.",
+    )
+    parser.add_argument(
+        "--production-secure",
+        action="store_true",
+        help=(
+            "Enforce the pre-reveal MP-SPDZ ranking path and fixed public fanout. "
+            "This rejects local GC prototype reranking and query-dependent auto-tightening."
+        ),
+    )
     parser.add_argument(
         "--ranking-backend",
         choices=("mpc", "local-gc-prototype"),
@@ -297,6 +422,45 @@ def main() -> int:
         raise SystemExit("max-relation-candidates exceeds the offline relation padding")
     if args.max_query_buckets < 1:
         raise SystemExit("max-query-buckets must be positive")
+    if args.production_secure:
+        if args.ranking_backend != "mpc":
+            raise SystemExit(
+                "--production-secure requires --ranking-backend mpc; "
+                "local-gc-prototype reranks after MP-SPDZ output and is not a distributed pre-reveal GC"
+            )
+        if args.auto_tighten_max_candidates:
+            raise SystemExit(
+                "--production-secure rejects --auto-tighten-max-candidates because query-dependent "
+                "fanout can leak a degree bound"
+            )
+        fixed_compact_args = (
+            args.fixed_compact_entity_slots,
+            args.fixed_compact_relation_slots,
+            args.fixed_compact_edge_rows,
+            args.fixed_compact_relation_rows,
+        )
+        if args.compact_probed_benchmark and any(value is None for value in fixed_compact_args):
+            raise SystemExit(
+                "--production-secure allows compact-probed mode only with all fixed compact bounds: "
+                "--fixed-compact-entity-slots, --fixed-compact-relation-slots, "
+                "--fixed-compact-edge-rows, --fixed-compact-relation-rows"
+            )
+    fixed_compact_values = (
+        args.fixed_compact_entity_slots,
+        args.fixed_compact_relation_slots,
+        args.fixed_compact_edge_rows,
+        args.fixed_compact_relation_rows,
+    )
+    if any(value is not None for value in fixed_compact_values) and not args.compact_probed_benchmark:
+        raise SystemExit("fixed compact bounds require --compact-probed-benchmark")
+    for name, value in (
+        ("fixed-compact-entity-slots", args.fixed_compact_entity_slots),
+        ("fixed-compact-relation-slots", args.fixed_compact_relation_slots),
+        ("fixed-compact-edge-rows", args.fixed_compact_edge_rows),
+        ("fixed-compact-relation-rows", args.fixed_compact_relation_rows),
+    ):
+        if value is not None and value < 1:
+            raise SystemExit(f"--{name} must be positive")
 
     rows = []
     with Path(args.queries_jsonl).open() as handle:
@@ -374,7 +538,35 @@ def main() -> int:
                         reverse_slots,
                     ),
                 )
-        query_lookups.append((lookup, source_slots, reverse_slots))
+        rel1_slots_by_bucket = []
+        for bucket_id in lookup["relation_1_bucket_ids"]:
+            rel1_base = relation_bucket_slot_limb(
+                setup_key,
+                bucket_id,
+                relation_bucket_directory_capacity,
+            )
+            rel1_slots_by_bucket.append(
+                probe_slots(rel1_base, relation_bucket_directory_capacity, relation_bucket_probe_limit)
+            )
+        rel2_slots_by_bucket = []
+        for bucket_id in lookup["relation_2_bucket_ids"]:
+            rel2_base = relation_bucket_slot_limb(
+                setup_key,
+                bucket_id,
+                relation_bucket_directory_capacity,
+            )
+            rel2_slots_by_bucket.append(
+                probe_slots(rel2_base, relation_bucket_directory_capacity, relation_bucket_probe_limit)
+            )
+        query_lookups.append(
+            {
+                "lookup": lookup,
+                "source_slots": source_slots,
+                "reverse_slots": reverse_slots,
+                "rel1_slots_by_bucket": rel1_slots_by_bucket,
+                "rel2_slots_by_bucket": rel2_slots_by_bucket,
+            }
+        )
 
     if required_max_candidates > args.max_candidates and args.require_full_fanout:
         raise SystemExit(
@@ -385,28 +577,92 @@ def main() -> int:
     if args.auto_tighten_max_candidates:
         effective_max_candidates = min(args.max_candidates, required_max_candidates)
 
-    for (lookup, source_slots, reverse_slots), values in zip(query_lookups, base_query_values):
+    compact_benchmark_stats = None
+    if args.compact_probed_benchmark:
+        compacted_indexes = []
+        entity_maps = []
+        relation_maps = []
+        for index in indexes:
+            entity_slots = [
+                slot
+                for query_lookup in query_lookups
+                for slots in (query_lookup["source_slots"], query_lookup["reverse_slots"])
+                for slot in slots
+            ]
+            relation_slots = [
+                slot
+                for query_lookup in query_lookups
+                for slots_by_bucket in (
+                    query_lookup["rel1_slots_by_bucket"],
+                    query_lookup["rel2_slots_by_bucket"],
+                )
+                for slots in slots_by_bucket
+                for slot in slots
+            ]
+            compacted, entity_map, relation_map = _compact_party_index_for_probes(
+                index,
+                entity_slots=entity_slots,
+                relation_bucket_slots=relation_slots,
+                max_candidates=effective_max_candidates,
+                max_relation_candidates=args.max_relation_candidates,
+                fixed_entity_slots=args.fixed_compact_entity_slots,
+                fixed_relation_slots=args.fixed_compact_relation_slots,
+                fixed_entity_edge_rows=args.fixed_compact_edge_rows,
+                fixed_relation_edge_rows=args.fixed_compact_relation_rows,
+            )
+            compacted_indexes.append(compacted)
+            entity_maps.append(entity_map)
+            relation_maps.append(relation_map)
+        indexes = compacted_indexes
+        for query_lookup in query_lookups:
+            # All parties receive the same compact probe positions because each
+            # compact party table is constructed with the same ordered probe list.
+            query_lookup["source_slots"] = _remap_slots(query_lookup["source_slots"], entity_maps[0])
+            query_lookup["reverse_slots"] = _remap_slots(query_lookup["reverse_slots"], entity_maps[0])
+            query_lookup["rel1_slots_by_bucket"] = [
+                _remap_slots(slots, relation_maps[0])
+                for slots in query_lookup["rel1_slots_by_bucket"]
+            ]
+            query_lookup["rel2_slots_by_bucket"] = [
+                _remap_slots(slots, relation_maps[0])
+                for slots in query_lookup["rel2_slots_by_bucket"]
+            ]
+        compact_benchmark_stats = {
+            "original_entity_directory_capacity": entity_directory_capacity,
+            "original_entity_edge_capacity": entity_edge_capacity,
+            "original_relation_bucket_directory_capacity": relation_bucket_directory_capacity,
+            "original_relation_bucket_edge_capacity": relation_bucket_edge_capacity,
+        }
+        entity_directory_capacity = max(len(index["entity_directory"]) for index in indexes)
+        relation_bucket_directory_capacity = max(
+            len(index["relation_bucket_directory"]) for index in indexes
+        )
+        entity_edge_capacity = max(len(index["entity_edges"]) for index in indexes)
+        relation_bucket_edge_capacity = max(len(index["relation_bucket_edges"]) for index in indexes)
+        compact_benchmark_stats.update(
+            {
+                "compact_entity_directory_capacity": entity_directory_capacity,
+                "compact_entity_edge_capacity": entity_edge_capacity,
+                "compact_relation_bucket_directory_capacity": relation_bucket_directory_capacity,
+                "compact_relation_bucket_edge_capacity": relation_bucket_edge_capacity,
+                "fixed_compact_bounds": {
+                    "entity_slots": args.fixed_compact_entity_slots,
+                    "relation_slots": args.fixed_compact_relation_slots,
+                    "edge_rows": args.fixed_compact_edge_rows,
+                    "relation_rows": args.fixed_compact_relation_rows,
+                },
+            }
+        )
+
+    for query_lookup, values in zip(query_lookups, base_query_values):
+        lookup = query_lookup["lookup"]
         query_values.extend(values)
-        query_values.extend(source_slots)
-        query_values.extend(reverse_slots)
-        for bucket_id in lookup["relation_1_bucket_ids"]:
-            rel1_base = relation_bucket_slot_limb(
-                setup_key,
-                bucket_id,
-                relation_bucket_directory_capacity,
-            )
-            query_values.extend(
-                probe_slots(rel1_base, relation_bucket_directory_capacity, relation_bucket_probe_limit)
-            )
-        for bucket_id in lookup["relation_2_bucket_ids"]:
-            rel2_base = relation_bucket_slot_limb(
-                setup_key,
-                bucket_id,
-                relation_bucket_directory_capacity,
-            )
-            query_values.extend(
-                probe_slots(rel2_base, relation_bucket_directory_capacity, relation_bucket_probe_limit)
-            )
+        query_values.extend(query_lookup["source_slots"])
+        query_values.extend(query_lookup["reverse_slots"])
+        for slots in query_lookup["rel1_slots_by_bucket"]:
+            query_values.extend(slots)
+        for slots in query_lookup["rel2_slots_by_bucket"]:
+            query_values.extend(slots)
 
     instance_dir = Path(args.instance_dir)
     instance_dir.mkdir(parents=True, exist_ok=True)
@@ -416,25 +672,31 @@ def main() -> int:
         / "programs"
         / "secure_kg_twohop_source_oram_limb_private_semantic_batch_topk.mpc.template"
     ).read_text()
+    circuit_profile = {
+        "data_parties": len(indexes),
+        "num_queries": len(rows),
+        "entity_directory_capacity": entity_directory_capacity,
+        "entity_edge_capacity": entity_edge_capacity,
+        "relation_bucket_directory_capacity": relation_bucket_directory_capacity,
+        "relation_bucket_edge_capacity": relation_bucket_edge_capacity,
+        "entity_probe_limit": entity_probe_limit,
+        "relation_bucket_probe_limit": relation_bucket_probe_limit,
+        "max_candidates": effective_max_candidates,
+        "max_relation_candidates": args.max_relation_candidates,
+        "max_query_buckets": args.max_query_buckets,
+        "top_k": args.topk,
+        "entity_edge_index_bits": _bits_for(entity_edge_capacity),
+        "candidate_count_bits": _bits_for(entity_edge_capacity),
+        "relation_bucket_edge_index_bits": _bits_for(relation_bucket_edge_capacity),
+        "relation_candidate_count_bits": _bits_for(relation_bucket_edge_capacity),
+    }
+    profile_hash = hashlib.sha256(
+        json.dumps(circuit_profile, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()[:16]
     program = template.format(
-        data_parties=len(indexes),
-        num_queries=len(rows),
-        entity_directory_capacity=entity_directory_capacity,
-        entity_edge_capacity=entity_edge_capacity,
-        relation_bucket_directory_capacity=relation_bucket_directory_capacity,
-        relation_bucket_edge_capacity=relation_bucket_edge_capacity,
-        entity_probe_limit=entity_probe_limit,
-        relation_bucket_probe_limit=relation_bucket_probe_limit,
-        max_candidates=effective_max_candidates,
-        max_relation_candidates=args.max_relation_candidates,
-        max_query_buckets=args.max_query_buckets,
-        top_k=args.topk,
-        entity_edge_index_bits=_bits_for(entity_edge_capacity),
-        candidate_count_bits=_bits_for(entity_edge_capacity),
-        relation_bucket_edge_index_bits=_bits_for(relation_bucket_edge_capacity),
-        relation_candidate_count_bits=_bits_for(relation_bucket_edge_capacity),
+        **circuit_profile,
     )
-    program_name = "secure_kg_twohop_source_oram_limb_private_semantic_batch_topk"
+    program_name = f"secure_kg_twohop_source_oram_limb_private_semantic_batch_topk_{profile_hash}"
     (instance_dir / f"{program_name}.mpc").write_text(program)
     player_data = instance_dir / "Player-Data"
     query_path = player_data / "Input-P0-0"
@@ -470,6 +732,12 @@ def main() -> int:
         "max_candidates_effective": effective_max_candidates,
         "required_max_candidates_for_batch": required_max_candidates,
         "candidate_truncation_possible": required_max_candidates > effective_max_candidates,
+        "compact_probed_benchmark": args.compact_probed_benchmark,
+        "compact_benchmark_stats": compact_benchmark_stats,
+        "circuit_profile": circuit_profile,
+        "circuit_profile_hash": profile_hash,
+        "mp_spdz_program": program_name,
+        "mp_spdz_protocol": args.mp_spdz_protocol,
         "security_note": (
             "Query relation bucket IDs are secret inputs. MP-SPDZ privately resolves "
             "all padded query buckets to relation candidates and filters entity-only "
@@ -484,6 +752,12 @@ def main() -> int:
     started = time.perf_counter()
     run_env = os.environ.copy()
     run_env["MP_SPDZ_HOME"] = args.mp_spdz_home
+    run_env["MP_SPDZ_PROTOCOL"] = args.mp_spdz_protocol
+    bytecode_dir = Path(args.mp_spdz_home) / "Programs" / "Bytecode"
+    compile_skipped = False
+    if args.skip_compile_if_present and any(bytecode_dir.glob(f"{program_name}*.bc")):
+        run_env["MP_SPDZ_SKIP_COMPILE"] = "1"
+        compile_skipped = True
     mpc = _run(
         ["bash", str(REPO_ROOT / "mpspdz_client_excluded" / "scripts" / "run_mpspdz_oram_instance.sh"), str(instance_dir)],
         env=run_env,
@@ -548,6 +822,7 @@ def main() -> int:
         "batch_e2e_seconds": elapsed,
         "average_amortized_seconds": elapsed / len(rows),
         "mp_spdz_metrics": _parse_mpspdz_metrics(mpc.stdout),
+        "mp_spdz_protocol": args.mp_spdz_protocol,
         "output": str(output_path),
         "instance_dir": str(instance_dir),
         "optimized_path": "source-only-oram-128-bit-private-semantic-bucket",
@@ -559,6 +834,17 @@ def main() -> int:
         "required_max_candidates_for_batch": required_max_candidates,
         "auto_tighten_max_candidates": args.auto_tighten_max_candidates,
         "candidate_truncation_possible": required_max_candidates > effective_max_candidates,
+        "production_secure": args.production_secure,
+        "compact_probed_benchmark": args.compact_probed_benchmark,
+        "compact_benchmark_stats": compact_benchmark_stats,
+        "circuit_profile_hash": profile_hash,
+        "mp_spdz_program": program_name,
+        "compile_skipped": compile_skipped,
+        "ranking_security_note": (
+            "MP-SPDZ computes support aggregation and top-k before evidence reveal."
+            if args.ranking_backend == "mpc"
+            else "local-gc-prototype reranks only paths already selected/revealed by MP-SPDZ."
+        ),
     }
     print(json.dumps(summary, indent=2))
     return 0

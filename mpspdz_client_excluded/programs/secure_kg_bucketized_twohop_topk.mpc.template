@@ -1,0 +1,241 @@
+from Compiler.library import for_range, print_ln
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+DATA_PARTIES = {data_parties}
+NUM_QUERIES = {num_queries}
+ROWS_PER_PARTY = {rows_per_party}
+MAX_QUERY_BUCKETS = {max_query_buckets}
+TOP_K = {top_k}
+LEFT_CANDIDATE_CAP = {left_candidate_cap}
+RIGHT_CANDIDATE_CAP = {right_candidate_cap}
+
+ROW_TOTAL = DATA_PARTIES * ROWS_PER_PARTY
+
+query_source_0 = Array(NUM_QUERIES, sint)
+query_source_1 = Array(NUM_QUERIES, sint)
+query_source_2 = Array(NUM_QUERIES, sint)
+query_source_3 = Array(NUM_QUERIES, sint)
+query_relation_1_bucket_0 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_1_bucket_1 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_1_bucket_2 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_1_bucket_3 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_direction_1 = Array(NUM_QUERIES, sint)
+query_relation_2_bucket_0 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_2_bucket_1 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_2_bucket_2 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_relation_2_bucket_3 = Array(NUM_QUERIES * MAX_QUERY_BUCKETS, sint)
+query_reverse_direction_2 = Array(NUM_QUERIES, sint)
+query_target_0 = Array(NUM_QUERIES, sint)
+query_target_1 = Array(NUM_QUERIES, sint)
+query_target_2 = Array(NUM_QUERIES, sint)
+query_target_3 = Array(NUM_QUERIES, sint)
+target_is_unknown = Array(NUM_QUERIES, sint)
+type_identity_mode = Array(NUM_QUERIES, sint)
+
+for query in range(NUM_QUERIES):
+    query_source_0[query] = sint.get_input_from(0)
+    query_source_1[query] = sint.get_input_from(0)
+    query_source_2[query] = sint.get_input_from(0)
+    query_source_3[query] = sint.get_input_from(0)
+    for bucket in range(MAX_QUERY_BUCKETS):
+        slot = query * MAX_QUERY_BUCKETS + bucket
+        query_relation_1_bucket_0[slot] = sint.get_input_from(0)
+        query_relation_1_bucket_1[slot] = sint.get_input_from(0)
+        query_relation_1_bucket_2[slot] = sint.get_input_from(0)
+        query_relation_1_bucket_3[slot] = sint.get_input_from(0)
+    query_direction_1[query] = sint.get_input_from(0)
+    for bucket in range(MAX_QUERY_BUCKETS):
+        slot = query * MAX_QUERY_BUCKETS + bucket
+        query_relation_2_bucket_0[slot] = sint.get_input_from(0)
+        query_relation_2_bucket_1[slot] = sint.get_input_from(0)
+        query_relation_2_bucket_2[slot] = sint.get_input_from(0)
+        query_relation_2_bucket_3[slot] = sint.get_input_from(0)
+    query_reverse_direction_2[query] = sint.get_input_from(0)
+    query_target_0[query] = sint.get_input_from(0)
+    query_target_1[query] = sint.get_input_from(0)
+    query_target_2[query] = sint.get_input_from(0)
+    query_target_3[query] = sint.get_input_from(0)
+    target_is_unknown[query] = sint.get_input_from(0)
+    type_identity_mode[query] = sint.get_input_from(0)
+
+row_bucket_0 = Array(ROW_TOTAL, sint)
+row_bucket_1 = Array(ROW_TOTAL, sint)
+row_bucket_2 = Array(ROW_TOTAL, sint)
+row_bucket_3 = Array(ROW_TOTAL, sint)
+row_source_0 = Array(ROW_TOTAL, sint)
+row_source_1 = Array(ROW_TOTAL, sint)
+row_source_2 = Array(ROW_TOTAL, sint)
+row_source_3 = Array(ROW_TOTAL, sint)
+row_relation_0 = Array(ROW_TOTAL, sint)
+row_relation_1 = Array(ROW_TOTAL, sint)
+row_relation_2 = Array(ROW_TOTAL, sint)
+row_relation_3 = Array(ROW_TOTAL, sint)
+row_target_0 = Array(ROW_TOTAL, sint)
+row_target_1 = Array(ROW_TOTAL, sint)
+row_target_2 = Array(ROW_TOTAL, sint)
+row_target_3 = Array(ROW_TOTAL, sint)
+row_handle = Array(ROW_TOTAL, sint)
+row_direction = Array(ROW_TOTAL, sint)
+row_valid = Array(ROW_TOTAL, sint)
+
+for party_offset in range(DATA_PARTIES):
+    player = party_offset + 1
+    base = party_offset * ROWS_PER_PARTY
+
+    @for_range(ROWS_PER_PARTY)
+    def _(row):
+        slot = base + row
+        row_bucket_0[slot] = sint.get_input_from(player)
+        row_bucket_1[slot] = sint.get_input_from(player)
+        row_bucket_2[slot] = sint.get_input_from(player)
+        row_bucket_3[slot] = sint.get_input_from(player)
+        row_source_0[slot] = sint.get_input_from(player)
+        row_source_1[slot] = sint.get_input_from(player)
+        row_source_2[slot] = sint.get_input_from(player)
+        row_source_3[slot] = sint.get_input_from(player)
+        row_relation_0[slot] = sint.get_input_from(player)
+        row_relation_1[slot] = sint.get_input_from(player)
+        row_relation_2[slot] = sint.get_input_from(player)
+        row_relation_3[slot] = sint.get_input_from(player)
+        row_target_0[slot] = sint.get_input_from(player)
+        row_target_1[slot] = sint.get_input_from(player)
+        row_target_2[slot] = sint.get_input_from(player)
+        row_target_3[slot] = sint.get_input_from(player)
+        row_handle[slot] = sint.get_input_from(player)
+        row_direction[slot] = sint.get_input_from(player)
+        row_valid[slot] = sint.get_input_from(player)
+
+selected_left = Array(TOP_K, sint)
+selected_right = Array(TOP_K, sint)
+left_handle = Array(LEFT_CANDIDATE_CAP, sint)
+left_middle_0 = Array(LEFT_CANDIDATE_CAP, sint)
+left_middle_1 = Array(LEFT_CANDIDATE_CAP, sint)
+left_middle_2 = Array(LEFT_CANDIDATE_CAP, sint)
+left_middle_3 = Array(LEFT_CANDIDATE_CAP, sint)
+right_handle = Array(RIGHT_CANDIDATE_CAP, sint)
+right_middle_0 = Array(RIGHT_CANDIDATE_CAP, sint)
+right_middle_1 = Array(RIGHT_CANDIDATE_CAP, sint)
+right_middle_2 = Array(RIGHT_CANDIDATE_CAP, sint)
+right_middle_3 = Array(RIGHT_CANDIDATE_CAP, sint)
+
+print_ln("query rank left_evidence_handle right_evidence_handle")
+@for_range(NUM_QUERIES)
+def _(query):
+    for rank in range(TOP_K):
+        selected_left[rank] = sint(0)
+        selected_right[rank] = sint(0)
+    for slot in range(LEFT_CANDIDATE_CAP):
+        left_handle[slot] = sint(0)
+        left_middle_0[slot] = sint(0)
+        left_middle_1[slot] = sint(0)
+        left_middle_2[slot] = sint(0)
+        left_middle_3[slot] = sint(0)
+    for slot in range(RIGHT_CANDIDATE_CAP):
+        right_handle[slot] = sint(0)
+        right_middle_0[slot] = sint(0)
+        right_middle_1[slot] = sint(0)
+        right_middle_2[slot] = sint(0)
+        right_middle_3[slot] = sint(0)
+
+    left_prefix_count = sint(0)
+    right_prefix_count = sint(0)
+    @for_range(ROW_TOTAL)
+    def _(row):
+        left_bucket_ok = sint(0)
+        for bucket in range(MAX_QUERY_BUCKETS):
+            slot = query * MAX_QUERY_BUCKETS + bucket
+            bucket_match = (
+                (row_bucket_0[row] == query_relation_1_bucket_0[slot])
+                * (row_bucket_1[row] == query_relation_1_bucket_1[slot])
+                * (row_bucket_2[row] == query_relation_1_bucket_2[slot])
+                * (row_bucket_3[row] == query_relation_1_bucket_3[slot])
+            )
+            left_bucket_ok = left_bucket_ok + bucket_match * (sint(1) - left_bucket_ok)
+        left_ok = (
+            row_valid[row]
+            * left_bucket_ok
+            * (row_direction[row] == query_direction_1[query])
+            * (row_source_0[row] == query_source_0[query])
+            * (row_source_1[row] == query_source_1[query])
+            * (row_source_2[row] == query_source_2[query])
+            * (row_source_3[row] == query_source_3[query])
+        )
+        left_prefix_count.update(left_prefix_count + left_ok)
+        for candidate in range(LEFT_CANDIDATE_CAP):
+            selected = left_ok * (left_prefix_count == sint(candidate + 1))
+            left_handle[candidate] = left_handle[candidate] + selected * row_handle[row]
+            left_middle_0[candidate] = left_middle_0[candidate] + selected * row_target_0[row]
+            left_middle_1[candidate] = left_middle_1[candidate] + selected * row_target_1[row]
+            left_middle_2[candidate] = left_middle_2[candidate] + selected * row_target_2[row]
+            left_middle_3[candidate] = left_middle_3[candidate] + selected * row_target_3[row]
+
+        right_bucket_ok = sint(0)
+        for bucket in range(MAX_QUERY_BUCKETS):
+            slot = query * MAX_QUERY_BUCKETS + bucket
+            bucket_match = (
+                (row_bucket_0[row] == query_relation_2_bucket_0[slot])
+                * (row_bucket_1[row] == query_relation_2_bucket_1[slot])
+                * (row_bucket_2[row] == query_relation_2_bucket_2[slot])
+                * (row_bucket_3[row] == query_relation_2_bucket_3[slot])
+            )
+            right_bucket_ok = right_bucket_ok + bucket_match * (sint(1) - right_bucket_ok)
+        right_ok = (
+            row_valid[row]
+            * right_bucket_ok
+            * (row_direction[row] == query_reverse_direction_2[query])
+            * (row_source_0[row] == query_target_0[query])
+            * (row_source_1[row] == query_target_1[query])
+            * (row_source_2[row] == query_target_2[query])
+            * (row_source_3[row] == query_target_3[query])
+            * (sint(1) - target_is_unknown[query])
+            * (sint(1) - type_identity_mode[query])
+        )
+        right_prefix_count.update(right_prefix_count + right_ok)
+        for candidate in range(RIGHT_CANDIDATE_CAP):
+            selected = right_ok * (right_prefix_count == sint(candidate + 1))
+            right_handle[candidate] = right_handle[candidate] + selected * row_handle[row]
+            right_middle_0[candidate] = right_middle_0[candidate] + selected * row_target_0[row]
+            right_middle_1[candidate] = right_middle_1[candidate] + selected * row_target_1[row]
+            right_middle_2[candidate] = right_middle_2[candidate] + selected * row_target_2[row]
+            right_middle_3[candidate] = right_middle_3[candidate] + selected * row_target_3[row]
+
+    match_prefix_count = sint(0)
+    for left in range(LEFT_CANDIDATE_CAP):
+        type_support = (
+            (sint(1) - (left_handle[left] == sint(0)))
+            * type_identity_mode[query]
+        )
+        match_prefix_count = match_prefix_count + type_support
+        for rank in range(TOP_K):
+            selected = type_support * (match_prefix_count == sint(rank + 1))
+            selected_left[rank] = selected_left[rank] + selected * left_handle[left]
+
+        for right in range(RIGHT_CANDIDATE_CAP):
+            middle_equal = (
+                (left_middle_0[left] == right_middle_0[right])
+                * (left_middle_1[left] == right_middle_1[right])
+                * (left_middle_2[left] == right_middle_2[right])
+                * (left_middle_3[left] == right_middle_3[right])
+            )
+            support = (
+                (sint(1) - (left_handle[left] == sint(0)))
+                * (sint(1) - (right_handle[right] == sint(0)))
+                * middle_equal
+                * (sint(1) - type_identity_mode[query])
+            )
+            match_prefix_count = match_prefix_count + support
+            for rank in range(TOP_K):
+                selected = support * (match_prefix_count == sint(rank + 1))
+                selected_left[rank] = selected_left[rank] + selected * left_handle[left]
+                selected_right[rank] = selected_right[rank] + selected * right_handle[right]
+
+    for rank in range(TOP_K):
+        print_ln(
+            "%s %s %s %s",
+            query,
+            rank,
+            selected_left[rank].reveal(),
+            selected_right[rank].reveal(),
+        )

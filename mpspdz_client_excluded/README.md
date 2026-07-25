@@ -517,11 +517,33 @@ resolved the bucket to `starred_actors` before MPC. To make the relation private
 inside MPC, this path uses an entity-only graph directory and filters relation
 IDs after the candidate edge block has been read.
 
+For the N-party MPC design from Possibility 2, use the clearer wrapper:
+
+```text
+run_private_indexed_mpc_metaqa_batch.py
+```
+
+It preserves the same private indexed implementation but enables the cleaner
+production profile by default:
+
+```text
+private semantic bucket lookup
+-> private entity-index lookup
+-> bounded MPC graph traversal/join
+-> MPC support aggregation and top-k
+-> controlled evidence reveal
+```
+
+The client/query gateway provides secret query inputs and does not participate
+after input setup. Data parties provide secret padded indexes. The public
+dataset/profile parameters are directory capacities, probe limits, candidate
+padding, query-bucket padding, party count, protocol, and top-k.
+
 Build a private semantic 128-bit index:
 
 ```bash
 FEDKG_SETUP_KEY=dev-secure-test-key python3 \
-  mpspdz_client_excluded/scripts/build_metaqa_oram_limb_private_semantic_indexes.py \
+  mpspdz_client_excluded/scripts/build_private_indexed_mpc_metaqa_indexes.py \
   --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
   --output-dir /tmp/fedkg-metaqa-private-semantic-oram-index \
   --relation starred_actors \
@@ -530,11 +552,11 @@ FEDKG_SETUP_KEY=dev-secure-test-key python3 \
   --max-relation-candidates 1
 ```
 
-Run the private semantic batch path:
+Run the private semantic batch path in the cleaner production-secure profile:
 
 ```bash
 FEDKG_SETUP_KEY=dev-secure-test-key python3 \
-  mpspdz_client_excluded/scripts/run_source_oram_limb_private_semantic_metaqa_batch.py \
+  mpspdz_client_excluded/scripts/run_private_indexed_mpc_metaqa_batch.py \
   --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
   --index-dir /tmp/fedkg-metaqa-private-semantic-oram-index \
   --queries-jsonl examples/private_frontier_from_federated_q2_500.jsonl \
@@ -546,9 +568,14 @@ FEDKG_SETUP_KEY=dev-secure-test-key python3 \
   --max-query-buckets 4 \
   --topk 3 \
   --semantic-bucket-mode hybrid \
-  --ranking-backend local-gc-prototype \
+  --mp-spdz-protocol semi \
   --mp-spdz-home external/MP-SPDZ
 ```
+
+The run wrapper automatically adds `--production-secure`,
+`--ranking-backend mpc`, and `--skip-compile-if-present` unless explicitly
+overridden. Use the underlying runner directly only for ablations and local
+benchmark modes.
 
 The runner supports padded multi-bucket routing per relation phrase through
 `--max-query-buckets`. The optimized default is `4`, ordered as high-value
@@ -565,6 +592,122 @@ truncating candidate edges. In a production privacy model, the fanout bound
 should normally be fixed publicly because query-dependent runtime can leak a
 degree bound.
 
+Local benchmark profile:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 \
+  mpspdz_client_excluded/scripts/run_source_oram_limb_private_semantic_metaqa_batch.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --index-dir /tmp/fedkg-metaqa-private-semantic-oram-index \
+  --queries-jsonl examples/private_frontier_from_federated_q2_500.jsonl \
+  --output results/mpspdz_private_semantic_oram_q2_first10_benchmark.jsonl \
+  --instance-dir /tmp/fedkg-mpspdz-private-semantic-oram-q2-first10-benchmark \
+  --max-queries 10 \
+  --max-candidates 64 \
+  --auto-tighten-max-candidates \
+  --require-full-fanout \
+  --compact-probed-benchmark \
+  --topk 3 \
+  --semantic-bucket-mode hybrid \
+  --ranking-backend local-gc-prototype \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+`--production-secure` rejects `--ranking-backend local-gc-prototype` and
+`--auto-tighten-max-candidates`. This keeps ranking inside MP-SPDZ before
+evidence reveal and avoids query-dependent fanout timing leakage.
+
+`--compact-probed-benchmark` is an additional local speed mode. It rewrites the
+generated MP-SPDZ instance so each party input contains only the directory probe
+slots and edge blocks touched by the selected batch. This dramatically reduces
+ORAM initialization cost for experiments, but it is not a production privacy
+profile because table sizes become query-dependent. On one full MetaQA query,
+the compact benchmark reduced the entity directory from `131072` rows to `9`
+rows and completed in about `7.6s` locally.
+
+For a dataset-independent public-bound profile, first analyze the offline index:
+
+```bash
+python3 mpspdz_client_excluded/scripts/analyze_private_semantic_oram_bounds.py \
+  --index-dir /tmp/fedkg-metaqa-private-semantic-oram-index \
+  --percentile 99 \
+  --max-query-buckets 4 \
+  --max-queries 1
+```
+
+This reports public fanout and compact-table bounds such as p95/p99/max entity
+degree. Choose a public profile once for the dataset or benchmark suite, then
+reuse it for all queries. For repeated runs with the same public circuit shape,
+add:
+
+```text
+--skip-compile-if-present
+```
+
+The runner hashes only public circuit dimensions into the MP-SPDZ program name,
+so compile caching is query-independent. On a tiny fixed profile, the second run
+skipped compilation and reduced wall time from about `16.6s` to `10.4s`.
+
 For the current `starred_actors` MetaQA partition, `--max-relation-candidates 1`
 is sufficient because every matching semantic bucket maps to a single indexed
 relation.
+
+## Fixed Bucketized MPC Path
+
+`build_metaqa_bucketized_mpc_indexes.py` and
+`run_bucketized_mpc_metaqa_batch.py` implement the ORAM-free N-party MPC path.
+Each data party secret-inputs a fixed padded table of bucketized KG edge rows:
+
+```text
+bucket_id, source_id, relation_id, target_id, evidence_handle, direction, valid
+```
+
+MP-SPDZ scans the fixed public table size, privately matches query bucket IDs
+and entity IDs, compacts matches into fixed left/right candidate buffers,
+performs a bounded private two-hop join, aggregates support, and reveals only
+selected evidence handles. This avoids private random-access ORAM and avoids the
+earlier `ROW_TOTAL^2` all-row join. The public circuit cost is approximately:
+
+```text
+ROW_TOTAL * (LEFT_CANDIDATE_CAP + RIGHT_CANDIDATE_CAP)
++ LEFT_CANDIDATE_CAP * RIGHT_CANDIDATE_CAP
+```
+
+The candidate caps are fixed public security-profile parameters, not
+query-dependent tightening knobs. Increase them for high-fanout datasets; lower
+values are faster but can truncate candidate sets before top-k.
+
+Build a small alias-bucket index:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 \
+  mpspdz_client_excluded/scripts/build_metaqa_bucketized_mpc_indexes.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --output-dir /tmp/fedkg-metaqa-bucketized-alias-index \
+  --relation starred_actors \
+  --semantic-bucket-mode alias \
+  --rows-per-party 200000
+```
+
+Run the bucketized MPC path:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 \
+  mpspdz_client_excluded/scripts/run_bucketized_mpc_metaqa_batch.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --index-dir /tmp/fedkg-metaqa-bucketized-alias-index \
+  --queries-jsonl examples/private_frontier_from_federated_q2_500.jsonl \
+  --output results/mpspdz_bucketized_alias_q2_first1.jsonl \
+  --instance-dir /tmp/fedkg-mpspdz-bucketized-alias-q2-first1 \
+  --max-queries 1 \
+  --max-query-buckets 2 \
+  --left-candidate-cap 32 \
+  --right-candidate-cap 32 \
+  --topk 3 \
+  --semantic-bucket-mode alias \
+  --skip-compile-if-present \
+  --mp-spdz-home external/MP-SPDZ
+```
+
+Validation on the tiny two-party fixture passed with `correct=True`. Compile
+caching also works for this path.

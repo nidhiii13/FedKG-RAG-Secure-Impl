@@ -33,5 +33,14 @@ cp "${INPUT_PATHS[@]}" "${MP_SPDZ_HOME}/Player-Data/"
   if [[ "${MP_SPDZ_SKIP_COMPILE:-0}" != "1" ]]; then
     ./compile.py --preserve-mem-order "${PROGRAM_NAME}"
   fi
-  PLAYERS="${PLAYERS}" Scripts/semi.sh "${PROGRAM_NAME}"
+  PROTOCOL="${MP_SPDZ_PROTOCOL:-semi}"
+  case "${PROTOCOL}" in
+    semi|semi2k|replicated|ring|ps-rep-ring|sy-rep-ring|rep4-ring|shamir)
+      PLAYERS="${PLAYERS}" "Scripts/${PROTOCOL}.sh" "${PROGRAM_NAME}"
+      ;;
+    *)
+      echo "unsupported MP_SPDZ_PROTOCOL=${PROTOCOL}" >&2
+      exit 2
+      ;;
+  esac
 )

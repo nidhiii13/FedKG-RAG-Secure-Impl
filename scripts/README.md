@@ -24,3 +24,119 @@ manifest unless `--embedding-config` or `--embedding-model-path` is supplied.
 The model is loaded with `local_files_only=True`; query and party labels are
 embedded only inside the trusted gateway/party-local indexing boundary. DPF/FSS
 still evaluates only HMACed bucket tokens, not raw text or raw embeddings.
+
+## Hybrid DPF/FSS Lookup + Prio Aggregation
+
+`run_hybrid_dpf_prio_retrieval.py` is the practical-speed validation path:
+
+```text
+two non-colluding DPF/FSS evaluators for private lookup
+-> encoded graph traversal over HMAC-only snapshots
+-> Prio3 validated candidate score/support aggregation
+-> local validation ranking
+```
+
+Export semantic-enabled evaluator snapshots first:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 scripts/export_opaque_fss_snapshots.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --topology configs/secure/metaqa_prio3_roles.local.json \
+  --output-dir /tmp/fedkg-opaque-fss-semantic-hybrid \
+  --semantic-buckets \
+  --semantic-bucket-mode hybrid \
+  --embedding-backend hashing
+```
+
+Run a query:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key \
+FEDKG_PRIO_HANDLE_KEY=dev-prio-handle-key-123456 \
+python3 scripts/run_hybrid_dpf_prio_retrieval.py \
+  --store-0 /tmp/fedkg-opaque-fss-semantic-hybrid/fss_evaluator_0 \
+  --store-1 /tmp/fedkg-opaque-fss-semantic-hybrid/fss_evaluator_1 \
+  --edge 'Kismet|acted in|UNKNOWN' \
+  --edge 'UNKNOWN|acted in|Angel' \
+  --request-id hybrid-smoke-kismet-angel \
+  --query-nonce hybrid-smoke-kismet-angel-0001 \
+  --output results/hybrid_dpf_prio_kismet_angel.json \
+  --semantic-bucket-mode hybrid \
+  --allow-local-validation-reconstruction
+```
+
+The local command reconstructs Prio aggregates for validation. Production should
+replace that last step with MPC/GC top-k over aggregate shares.
+
+## MPC Query Shares + DPF/FSS Lookup + Prio Aggregation
+
+`run_mpc_dpf_prio_pipeline.py` adds an explicit local MPC-style query-share
+bridge before the same practical lookup/aggregation path:
+
+```text
+query graph -> additive shares of HMAC query tokens
+-> two non-colluding DPF/FSS evaluators for private lookup
+-> Prio3 validated candidate aggregation
+-> local validation ranking
+```
+
+Run the smoke query with timing:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key \
+FEDKG_PRIO_HANDLE_KEY=dev-prio-handle-key-123456 \
+python3 scripts/run_mpc_dpf_prio_pipeline.py \
+  --store-0 /tmp/fedkg-opaque-fss-semantic-hybrid/fss_evaluator_0 \
+  --store-1 /tmp/fedkg-opaque-fss-semantic-hybrid/fss_evaluator_1 \
+  --edge 'Kismet|acted in|UNKNOWN' \
+  --edge 'UNKNOWN|acted in|Angel' \
+  --request-id mpc-dpf-prio-smoke-kismet-angel \
+  --query-nonce mpc-dpf-prio-smoke-kismet-angel-0001 \
+  --output results/mpc_dpf_prio_kismet_angel.json \
+  --semantic-bucket-mode hybrid \
+  --allow-local-validation-reconstruction
+```
+
+This command does not replace the production requirement: the query-share bridge
+and final ranking are still local validation stages. A deployment should keep
+query shares with network-separated MPC parties and rank Prio aggregate shares
+with distributed MPC/GC.
+
+## SealPIR/Lattice PIR Lookup Adapter
+
+`run_sealpir_bucket_query.py` is a separate adapter path for replacing DPF/FSS
+lookup with native SealPIR/FastPIR/Spiral-style private retrieval:
+
+```text
+private query bucket
+-> native lattice-PIR bucket retrieval
+-> bounded encoded candidate edges
+-> Prio/MPC aggregation
+-> GC/MPC top-k
+```
+
+Build the encoded bucket index:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 scripts/build_pir_bucket_index.py \
+  --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \
+  --output-dir /tmp/fedkg-pir-bucket-index \
+  --semantic-bucket-mode alias \
+  --max-edges-per-record 64 \
+  --record-size 32768
+```
+
+Run through the native adapter:
+
+```bash
+FEDKG_SETUP_KEY=dev-secure-test-key python3 scripts/run_sealpir_bucket_query.py \
+  --index-dir /tmp/fedkg-pir-bucket-index \
+  --edge 'Kismet|acted in|UNKNOWN' \
+  --edge 'UNKNOWN|acted in|Angel' \
+  --semantic-bucket-mode alias \
+  --sealpir-cli tools/sealpir_cli/fedkg-sealpir-cli
+```
+
+The command requires a native CLI implementing the contract in
+`tools/sealpir_cli/README.md`. Python owns the encoded bucket layout and
+post-retrieval handoff; the native backend owns PIR setup/query/answer/decode.
