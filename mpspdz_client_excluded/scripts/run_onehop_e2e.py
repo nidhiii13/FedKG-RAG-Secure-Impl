@@ -27,6 +27,7 @@ def main() -> int:
     parser.add_argument("--topk", type=int, default=3)
     parser.add_argument("--mp-spdz-home", default="external/MP-SPDZ")
     parser.add_argument("--semantic-relations", action="store_true")
+    parser.add_argument("--private-tables", action="store_true")
     parser.add_argument("--keep-temp", action="store_true")
     args = parser.parse_args()
 
@@ -59,6 +60,8 @@ def main() -> int:
         ]
         if args.semantic_relations:
             prepare_cmd.append("--semantic-relations")
+        if args.private_tables:
+            prepare_cmd.append("--private-tables")
 
         started = time.perf_counter()
         prepare = _run(prepare_cmd, env=env, cwd=REPO_ROOT)
@@ -106,6 +109,7 @@ def main() -> int:
                     },
                     "total_e2e_seconds": elapsed,
                     "candidate_count": len(mapping.get("candidates", [])),
+                    "private_tables": mapping.get("private_tables", False),
                     "data_parties": mapping["data_parties"],
                     "controlled_reveal": json.loads(reveal.stdout),
                 },

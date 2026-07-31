@@ -1,0 +1,97 @@
+from Compiler.library import print_ln
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+RECORD_COUNT = {record_count}
+RECORDS_PER_EDGE = {records_per_edge}
+RECORD_SIZE = {record_size}
+LOGICAL_RECORD_SIZE = {logical_record_size}
+PAGE_CAPACITY = {page_capacity}
+EDGE_CAP = {edge_cap}
+PARTIES = {party_count}
+MODULUS = {share_modulus}
+TOP_K = {top_k}
+CANDIDATE_TOTAL = {candidate_total}
+NO_SELECTION = CANDIDATE_TOTAL
+
+
+def normalize_mod(value):
+    out = value
+    for _ in range(PARTIES + 1):
+        out = (out >= sint(MODULUS)).if_else(out - sint(MODULUS), out)
+    return out
+
+
+left = Array(LOGICAL_RECORD_SIZE, sint)
+right = Array(LOGICAL_RECORD_SIZE, sint)
+
+for slot in range(LOGICAL_RECORD_SIZE):
+    left[slot] = sint(0)
+    right[slot] = sint(0)
+
+for record in range(RECORDS_PER_EDGE):
+    offset = sint(0)
+    for player in range(PARTIES):
+        offset = offset + sint.get_input_from(player)
+    offset = normalize_mod(offset)
+    for slot in range(RECORD_SIZE):
+        total = sint(0)
+        for player in range(PARTIES):
+            total = total + sint.get_input_from(player)
+        logical_slot = slot % LOGICAL_RECORD_SIZE
+        page_offset = slot // LOGICAL_RECORD_SIZE
+        selected = offset == sint(page_offset)
+        left[logical_slot] = normalize_mod(left[logical_slot] + selected * total)
+
+if RECORD_COUNT == 2:
+    for record in range(RECORDS_PER_EDGE):
+        offset = sint(0)
+        for player in range(PARTIES):
+            offset = offset + sint.get_input_from(player)
+        offset = normalize_mod(offset)
+        for slot in range(RECORD_SIZE):
+            total = sint(0)
+            for player in range(PARTIES):
+                total = total + sint.get_input_from(player)
+            logical_slot = slot % LOGICAL_RECORD_SIZE
+            page_offset = slot // LOGICAL_RECORD_SIZE
+            selected = offset == sint(page_offset)
+            right[logical_slot] = normalize_mod(right[logical_slot] + selected * total)
+
+selected = Array(CANDIDATE_TOTAL, sint)
+valid = Array(CANDIDATE_TOTAL, sint)
+
+for slot in range(CANDIDATE_TOTAL):
+    selected[slot] = sint(0)
+    valid[slot] = sint(0)
+
+if RECORD_COUNT == 1:
+    left_count = left[0]
+    for edge in range(EDGE_CAP):
+        valid[edge] = left_count > sint(edge)
+else:
+    left_count = left[0]
+    right_count = right[0]
+    for left_edge in range(EDGE_CAP):
+        left_valid = left_count > sint(left_edge)
+        left_target = left[1 + left_edge * 3 + 2]
+        for right_edge in range(EDGE_CAP):
+            right_valid = right_count > sint(right_edge)
+            right_source = right[1 + right_edge * 3]
+            pair_slot = left_edge * EDGE_CAP + right_edge
+            valid[pair_slot] = left_valid * right_valid * (left_target == right_source)
+
+print_ln("rank selected_numeric_path_slot")
+
+for rank in range(TOP_K):
+    chosen = sint(NO_SELECTION)
+    found = sint(0)
+    for slot in range(CANDIDATE_TOTAL):
+        available = valid[slot] * (sint(1) - selected[slot])
+        take = (sint(1) - found) * available
+        chosen = take.if_else(sint(slot), chosen)
+        found = found + take
+    print_ln("%s %s", rank, chosen.reveal())
+    for slot in range(CANDIDATE_TOTAL):
+        selected[slot] = selected[slot] + found * (chosen == sint(slot))

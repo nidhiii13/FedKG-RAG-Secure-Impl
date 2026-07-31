@@ -21,6 +21,8 @@ class LattigoThresholdPirService:
         parties: int,
         threshold: int,
         go_routines: int = 1,
+        record_format: str = "bytes",
+        plaintext_modulus: int = 65537,
         cwd: Path | None = None,
     ) -> None:
         self._process = subprocess.Popen(
@@ -30,12 +32,16 @@ class LattigoThresholdPirService:
                 str(records_jsonl),
                 "--record-size",
                 str(record_size),
+                "--record-format",
+                record_format,
                 "--parties",
                 str(parties),
                 "--threshold",
                 str(threshold),
                 "--go-routines",
                 str(go_routines),
+                "--plaintext-modulus",
+                str(plaintext_modulus),
                 "--server-stdin",
             ],
             cwd=str(cwd) if cwd is not None else None,
@@ -55,6 +61,44 @@ class LattigoThresholdPirService:
         if self._process.stdin is None:
             raise RuntimeError("Lattigo threshold-PIR service stdin is closed")
         self._process.stdin.write(json.dumps({"indices": indices}) + "\n")
+        self._process.stdin.flush()
+        payload = self._read_json_line()
+        if "error" in payload:
+            raise RuntimeError(str(payload["error"]))
+        return payload
+
+    def retrieve_shared(
+        self,
+        indices: list[int],
+        *,
+        share_parties: int,
+        share_modulus: int = 65537,
+    ) -> dict[str, Any]:
+        """Retrieve PIR rows as additive byte shares instead of plaintext JSON.
+
+        This is the bridge primitive for a production pipeline: the response can
+        be passed to MPC parties as private inputs. The helper below does not
+        parse or decode candidate edges.
+        """
+        if not indices:
+            return {"records": []}
+        if share_parties < 2:
+            raise ValueError("share_parties must be at least 2")
+        if share_modulus < 2:
+            raise ValueError("share_modulus must be at least 2")
+        if self._process.stdin is None:
+            raise RuntimeError("Lattigo threshold-PIR service stdin is closed")
+        self._process.stdin.write(
+            json.dumps(
+                {
+                    "indices": indices,
+                    "response_mode": "shares",
+                    "share_parties": share_parties,
+                    "share_modulus": share_modulus,
+                }
+            )
+            + "\n"
+        )
         self._process.stdin.flush()
         payload = self._read_json_line()
         if "error" in payload:

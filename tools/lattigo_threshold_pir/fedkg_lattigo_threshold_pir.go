@@ -34,11 +34,13 @@ package main
 
 import (
 	"bufio"
+	crand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"math/big"
 	"math/rand"
 	"os"
 	"strconv"
@@ -96,10 +98,15 @@ func main() {
 	threshold := flag.Int("threshold", 2, "threshold needed for output decryption")
 	nGoRoutine := flag.Int("go-routines", 1, "helper evaluation worker count")
 	recordsPath := flag.String("records-jsonl", "", "fixed JSONL bucket record database")
+	recordFormat := flag.String("record-format", "bytes", "record encoding: bytes or json-u64-array")
 	queryIndex := flag.Int("index", 0, "bucket record index to retrieve")
 	queryIndices := flag.String("indices", "", "comma-separated bucket record indices to retrieve after one setup")
 	recordSize := flag.Int("record-size", 4096, "fixed record byte capacity")
 	serverStdin := flag.Bool("server-stdin", false, "keep setup/database encryption alive and serve JSONL requests from stdin")
+	responseMode := flag.String("response-mode", "json", "PIR response mode: json or shares")
+	shareParties := flag.Int("share-parties", 3, "number of additive share vectors to emit in response-mode=shares")
+	shareModulus := flag.Uint64("share-modulus", 65537, "additive sharing modulus for response-mode=shares")
+	plaintextModulus := flag.Uint64("plaintext-modulus", 65537, "BGV plaintext modulus for numeric records")
 	flag.Parse()
 
 	N := *parties
@@ -116,6 +123,21 @@ func main() {
 	if *recordsPath == "" {
 		l.Fatal("--records-jsonl is required")
 	}
+	if *responseMode != "json" && *responseMode != "shares" {
+		l.Fatal("--response-mode must be json or shares")
+	}
+	if *shareParties < 2 {
+		l.Fatal("--share-parties must be at least 2")
+	}
+	if *shareModulus < 2 {
+		l.Fatal("--share-modulus must be at least 2")
+	}
+	if *plaintextModulus < 2 {
+		l.Fatal("--plaintext-modulus must be at least 2")
+	}
+	if *recordFormat != "bytes" && *recordFormat != "json-u64-array" {
+		l.Fatal("--record-format must be bytes or json-u64-array")
+	}
 
 	// Creating encryption parameters
 	// LogN = 13 & LogQP = 218
@@ -123,10 +145,10 @@ func main() {
 		LogN:             13,
 		LogQ:             []int{54, 54, 54},
 		LogP:             []int{55},
-		PlaintextModulus: 65537,
+		PlaintextModulus: *plaintextModulus,
 	})
 	check(err)
-	records, recordVectors, err := loadRecordVectors(*recordsPath, *recordSize, params.N())
+	records, recordVectors, err := loadRecordVectors(*recordsPath, *recordSize, params.N(), *recordFormat)
 	check(err)
 	if len(records) == 0 {
 		l.Fatal("records-jsonl is empty")
@@ -243,7 +265,7 @@ func main() {
 	l.Println("> Plain Mask Precomputation")
 	plainMask := precomputePlainMasks(params, len(encInputs), encoder)
 
-	runQueries := func(indices []int) []map[string]any {
+	runQueries := func(indices []int, mode string, parties int, modulus uint64) []map[string]any {
 		recordsOut := make([]map[string]any, 0, len(indices))
 		for _, idx := range indices {
 			resetRequestTimers()
@@ -267,16 +289,33 @@ func main() {
 				panic(err)
 			}
 			selectedRecord := decodeRecord(res, *recordSize)
-			recordsOut = append(recordsOut, map[string]any{
+			recordOut := map[string]any{
 				"query_index": idx,
-				"record_json": json.RawMessage(selectedRecord),
 				"timing": map[string]string{
 					"query_generation": elapsedRequestParty.String(),
 					"query_evaluation": elapsedRequestCloudCPU.String(),
 					"reencryption":     elapsedCKSParty.String(),
 					"decrypt":          elapsedDecParty.String(),
 				},
-			})
+			}
+			if mode == "shares" {
+				if *recordFormat == "json-u64-array" {
+					recordOut["record_slot_shares"] = shareRecordSlots(res[:*recordSize], parties, modulus)
+					recordOut["record_length"] = *recordSize
+				} else {
+					recordOut["record_byte_shares"] = shareRecordBytes(selectedRecord, *recordSize, parties, modulus)
+					recordOut["record_length"] = len(selectedRecord)
+				}
+				recordOut["share_modulus"] = modulus
+				recordOut["share_parties"] = parties
+			} else {
+				if *recordFormat == "json-u64-array" {
+					recordOut["record_slots"] = res[:*recordSize]
+				} else {
+					recordOut["record_json"] = json.RawMessage(selectedRecord)
+				}
+			}
+			recordsOut = append(recordsOut, recordOut)
 		}
 		return recordsOut
 	}
@@ -311,7 +350,10 @@ func main() {
 				break
 			}
 			var request struct {
-				Indices []int `json:"indices"`
+				Indices      []int  `json:"indices"`
+				ResponseMode string `json:"response_mode"`
+				ShareParties int    `json:"share_parties"`
+				ShareModulus uint64 `json:"share_modulus"`
 			}
 			if err := json.Unmarshal([]byte(line), &request); err != nil {
 				encoded, _ := json.Marshal(map[string]any{"error": err.Error()})
@@ -335,13 +377,41 @@ func main() {
 				fmt.Println(string(encoded))
 				continue
 			}
+			mode := request.ResponseMode
+			if mode == "" {
+				mode = *responseMode
+			}
+			if mode != "json" && mode != "shares" {
+				encoded, _ := json.Marshal(map[string]any{"error": "response_mode must be json or shares"})
+				fmt.Println(string(encoded))
+				continue
+			}
+			parties := request.ShareParties
+			if parties == 0 {
+				parties = *shareParties
+			}
+			if parties < 2 {
+				encoded, _ := json.Marshal(map[string]any{"error": "share_parties must be at least 2"})
+				fmt.Println(string(encoded))
+				continue
+			}
+			modulus := request.ShareModulus
+			if modulus == 0 {
+				modulus = *shareModulus
+			}
+			if modulus < 2 {
+				encoded, _ := json.Marshal(map[string]any{"error": "share_modulus must be at least 2"})
+				fmt.Println(string(encoded))
+				continue
+			}
 			response := map[string]any{
 				"database_size":  len(records),
 				"record_size":    *recordSize,
 				"query_indices":  request.Indices,
-				"records":        runQueries(request.Indices),
+				"records":        runQueries(request.Indices, mode, parties, modulus),
 				"parties":        N,
 				"threshold":      t,
+				"response_mode":  mode,
 				"security_model": "Lattigo multiparty threshold BGV PIR; output decryption requires threshold parties",
 				"timing":         staticTiming,
 			}
@@ -352,7 +422,7 @@ func main() {
 		check(scanner.Err())
 		return
 	}
-	recordsOut := runQueries(indices)
+	recordsOut := runQueries(indices, *responseMode, *shareParties, *shareModulus)
 
 	l.Printf("> Finished (total cloud: %s, total party: %s)\n",
 		elapsedCKGCloud+elapsedRKGCloud+elapsedGKGCloud+elapsedEncryptCloud,
@@ -365,6 +435,7 @@ func main() {
 		"records":        recordsOut,
 		"parties":        N,
 		"threshold":      t,
+		"response_mode":  *responseMode,
 		"security_model": "Lattigo multiparty threshold BGV PIR; output decryption requires threshold parties",
 		"timing":         staticTiming,
 	}
@@ -410,7 +481,7 @@ func resetRequestTimers() {
 	elapsedRequestCloudCPU = 0
 }
 
-func loadRecordVectors(path string, recordSize int, slots int) ([]string, [][]uint64, error) {
+func loadRecordVectors(path string, recordSize int, slots int, recordFormat string) ([]string, [][]uint64, error) {
 	if recordSize < 1 {
 		return nil, nil, errors.New("record-size must be positive")
 	}
@@ -426,18 +497,35 @@ func loadRecordVectors(path string, recordSize int, slots int) ([]string, [][]ui
 	var records []string
 	var vectors [][]uint64
 	scanner := bufio.NewScanner(handle)
-	scanner.Buffer(make([]byte, 1024), recordSize*2)
+	maxTokenSize := recordSize * 12
+	if maxTokenSize < 1024*1024 {
+		maxTokenSize = 1024 * 1024
+	}
+	scanner.Buffer(make([]byte, 1024), maxTokenSize)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
 			continue
 		}
-		if len(line) > recordSize {
-			return nil, nil, fmt.Errorf("record has %d bytes, exceeds record-size %d", len(line), recordSize)
-		}
 		row := make([]uint64, slots)
-		for i := 0; i < len(line); i++ {
-			row[i] = uint64(line[i])
+		if recordFormat == "json-u64-array" {
+			var values []uint64
+			if err := json.Unmarshal([]byte(line), &values); err != nil {
+				return nil, nil, err
+			}
+			if len(values) > recordSize {
+				return nil, nil, fmt.Errorf("numeric record has %d slots, exceeds record-size %d", len(values), recordSize)
+			}
+			for i, value := range values {
+				row[i] = value
+			}
+		} else {
+			if len(line) > recordSize {
+				return nil, nil, fmt.Errorf("record has %d bytes, exceeds record-size %d", len(line), recordSize)
+			}
+			for i := 0; i < len(line); i++ {
+				row[i] = uint64(line[i])
+			}
 		}
 		records = append(records, line)
 		vectors = append(vectors, row)
@@ -458,6 +546,51 @@ func decodeRecord(values []uint64, recordSize int) []byte {
 		out = append(out, byte(value))
 	}
 	return out
+}
+
+func shareRecordBytes(record []byte, recordSize int, parties int, modulus uint64) [][]uint64 {
+	shares := make([][]uint64, parties)
+	for party := 0; party < parties; party++ {
+		shares[party] = make([]uint64, recordSize)
+	}
+	for index := 0; index < recordSize; index++ {
+		value := uint64(0)
+		if index < len(record) {
+			value = uint64(record[index]) % modulus
+		}
+		sum := uint64(0)
+		for party := 0; party < parties-1; party++ {
+			share := cryptoRandomUint64(modulus)
+			shares[party][index] = share
+			sum = (sum + share) % modulus
+		}
+		shares[parties-1][index] = (value + modulus - sum) % modulus
+	}
+	return shares
+}
+
+func shareRecordSlots(values []uint64, parties int, modulus uint64) [][]uint64 {
+	shares := make([][]uint64, parties)
+	for party := 0; party < parties; party++ {
+		shares[party] = make([]uint64, len(values))
+	}
+	for index, rawValue := range values {
+		value := rawValue % modulus
+		sum := uint64(0)
+		for party := 0; party < parties-1; party++ {
+			share := cryptoRandomUint64(modulus)
+			shares[party][index] = share
+			sum = (sum + share) % modulus
+		}
+		shares[parties-1][index] = (value + modulus - sum) % modulus
+	}
+	return shares
+}
+
+func cryptoRandomUint64(modulus uint64) uint64 {
+	value, err := crand.Int(crand.Reader, new(big.Int).SetUint64(modulus))
+	check(err)
+	return value.Uint64()
 }
 
 func genparties(params bgv.Parameters, N, t int) []party {

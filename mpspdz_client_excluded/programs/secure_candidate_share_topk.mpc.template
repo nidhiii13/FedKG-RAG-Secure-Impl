@@ -1,0 +1,56 @@
+from Compiler.library import print_ln
+from Compiler.types import Array, sint
+
+program.use_edabit(True)
+
+CANDIDATE_CAPACITY = {candidate_capacity}
+TOP_K = {top_k}
+PARTIES = {party_count}
+NO_SELECTION = CANDIDATE_CAPACITY
+MAX_SCORE = {max_score}
+RANK_BASE = MAX_SCORE + 1
+
+valid = Array(CANDIDATE_CAPACITY, sint)
+score = Array(CANDIDATE_CAPACITY, sint)
+support = Array(CANDIDATE_CAPACITY, sint)
+selected = Array(CANDIDATE_CAPACITY, sint)
+
+for slot in range(CANDIDATE_CAPACITY):
+    valid[slot] = sint.get_input_from(0)
+    score[slot] = sint(0)
+    support[slot] = sint(0)
+    selected[slot] = sint(0)
+
+for player in range(PARTIES):
+    for slot in range(CANDIDATE_CAPACITY):
+        score[slot] = score[slot] + sint.get_input_from(player)
+        support[slot] = support[slot] + sint.get_input_from(player)
+
+print_ln("rank selected_candidate_slot")
+
+for rank in range(TOP_K):
+    best_slot = sint(NO_SELECTION)
+    best_key = sint(0)
+
+    for slot in range(CANDIDATE_CAPACITY):
+        not_selected = sint(1) - selected[slot]
+        has_support = support[slot] > sint(0)
+
+        # Larger key is better. Support is primary, lower score is secondary,
+        # and earlier deterministic slot order breaks exact ties.
+        tie_key = sint(CANDIDATE_CAPACITY - slot)
+        rank_key = support[slot] * sint(RANK_BASE * (CANDIDATE_CAPACITY + 1))
+        rank_key = rank_key + (sint(MAX_SCORE) - score[slot]) * sint(CANDIDATE_CAPACITY + 1)
+        rank_key = rank_key + tie_key
+        effective_key = valid[slot] * not_selected * has_support * rank_key
+        better = effective_key > best_key
+
+        best_slot = better.if_else(sint(slot), best_slot)
+        best_key = better.if_else(effective_key, best_key)
+
+    has_selection = best_key > sint(0)
+    output_slot = has_selection.if_else(best_slot, sint(NO_SELECTION))
+    print_ln("%s %s", rank, output_slot.reveal())
+
+    for slot in range(CANDIDATE_CAPACITY):
+        selected[slot] = selected[slot] + has_selection * (best_slot == sint(slot))

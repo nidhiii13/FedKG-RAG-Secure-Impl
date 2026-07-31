@@ -48,26 +48,34 @@ for party_offset in range(DATA_PARTIES):
 
 left_ok = Array(LEFT_TOTAL, sint)
 right_ok = Array(RIGHT_TOTAL, sint)
-for left in range(LEFT_TOTAL):
-    left_ok[left] = (
-        left_valid[left]
-        * (left_source[left] == query_source)
-        * (left_relation[left] == query_relation_1)
-    )
-
-for right in range(RIGHT_TOTAL):
-    target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (
-        right_target[right] == query_target
-    )
-    right_ok[right] = right_valid[right] * (right_relation[right] == query_relation_2) * target_matches
-
 pair_support = Array(PAIR_CAPACITY, sint)
+
+# Vectorized predicate construction. This keeps the same pure-MPC semantics as
+# the scalar version, but lets MP-SPDZ batch independent comparisons over arrays.
+left_ok.assign_vector(
+    left_valid.get_vector()
+    * (left_source.get_vector() == query_source)
+    * (left_relation.get_vector() == query_relation_1)
+)
+
+target_matches = target_is_unknown + (sint(1) - target_is_unknown) * (
+    right_target.get_vector() == query_target
+)
+right_ok.assign_vector(
+    right_valid.get_vector()
+    * (right_relation.get_vector() == query_relation_2)
+    * target_matches
+)
+
+right_source_vector = right_source.get_vector()
+right_ok_vector = right_ok.get_vector()
 for left in range(LEFT_TOTAL):
-    for right in range(RIGHT_TOTAL):
-        pair_slot = left * RIGHT_TOTAL + right
-        pair_support[pair_slot] = left_ok[left] * right_ok[right] * (
-            left_target[left] == right_source[right]
-        )
+    pair_support.assign_vector(
+        left_ok[left]
+        * right_ok_vector
+        * (left_target[left] == right_source_vector),
+        base=left * RIGHT_TOTAL,
+    )
 
 selected_output = Array(TOP_K, sint)
 for rank in range(TOP_K):

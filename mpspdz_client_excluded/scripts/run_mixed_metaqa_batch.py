@@ -62,6 +62,8 @@ def main() -> int:
     env = os.environ.copy()
     if not env.get("FEDKG_SETUP_KEY"):
         raise SystemExit("FEDKG_SETUP_KEY is required")
+    if args.private_tables and args.prioritize_query_rows:
+        raise SystemExit("--private-tables and --prioritize-query-rows cannot be used together")
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -135,6 +137,8 @@ def main() -> int:
 
                 if args.semantic_relations:
                     cmd.append("--semantic-relations")
+                if len(edges) == 1 and args.private_tables:
+                    cmd.append("--private-tables")
 
                 result = subprocess.run(cmd, cwd=REPO_ROOT, env=env, check=True, text=True, capture_output=True)
                 payload = json.loads(result.stdout)

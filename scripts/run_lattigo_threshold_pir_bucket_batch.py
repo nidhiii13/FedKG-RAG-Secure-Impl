@@ -44,6 +44,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--handle-key-env", default="FEDKG_PRIO_HANDLE_KEY")
     parser.add_argument("--query-nonce", default="lattigo-threshold-pir-batch")
     parser.add_argument("--prio-cli", type=Path, default=Path("tools/prio3_cli/target/release/fedkg-prio3-cli"))
+    parser.add_argument("--ranking-backend", choices=("local-gc", "mpspdz"), default="local-gc")
+    parser.add_argument("--mp-spdz-home", type=Path, default=Path("external/MP-SPDZ"))
+    parser.add_argument("--mp-spdz-ranking-dir", type=Path)
+    parser.add_argument("--keep-mp-spdz-ranking-dir", action="store_true")
+    parser.add_argument("--mp-spdz-timeout", type=float, default=300.0)
     parser.add_argument("--go-routines", type=int, default=1)
     parser.add_argument(
         "--lattigo-pir",

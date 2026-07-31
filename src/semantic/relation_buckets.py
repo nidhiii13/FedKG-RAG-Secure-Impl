@@ -12,6 +12,7 @@ from src.party.secure_index import SecurePartyIndex
 from src.semantic.lsh import HashingTextEmbedder, SimHashLsh, TextEmbedder
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
+_FREEBASE_RE = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)+$")
 SemanticBucketMode = Literal["alias", "lsh", "hybrid"]
 
 _ALIASES = {
@@ -44,13 +45,35 @@ _TOKEN_TO_ALIAS = {
 
 
 def relation_alias_bucket_names(label: object) -> list[str]:
-    text = normalize_text(str(label).replace("_", " "))
+    raw = normalize_text(str(label))
+    text = raw.replace("_", " ").replace(".", " ")
     tokens = _TOKEN_RE.findall(text)
-    buckets = {f"tok:{token}" for token in tokens}
-    buckets.update(f"alias:{_TOKEN_TO_ALIAS[token]}" for token in tokens if token in _TOKEN_TO_ALIAS)
+    buckets = []
+    seen = set()
+
+    def add(bucket: str) -> None:
+        if bucket not in seen:
+            seen.add(bucket)
+            buckets.append(bucket)
+
+    if _FREEBASE_RE.match(raw):
+        parts = raw.split(".")
+        add(f"fb:path:{raw}")
+        add(f"fb:domain:{parts[0]}")
+        if len(parts) >= 2:
+            add(f"fb:type:{parts[0]}.{parts[1]}")
+        if len(parts) >= 3:
+            add(f"fb:property:{parts[-1]}")
+            add(f"fb:type_property:{parts[-2]}.{parts[-1]}")
+
+    for token in tokens:
+        add(f"tok:{token}")
+    for token in tokens:
+        if token in _TOKEN_TO_ALIAS:
+            add(f"alias:{_TOKEN_TO_ALIAS[token]}")
     for left, right in zip(tokens, tokens[1:]):
-        buckets.add(f"bigram:{left}:{right}")
-    return sorted(buckets)
+        add(f"bigram:{left}:{right}")
+    return buckets
 
 
 def relation_lsh_bucket_names(
@@ -74,10 +97,13 @@ def relation_bucket_names(
     if mode == "lsh":
         return relation_lsh_bucket_names(label, embedder=embedder, lsh=lsh)
     if mode == "hybrid":
-        return sorted(
-            set(relation_alias_bucket_names(label))
-            | set(relation_lsh_bucket_names(label, embedder=embedder, lsh=lsh))
-        )
+        buckets = relation_alias_bucket_names(label)
+        seen = set(buckets)
+        for bucket in relation_lsh_bucket_names(label, embedder=embedder, lsh=lsh):
+            if bucket not in seen:
+                seen.add(bucket)
+                buckets.append(bucket)
+        return buckets
     raise ValueError(f"Unsupported semantic bucket mode: {mode}")
 
 

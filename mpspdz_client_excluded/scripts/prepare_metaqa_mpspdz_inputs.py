@@ -132,6 +132,61 @@ def _party_edges(
     return rows
 
 
+def _universal_candidate_slots(parties: list[dict], setup_key: str, capacity: int) -> tuple[dict[str, int], list[dict]]:
+    candidates = []
+    seen = set()
+    for party in parties:
+        graph, _ = _load_party(Path(party["data"]))
+        for source, adjacency in graph.items():
+            for targets in adjacency.values():
+                for value in [source, *targets]:
+                    candidate = str(value)
+                    canonical = _canonical_text(candidate)
+                    if canonical in seen:
+                        continue
+                    seen.add(canonical)
+                    candidates.append(candidate)
+
+    candidates = sorted(candidates, key=_canonical_text)[:capacity]
+    slots = {candidate: index for index, candidate in enumerate(candidates)}
+    public_candidates = [
+        {
+            "slot": slot,
+            "display": candidate,
+            "entity_id": _hmac_int(setup_key, "entity", candidate),
+        }
+        for candidate, slot in slots.items()
+    ]
+    return slots, public_candidates
+
+
+def _private_table_edges(
+    graph: dict,
+    setup_key: str,
+    candidate_slots: dict[str, int],
+    rows_per_party: int,
+) -> list[tuple[int, int, int, int]]:
+    rows = []
+    for source, adjacency in graph.items():
+        for relation, targets in adjacency.items():
+            for target in targets:
+                for logical_source, logical_target in ((str(source), str(target)), (str(target), str(source))):
+                    slot = candidate_slots.get(logical_target)
+                    if slot is None:
+                        continue
+                    rows.append(
+                        (
+                            _hmac_int(setup_key, "entity", logical_source),
+                            _hmac_int(setup_key, "relation", str(relation)),
+                            slot,
+                            1,
+                        )
+                    )
+    rows = sorted(set(rows))[:rows_per_party]
+    rows.extend([(0, 0, 0, 0)] * (rows_per_party - len(rows)))
+    return rows
+
+
 def _candidate_slots(
     parties: list[dict],
     setup_key: str,
@@ -188,6 +243,11 @@ def main() -> int:
     parser.add_argument("--rows-per-party", type=int, default=256)
     parser.add_argument("--candidate-capacity", type=int, default=64)
     parser.add_argument("--semantic-relations", action="store_true")
+    parser.add_argument(
+        "--private-tables",
+        action="store_true",
+        help="Build fixed query-independent party tables and global candidate slots.",
+    )
     args = parser.parse_args()
 
     setup_key = os.environ.get("FEDKG_SETUP_KEY")
@@ -204,14 +264,21 @@ def main() -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    candidate_slots, public_candidates = _candidate_slots(
-        parties=parties,
-        setup_key=setup_key,
-        source=source,
-        relation=relation,
-        direction=direction,
-        capacity=args.candidate_capacity,
-    )
+    if args.private_tables:
+        candidate_slots, public_candidates = _universal_candidate_slots(
+            parties=parties,
+            setup_key=setup_key,
+            capacity=args.candidate_capacity,
+        )
+    else:
+        candidate_slots, public_candidates = _candidate_slots(
+            parties=parties,
+            setup_key=setup_key,
+            source=source,
+            relation=relation,
+            direction=direction,
+            capacity=args.candidate_capacity,
+        )
 
     template_path = _repo_root() / "mpspdz_client_excluded" / "programs" / "secure_kg_lookup_topk.mpc.template"
     program = template_path.read_text().format(
@@ -231,15 +298,23 @@ def main() -> int:
     party_summaries = []
     for index, party in enumerate(parties, start=1):
         graph, _ = _load_party(Path(party["data"]))
-        rows = _party_edges(
-            graph=graph,
-            setup_key=setup_key,
-            source_filter=source,
-            relation_filter=relation,
-            direction=direction,
-            candidate_slots=candidate_slots,
-            rows_per_party=args.rows_per_party,
-        )
+        if args.private_tables:
+            rows = _private_table_edges(
+                graph=graph,
+                setup_key=setup_key,
+                candidate_slots=candidate_slots,
+                rows_per_party=args.rows_per_party,
+            )
+        else:
+            rows = _party_edges(
+                graph=graph,
+                setup_key=setup_key,
+                source_filter=source,
+                relation_filter=relation,
+                direction=direction,
+                candidate_slots=candidate_slots,
+                rows_per_party=args.rows_per_party,
+            )
         flat_values = [value for row in rows for value in row]
         _write_input_file(player_data / f"Input-P{index}-0", flat_values)
         party_summaries.append(
@@ -265,6 +340,7 @@ def main() -> int:
         "data_parties": party_summaries,
         "candidate_capacity": args.candidate_capacity,
         "rows_per_party": args.rows_per_party,
+        "private_tables": args.private_tables,
         "candidates": public_candidates,
         "security_note": (
             "This is a bounded local MPC instance. Candidate display names are "

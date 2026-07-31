@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 import time
@@ -16,16 +15,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.crypto.hmac_ids import HmacIdProvider
-from src.aggregation.prio3_backend import Prio3BackendError, Prio3LocalBackend
-from src.aggregation.prio3_candidates import (
-    CandidateContribution,
-    CandidateVectorConfig,
-    PrioCandidateAggregator,
-    SessionCandidateHandleProvider,
+from src.aggregation.score_aggregation import candidate_id_for_edges
+from src.orchestration.pir_candidate_bridge import (
+    PirBridgeConfig,
+    aggregate_and_rank_pir_candidates,
 )
-from src.aggregation.score_aggregation import CandidateShare, candidate_id_for_edges
-from src.aggregation.secret_sharing import AdditiveSharing, FixedPointEncoder
-from src.ranking.garbled_circuit import LocalGarbledCircuitTopK
 from src.semantic.relation_buckets import relation_bucket_tokens
 
 UNKNOWN_PREFIX = "UNKNOWN"
@@ -69,6 +63,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--handle-key-env", default="FEDKG_PRIO_HANDLE_KEY")
     parser.add_argument("--query-nonce", default="lattigo-threshold-pir-validation")
     parser.add_argument("--prio-cli", type=Path, default=Path("tools/prio3_cli/target/release/fedkg-prio3-cli"))
+    parser.add_argument("--ranking-backend", choices=("local-gc", "mpspdz"), default="local-gc")
+    parser.add_argument("--mp-spdz-home", type=Path, default=Path("external/MP-SPDZ"))
+    parser.add_argument("--mp-spdz-ranking-dir", type=Path)
+    parser.add_argument("--keep-mp-spdz-ranking-dir", action="store_true")
     parser.add_argument("--go-routines", type=int, default=1)
     parser.add_argument("--timeout", type=float, default=300.0)
     parser.add_argument(
@@ -372,64 +370,26 @@ def _relation_text(value: str) -> str:
 
 
 def _aggregate_and_rank(candidates: list[dict[str, object]], args: argparse.Namespace) -> dict[str, object]:
-    if len(candidates) > args.candidate_capacity:
-        raise SystemExit(
-            f"candidate count {len(candidates)} exceeds --candidate-capacity {args.candidate_capacity}"
-        )
-    sharing = AdditiveSharing()
-    encoder = FixedPointEncoder()
-    candidate_shares = [
-        CandidateShare(
-            candidate_id=str(candidate["candidate_id"]),
-            score_shares=sharing.share(encoder.encode(float(candidate["score"])), args.parties),
-            support_shares=sharing.share(int(candidate["support"]), args.parties),
-        )
-        for candidate in candidates
-    ]
-    selected_ids = list(LocalGarbledCircuitTopK(party_count=args.parties).rank(candidate_shares, args.topk))
-    validation: dict[str, object] = {
-        "score_support_shares": "additive shares over threshold PIR parties",
-        "ranking": "local GC-compatible validation over additive shares",
-        "production_requirement": "replace local validation with distributed MPC/GC top-k over aggregate shares",
-    }
-
-    handle_key = os.environ.get(args.handle_key_env)
-    if handle_key and args.prio_cli.exists() and candidates:
-        contributions = [
-            CandidateContribution(
-                party_id="threshold_pir_result",
-                candidate_id=str(candidate["candidate_id"]),
-                score=float(candidate["score"]),
-                support=int(candidate["support"]),
-            )
-            for candidate in candidates
-        ]
-        try:
-            aggregation = PrioCandidateAggregator(
-                Prio3LocalBackend.from_executable(args.prio_cli),
-                CandidateVectorConfig(
-                    aggregator_count=args.prio_aggregators,
-                    capacity=args.candidate_capacity,
-                ),
-                SessionCandidateHandleProvider(
-                    handle_key.encode("utf-8"),
-                    args.query_nonce.encode("utf-8"),
-                ),
-            ).aggregate(["threshold_pir_result"], contributions)
-            validation["prio"] = {
-                "aggregator_count": aggregation.aggregator_count,
-                "party_count": aggregation.party_count,
-                "aggregate_candidate_count": len(aggregation.candidates),
-                "mode": "local Prio3 validation over bounded candidate vectors",
-            }
-        except Prio3BackendError as exc:
-            validation["prio_error"] = str(exc)
-    else:
-        validation["prio"] = "skipped; set FEDKG_PRIO_HANDLE_KEY and provide --prio-cli to validate Prio aggregation"
-
+    result = aggregate_and_rank_pir_candidates(
+        candidates,
+        PirBridgeConfig(
+            party_count=args.parties,
+            topk=args.topk,
+            candidate_capacity=args.candidate_capacity,
+            prio_aggregators=args.prio_aggregators,
+            handle_key_env=args.handle_key_env,
+            query_nonce=args.query_nonce,
+            prio_cli=args.prio_cli,
+            ranking_backend=args.ranking_backend,
+            mp_spdz_home=args.mp_spdz_home,
+            mp_spdz_instance_dir=args.mp_spdz_ranking_dir,
+            mp_spdz_keep_instance=args.keep_mp_spdz_ranking_dir,
+            mp_spdz_timeout_seconds=getattr(args, "mp_spdz_timeout", getattr(args, "timeout", 300.0)),
+        ),
+    )
     return {
-        "selected_candidate_ids": selected_ids,
-        "validation": validation,
+        "selected_candidate_ids": result.selected_candidate_ids,
+        "validation": result.validation,
     }
 
 

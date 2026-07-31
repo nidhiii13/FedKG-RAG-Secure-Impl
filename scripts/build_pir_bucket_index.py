@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a replicated encoded bucket database for XOR PIR lookup."""
+"""Build fixed-record encoded bucket databases for PIR lookup backends."""
 
 from __future__ import annotations
 
@@ -196,7 +196,7 @@ def main() -> int:
                 "display_entity_count": len(display_entities),
                 "display_relation_count": len(display_relations),
                 "security_model": (
-                    "replicated N-server XOR PIR; query index hidden unless all PIR servers collude"
+                    "fixed-record encoded bucket database; use with threshold PIR or replicated PIR backends"
                 ),
             },
             indent=2,
