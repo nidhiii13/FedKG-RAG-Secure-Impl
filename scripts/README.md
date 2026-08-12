@@ -2,6 +2,64 @@
 
 Command-line entry points for setup, party-local indexing, query execution, and experiments.
 
+## Three-party DORAM regression
+
+`run_doram_regression.py` runs the packed oblivious-scan DORAM over the bundled
+three-owner diverse fixture, the prepared bounded-fanout MetaQA fixture, or
+both. Because the MPC program supports at most ten queries per batch, a
+250-query run consists of 25 batches. The fixtures contain ten distinct
+validated queries; the runner repeats them cyclically for execution regression
+and checks every decoded result against its cleartext/reference output.
+
+Run both datasets, preserving console output as a top-level log:
+
+```bash
+RUN_DIR="results/doram_regression_250_$(date -u +%Y%m%dT%H%M%SZ)"
+
+python3 scripts/run_doram_regression.py \
+  --dataset both --query-count 250 --batch-size 10 \
+  --mpspdz-home ../SimGRAG/external/MP-SPDZ \
+  --metaqa-fixture-dir /tmp/doram-metaqa-cap2-q10 \
+  --output-dir "$RUN_DIR" 2>&1 | tee "${RUN_DIR}.log"
+```
+
+Each batch directory contains its queries, three private input files, copied
+server logs, decoded client output, and a `batch_summary.json`. The run is
+resumable after interruption:
+
+```bash
+python3 scripts/run_doram_regression.py \
+  --dataset both --query-count 250 --batch-size 10 \
+  --mpspdz-home ../SimGRAG/external/MP-SPDZ \
+  --metaqa-fixture-dir /tmp/doram-metaqa-cap2-q10 \
+  --output-dir "$RUN_DIR" --resume 2>&1 | tee -a "${RUN_DIR}.log"
+```
+
+Analyze completeness, reference accuracy, stage times, communication, and
+reported rounds:
+
+```bash
+python3 scripts/analyze_doram_regression.py \
+  --run-dir "$RUN_DIR" --strict | tee "${RUN_DIR}/analysis.log"
+```
+
+The machine-readable report is written to `$RUN_DIR/analysis.json`. A quick
+one-batch end-to-end smoke test is:
+
+```bash
+python3 scripts/run_doram_regression.py \
+  --dataset diverse --query-count 10 --max-batches 1 \
+  --mpspdz-home ../SimGRAG/external/MP-SPDZ \
+  --output-dir /tmp/doram-diverse-smoke
+```
+
+The MetaQA input is the existing deterministic fanout-two snapshot with ten
+selected cap-preserving queries. Repeating those queries does not constitute a
+250-distinct-query or uncapped MetaQA accuracy evaluation. MP-SPDZ also warns
+that rounds reported by the multithreaded program can be counted twice; the
+analysis retains that caveat rather than presenting them as sequential WAN
+round trips.
+
 ## SimGRAG-compatible semantic embeddings
 
 `run_private_frontier_query.py` defaults to the lightweight deterministic hashing
