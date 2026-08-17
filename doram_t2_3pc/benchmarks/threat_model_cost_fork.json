@@ -1,0 +1,72 @@
+{
+  "benchmark_kind": "cost of the corruption threshold itself, measured on the identical circuit",
+  "date_utc": "2026-08-15",
+  "scope_warning": "Synthetic fixtures on a single host, 100 to 800 entities, one query each. All three parties ran on one machine, which does not instantiate any non-collusion assumption. The MetaQA figures are EXTRAPOLATIONS about 60x beyond the largest measured point. No MetaQA run has been performed. Nothing here is a malicious-security result: both protocols measured are passive.",
+  "question": "benchmarks/relation_paged_scaling.json shows cost is linear in entities * relations and projects roughly 1.7 TB per query at MetaQA scale. This benchmark asks which factor is actually responsible: the layout, or the threat model the layout is forced to run under.",
+  "method": {
+    "controlled": "Identical generated circuit, identical private inputs, identical fixtures, identical field (127-bit prime), three parties in both arms. Only the MPC protocol changes.",
+    "arms": {
+      "semi": {
+        "binary": "semi-party.x",
+        "security": "semi-honest, DISHONEST majority: any 2 of 3 servers may collude",
+        "status": "This is the project's stated threat model and the one every other benchmark uses."
+      },
+      "atlas": {
+        "binary": "atlas-party.x",
+        "reference": "https://eprint.iacr.org/2021/833",
+        "security": "semi-honest, HONEST majority: at most 1 of 3 servers may be corrupted",
+        "status": "STRICTLY WEAKER THREAT MODEL. Two colluding servers break it completely. Recorded as a separate variant, never as the main claim."
+      }
+    }
+  },
+  "measurements_global_data_mb": [
+    {"entities": 100, "directory_rows": 808, "semi": 526.9, "atlas": 5.06055, "ratio": 104.1},
+    {"entities": 200, "directory_rows": 1608, "semi": 775.986, "atlas": 6.0685, "ratio": 127.9},
+    {"entities": 400, "directory_rows": 3208, "semi": 1262.93, "atlas": 8.11618, "ratio": 155.6},
+    {"entities": 800, "directory_rows": 6408, "semi": 2243.12, "atlas": 11.6365, "ratio": 192.8}
+  ],
+  "fits": {
+    "semi": {"model": "281.26 MB + 0.306176 MB per directory row", "max_residual_percent": 0.3},
+    "atlas": {"model": "4.20 MB + 0.001172 MB per directory row", "max_residual_percent": 2.0},
+    "marginal_cost_ratio": 261,
+    "interpretation": "The size-independent part is 67x cheaper under honest majority, but the part that GROWS with the graph is 261x cheaper. That is why the observed ratio climbs from 104x to 193x across the measured range: the marginal term dominates more as the graph grows, and it is the term the threat model penalizes most."
+  },
+  "sorting_kernel_probe": {
+    "what": "An independent probe of a different algorithm, to check whether the same conclusion holds outside the linear-scan circuit.",
+    "program": "radix_sort over 1024 rows with 16-bit keys, same field",
+    "semi_global_data_mb": 52000.7,
+    "semi_seconds": 121.399,
+    "atlas_global_data_mb": 158.292,
+    "atlas_seconds": 4.02732,
+    "ratio_communication": 328.5,
+    "reading": "Oblivious sorting is punished even harder by the dishonest-majority setting than the linear scan is, because it is dominated by bit-decomposition and secure shuffling. Under Semi, sorting costs about 50.8 MB per row against the scan's 0.306 MB per directory row, which is why a sort-based batch join is not viable in the current threat model. Under ATLAS it costs about 0.155 MB per row, which makes it viable."
+  },
+  "extrapolation_to_metaqa": {
+    "status": "EXTRAPOLATION, NOT MEASURED",
+    "directory_rows": 389115,
+    "per_query_gb": {
+      "semi_toy_shape_frontier_4_two_owners": 116.62,
+      "semi_realistic_frontier_48_three_owners": 1710.55,
+      "atlas_toy_shape_frontier_4_two_owners": 0.45,
+      "atlas_realistic_frontier_48_three_owners": 6.55
+    },
+    "batch_of_250_queries_gb": {
+      "semi_linear_scan": 427637,
+      "atlas_linear_scan": 1638,
+      "atlas_sort_based_batch_join_projected": 60,
+      "note": "The sort-based figure assumes one sort serves the whole batch, so it is independent of the query count; it is projected from the 1024-row probe and has NOT been implemented or measured at scale."
+    }
+  },
+  "conclusion": {
+    "primary": "The dominant scalability lever in this system is the corruption threshold, not the storage layout. Holding the circuit fixed and moving from any-2-of-3 collusion to at-most-1-of-3 buys 261x on the term that grows with the graph. The relation-paged layout's own contribution, measured separately in relation_paged_crossover.json, is about 17.5x on a skewed fixture.",
+    "the_tradeoff_is_real": "Honest majority is a genuinely weaker assumption. Two colluding servers recover everything. The current 2-of-3 model is unusually strong for a three-party system, and that strength is precisely what is being paid for.",
+    "what_this_does_not_argue": "This benchmark does NOT argue that the threat model should be weakened. It quantifies the price of keeping it, so the choice can be made deliberately rather than by default."
+  },
+  "what_this_does_not_show": [
+    "Any measured result above 800 entities, or on any real dataset.",
+    "Any WAN or multi-host result.",
+    "Any malicious-security property; both protocols measured here are passive.",
+    "That a sort-based batch join works; only its per-row kernel cost was probed.",
+    "That ATLAS is appropriate for this deployment; that is a threat-model decision, not a performance one."
+  ]
+}

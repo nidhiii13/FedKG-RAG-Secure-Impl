@@ -1,0 +1,58 @@
+{
+ "benchmark_kind": "the retrieval-quality price of obliviousness, against a plaintext baseline",
+ "date_utc": "2026-08-15",
+ "scope_warning": "40 questions from MetaQA's 2-hop test set over a 1,127-entity covering subgraph. The plaintext baseline runs on the same subgraph, so this isolates the effect of the layout's public bound and top-k, not of subgraph coverage. Small scale; not a full-MetaQA benchmark.",
+ "question": "rag_retrieval_quality.json measured 95% evidence-hit for the oblivious backend. That is only interpretable against what NON-private retrieval achieves on the same questions and the same graph.",
+ "headline": {
+  "obliviousness_costs_zero_retrieval_quality": true,
+  "evidence": "Bounded plaintext retrieval and the oblivious circuit score IDENTICALLY at every setting tested -- 95.0% at bound 4, top_k 4, for both. That is expected rather than surprising: the circuit is built to compute exactly the bounded two-hop function, and MPC output has been verified equal to the cleartext oracle on this very fixture. The value of measuring it is that it rules out silent degradation, such as truncation the circuit performs but the model does not.",
+  "where_the_cost_actually_is": "The public BOUND, which is a leakage and cost parameter, not the cryptography."
+ },
+ "bound_sweep_evidence_hit_rate": {
+  "note": "rows are the per-(source, relation) bound, columns are top_k",
+  "bound_1": {
+   "k4": 0.75,
+   "k8": 0.75,
+   "k20": 0.75
+  },
+  "bound_2": {
+   "k4": 0.925,
+   "k8": 0.925,
+   "k20": 0.925
+  },
+  "bound_3": {
+   "k4": 0.95,
+   "k8": 0.95,
+   "k20": 0.95
+  },
+  "bound_4": {
+   "k4": 0.95,
+   "k8": 0.95,
+   "k20": 0.95
+  },
+  "bound_8": {
+   "k4": 0.95,
+   "k8": 0.95,
+   "k20": 0.95
+  },
+  "unbounded": {
+   "k4": 0.95,
+   "k8": 0.95,
+   "k20": 0.975
+  }
+ },
+ "reading": [
+  "Quality saturates at bound 3 on this question set: 75.0% at bound 1, 92.5% at 2, 95.0% from 3 upward.",
+  "The configuration actually deployed (bound 4, top_k 4) is already at the plateau -- raising the bound buys nothing here.",
+  "The last 2.5 points need BOTH an unbounded graph and top_k 20, and amount to one question of forty.",
+  "top_k below 20 costs nothing at any bound tested, so the retrieval budget is not the binding constraint; the bound is, and only below 3."
+ ],
+ "why_this_matters_for_the_cost_story": "benchmarks/relation_paged_scaling.json and threat_model_cost_fork.json price the bound in bytes: cost is linear in the pool, and the pool is set by the bound. This benchmark prices it in ANSWERS. Together they give the tradeoff an operator actually faces -- bound 2 costs 2.5 points of evidence-hit against bound 3, and saves proportionally in every query thereafter.",
+ "the_honest_caveat": "This subgraph was built by covering each question's two-hop neighbourhood with a cap of 12, so keys with very high degree are already truncated before the bound applies. On the full graph, where metaqa_real_lossiness.json measures the supported scan discarding 56.8% of edges at a comparable bound, the quality cost of a tight bound would very likely be larger. This measurement establishes the SHAPE of the curve on real questions, not its position at full scale.",
+ "what_this_does_not_establish": [
+  "A full-MetaQA quality figure; 40 of 14,872 questions over 1,127 of 43,234 entities.",
+  "Any statement about LLM answer accuracy, which was a six-question smoke test.",
+  "Retrieval quality including LLM rewrite error; query graphs were derived from the graph deliberately.",
+  "That the curve holds at full scale, where higher-degree keys would make tight bounds bite harder."
+ ]
+}

@@ -1,0 +1,72 @@
+{
+  "benchmark_kind": "single-host A/B crossover measurement on a controlled synthetic fixture",
+  "date_utc": "2026-08-14",
+  "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+  "scope_warning": "Synthetic fixture on a single host, one query. It demonstrates the layout crossover under controlled degree skew; it is not a MetaQA, WebQSP, WAN, or production result, and all three parties ran on one machine, which does not instantiate the non-collusion assumption.",
+  "headline_finding": "On a fixture with source-degree skew, the relation-paged backend is 23.6x faster and uses 17.5x less communication than the packed scan, at identical semantics and identical results. Together with benchmarks/relation_paged_backend_ab.json, which shows the paged backend 1.15x SLOWER on a fixture with no skew, this locates the crossover: the paged layout wins in proportion to how much wider the maximum source degree is than the maximum (source, relation) degree.",
+  "fixture": {
+    "generator": "scripts/build_skewed_fixture.py",
+    "arguments": "--entities 100 --relations 8 --owners 2 --hub-sources 8 --degree-per-relation 2 --query-count 1 --top-k 4",
+    "entity_count_including_dummy": 101,
+    "owner_count": 2,
+    "relation_count": 8,
+    "edges_per_owner": 256,
+    "max_source_degree_per_owner": 16,
+    "max_source_relation_degree_per_owner": 2,
+    "narrowing_factor": 8,
+    "query_count": 1,
+    "top_k": 4,
+    "note": "Both configurations describe exactly the same edges, so this measures layout cost at identical semantics."
+  },
+  "packed_scan_backend": {
+    "config": "/tmp/skew/config_scan.json",
+    "fanout_per_owner": 16,
+    "block_edges": 32,
+    "candidates_per_query": 1024,
+    "mpc_seconds": 32.9856,
+    "party_0_data_mb": 3085.2,
+    "global_data_mb": 9218.46,
+    "reported_rounds_party_0": 558492
+  },
+  "relation_paged_backend": {
+    "config": "/tmp/skew/config_paged.json",
+    "page_size": 2,
+    "pages_per_key": 1,
+    "page_budget": 129,
+    "frontier_per_owner": 2,
+    "second_width": 4,
+    "candidates_per_query": 16,
+    "mpc_seconds": 1.39571,
+    "party_0_data_mb": 176.262,
+    "global_data_mb": 526.9,
+    "reported_rounds_party_0": 31100
+  },
+  "observed_advantage_paged_over_scan": {
+    "mpc_seconds": 23.634,
+    "global_data_mb": 17.495,
+    "party_0_data_mb": 17.503,
+    "reported_rounds": 17.958
+  },
+  "predicted_advantage_from_cost_model": {
+    "second_hop_selected_products": 12.1,
+    "candidates_per_query": 64.0,
+    "topk_candidate_visits": 64.0,
+    "edge_unpacks_bit_decompose": 52.8,
+    "note": "Measured 17.5x communication sits between the 12.1x product ratio and the 52.8x unpack ratio, consistent with cost being split between linear-scan products and bit-decomposition of packed records."
+  },
+  "correctness": {
+    "paged_mpc_matches_paged_cleartext_oracle": true,
+    "scan_mpc_matches_scan_cleartext_oracle": true,
+    "paged_mpc_matches_scan_mpc": true,
+    "valid_rows_returned": 4,
+    "top_k": 4,
+    "comparison": "Exact JSON equality of all four reconstructed ranked rows, across two backends and two independently implemented cleartext oracles."
+  },
+  "what_this_does_not_show": [
+    "Any real-dataset result; the degree skew here is synthetic and controlled.",
+    "Overflow-page behaviour: pages_per_key is 1 in this fixture; the multi-page path is validated separately in relation_paged_overflow_validation.json.",
+    "Any WAN or multi-host result.",
+    "Any malicious-security property; MP-SPDZ Semi is passive-only.",
+    "That the paged layout is always preferable: on an unskewed fixture it is measurably slower."
+  ]
+}

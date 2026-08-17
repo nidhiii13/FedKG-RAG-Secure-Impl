@@ -1,0 +1,128 @@
+{
+ "name": "compact_directory_planning",
+ "date": "2026-08-17",
+ "scope_warning": "CIRCUIT IMPLEMENTED BUT NEVER EXECUTED: MP-SPDZ compilation exceeded 1800s on every fixture tried. See circuit_was_implemented_and_DOES_NOT_COMPILE. LAYOUT, CAPACITY PLANNING AND COST MODEL ONLY. No circuit exists for this layout and nothing here has been executed in MPC. Every figure is a modelled product count, not a measured byte count, and the model's equality-test constant (50 products) is an estimate that has not been calibrated against a run. The full-scale WebQSP row is a projection from counting, not a fixture.",
+ "headline_finding": "Sizing the directory to the key count instead of the keyspace is NOT a general improvement. It removes padding but adds a key-tag comparison per fetched slot, and below roughly 40x sparsity the comparison costs more than the padding saved. On every fixture small enough to run in MPC the compact directory is modelled SLOWER than the dense folded one; it pays only in the high-sparsity regime that full-scale WebQSP occupies.",
+ "the_idea": {
+  "problem": "The dense (source, relation) directory has a row per entity-relation pair whether an edge exists or not, and an oblivious read scans all of it. Cost therefore grows with the KEYSPACE, not the data. On the WebQSP eval fixture it is 2.20% occupied; at full scale 0.154%.",
+  "construction": "A public hash sends each key to one of `buckets` buckets; owner i places its own keys in its own `slots` columns of that bucket. No owner needs to know another owner's keys -- the property the dense layout got for free -- and additive sharing assembles the table from per-owner zero-padded vectors.",
+  "the_price": "A bucket holds several different keys, so each slot stores a key tag beside the descriptor and the circuit must check the tag before trusting the descriptor. That check is what a dense table does not need."
+ },
+ "why_the_hash_runs_inside_the_circuit": "For hop one the client knows (source, relation_1) and could hash locally. Hop two cannot: its entities are hop-one's results, discovered inside the MPC and unknown to the client. So the bucket index is computed on secret shares, which rules out XOR-based or modular-reduction hashes and is why the construction uses the high bits of key * MULTIPLIER with a power-of-two bucket count: multiplication by a public constant is free and the index is a slice of a bit decomposition.",
+ "measured_crossover": {
+  "note": "sparsity = (entity_count * relation_count) / total_keys. Products are modelled. The dense baseline is the FOLDED circuit (relation_folded_directory.json), which is the honest comparison -- against the unfolded circuit the compact layout would look about 8x better than it is.",
+  "rows": [
+   {
+    "case": "webqsp n=5",
+    "sparsity": 15.8,
+    "gain": 0.31,
+    "verdict": "loss"
+   },
+   {
+    "case": "webqsp n=10",
+    "sparsity": 20.0,
+    "gain": 0.36,
+    "verdict": "loss"
+   },
+   {
+    "case": "webqsp n=20",
+    "sparsity": 27.2,
+    "gain": 0.53,
+    "verdict": "loss"
+   },
+   {
+    "case": "metaqa n=20",
+    "sparsity": 7.5,
+    "gain": 0.44,
+    "verdict": "loss"
+   },
+   {
+    "case": "metaqa eval (400q)",
+    "sparsity": 6.8,
+    "gain": 0.73,
+    "verdict": "loss"
+   },
+   {
+    "case": "webqsp eval (66q)",
+    "sparsity": 67.7,
+    "gain": 2.39,
+    "verdict": "win"
+   },
+   {
+    "case": "webqsp full graph (PROJECTION)",
+    "sparsity": 1973,
+    "gain": 100,
+    "verdict": "win"
+   }
+  ],
+  "crossover": "between sparsity 27 and 68; the model puts it near 40",
+  "chosen_plans": {
+   "webqsp eval": {
+    "buckets": 64,
+    "slots": 101,
+    "slack": 1.28
+   },
+   "metaqa eval": {
+    "buckets": 128,
+    "slots": 96,
+    "slack": 2.12
+   },
+   "webqsp full": {
+    "buckets": 256,
+    "slots": 687,
+    "slack": 1.13
+   }
+  }
+ },
+ "why_metaqa_can_never_benefit": "MetaQA has 18 relations. Its dense directory is 34% occupied, so there is almost no padding to remove, and the tag comparison is pure added cost. This is the same structural fact that makes MetaQA flatter the relation-paged layout throughout this directory: a small relation vocabulary hides the design's weakness and also removes the headroom for this fix.",
+ "capacity_is_measured_not_bounded": {
+  "why": "The theory gives a max-load tail bound; the layout needs the actual figure on the actual keys, because a plan sized from a bound the data then exceeds would silently drop edges.",
+  "how": "plan_capacity walks power-of-two bucket counts, measures the true worst per-owner bucket load for each, prices the resulting lookup, and returns the cheapest. slots is set to the measured maximum, so headroom is zero by construction and any growth in the key set requires re-planning.",
+  "there_is_a_real_optimum": "Few buckets means little slack but wide buckets, and every slot in the selected bucket needs a tag comparison. Many buckets means cheap comparison but per-owner capacity is sized for the worst bucket, so most slots sit empty. Neither extreme wins."
+ },
+ "bug_found_and_fixed_during_implementation": {
+  "what": "The first hash took the high bits of the untruncated product key * MULTIPLIER.",
+  "effect": "For any realistic key the high bits of a small input are zero, so all 4,000 test keys mapped to bucket 0 -- the directory would have degenerated to a single bucket sized for the entire key set, which is strictly worse than dense.",
+  "fix": "Fibonacci hashing truncates the product to a fixed word width FIRST, then takes its top bits. Both the correct spread and the broken formula are now asserted in tests/unit/test_compact_directory.py so the order cannot regress."
+ },
+ "leakage": {
+  "new_public_parameters": [
+   "directory_buckets",
+   "bucket_slots"
+  ],
+  "assessment": "Both are chosen from the per-owner key counts B_i, which the leakage function already publishes, so they add no information a two-server view did not already have. They are still two more numbers that must be honest, and plan_capacity refuses a plan whose measured load exceeds slots rather than dropping keys.",
+  "a_real_cost_recorded": "Uniform slots across owners is sized for the largest owner, so a federation with 10x volume skew pays 10x the slack of a balanced one. WebQSP's recorded split is nearly balanced (1.07x) so this is invisible there, and would not be on a skewed federation.",
+  "not_yet_in_the_security_documents": "These symbols are NOT yet added to IDEAL_FUNCTIONALITY.md or LEAKAGE_ABUSE.md, because the parameters are not yet fields of RelationPageParameters -- adding them there while no circuit can consume them would document a layout that cannot run."
+ },
+ "what_this_does_NOT_establish": [
+  "NOT a runnable layout. The circuit exists and renders, but no compile has ever completed, so there is no measured communication or wall-clock figure.",
+  "NOT an MPC result. No circuit exists for this layout; no bytes, rounds or seconds were measured.",
+  "NOT a validated cost model. The 50-product equality-test constant is an estimate. The dense side of every ratio is modelled the same way, so the comparison is internally consistent, but the absolute numbers are not calibrated against the measured MB-per-row rates.",
+  "NOT a claim that the full-scale 100x would survive implementation. It is arithmetic on counts, and the one thing this session has repeatedly shown is that projections at this reach get corrected.",
+  "NOT a scalability claim. Even at 100x, full-scale WebQSP stays far above any practical per-query cost -- the design would still not reach that graph.",
+  "NOT applicable to MetaQA at any size. Modelled as a loss at every MetaQA configuration measured.",
+  "NOT a correctness result. Nothing has been verified against the oracle, because nothing runs."
+ ],
+ "if_this_is_built_next": "The circuit is the remaining work: in-circuit hash (bit decomposition to 64 bits, index as a bit slice), demux over buckets, fetch owner_count * slots tag and descriptor columns, tag equality per fetched slot, select the matching descriptor. It should be a selectable layout rather than a replacement, because the dense folded directory is the better choice below the crossover -- which is everywhere this repository can currently execute.",
+ "circuit_was_implemented_and_DOES_NOT_COMPILE": {
+  "date_utc": "2026-08-17",
+  "status": "The compact circuit was implemented end to end and its layout is cleartext-verified, but MP-SPDZ's compiler did not finish on it within the 1800s budget on ANY fixture tried. It has never executed, so there is still no measured byte count for this layout.",
+  "what_was_verified": [
+   "Layout parameters, validation, and power-of-two bucket requirement.",
+   "Per-owner assembly re-indexed from the dense builder: agrees with the dense layout on all 1,138 descriptors of the WebQSP n=5 fixture.",
+   "Rendering, layout dispatch, and a distinct program identity so an A/B cannot silently reuse a compiled circuit.",
+   "Both new public symbols documented in IDEAL_FUNCTIONALITY.md and LEAKAGE_ABUSE.md."
+  ],
+  "first_failure": {
+   "symptom": "compile exceeded 4.4 million lines and was still running",
+   "cause": "the tag-match stage was a scalar Python loop over addresses * owners * slots, unrolling one bit decomposition per slot",
+   "fix": "vectorised the match over the whole fetched block"
+  },
+  "second_failure": {
+   "symptom": "compile.py timed out after 1800s on the 199x-sparsity fixture (200 entities, 1,000 relations)",
+   "diagnosis": "UNCONFIRMED but the leading suspect is the vectorised equality `stored_tags == wanted`, which is compiled at the default 124-bit length rather than at the ~18-bit tag width, so every slot pays a full-field zero test.",
+   "known_fix_not_yet_applied": "match on the bit decomposition already computed -- an AND tree over XORs of TAG_BITS bits -- instead of a field equality. That is TAG_BITS operations per slot rather than the field width."
+  },
+  "why_this_matters_beyond_this_layout": "The per-slot tag comparison is both the modelled cost driver AND the compile-scalability problem. The type-blocked directory (KG_VS_PLAIN_GRAPH.md) has no tag comparison at all, models ~2.5x cheaper on the same graph, and therefore does not have this failure mode. That is now an argument for type-blocking on engineering grounds and not only on product counts."
+ }
+}

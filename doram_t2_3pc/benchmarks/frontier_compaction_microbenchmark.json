@@ -1,0 +1,91 @@
+{
+ "benchmark_kind": "single-host correctness and cost microbenchmark",
+ "date_utc": "2026-08-14",
+ "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+ "scope_warning": "One tiny synthetic query; do not extrapolate latency or communication to MetaQA, WebQSP, WAN, or production deployments.",
+ "environment": {
+  "code_base_commit": "db2ea95c992907a2cddd268ba0a0bfd025c31c48",
+  "code_had_uncommitted_benchmark_changes": true,
+  "mpspdz_commit": "6a2256e327b507918859f605735543bb32a39d9d",
+  "kernel": "Linux 6.8.0-111-generic x86_64",
+  "cpu": "Intel Xeon Gold 6136 @ 3.00GHz, 48 logical CPUs"
+ },
+ "fixture": {
+  "path": "doram_t2_3pc/examples/ten_query",
+  "query_index": 0,
+  "query_count": 1,
+  "entity_count_including_dummy": 11,
+  "owner_count": 3,
+  "fanout_per_owner": 2,
+  "top_k": 4,
+  "deduplicate_terminal_answers": false
+ },
+ "full_frontier": {
+  "block_edges": 6,
+  "frontier_edges": 6,
+  "candidate_count": 36,
+  "program": "doram_scan_3pc_d8b1e7deacd4f637",
+  "compiler_hash": "7fe01c057e2f16a79a8181704e2e2ebe7d76dd2a97407990c600cf47b5d4eda3",
+  "integer_triples": 2234,
+  "bit_triples": 245024,
+  "compiler_vm_rounds": 5550,
+  "mpc_seconds": 1.52125,
+  "party_0_data_mb": 103.91,
+  "global_data_mb": 310.488,
+  "reported_runtime_rounds": 23430
+ },
+ "owner_local_relation_frontier": {
+  "relation_fanout_per_owner": 1,
+  "block_edges": 6,
+  "frontier_edges": 3,
+  "candidate_count": 18,
+  "program": "doram_scan_3pc_a874faabab3c2173",
+  "compiler_hash": "337b3c89ee549c197f7d000ea33669dc9c31992074110a7c8cd965d30f197580",
+  "integer_triples": 1220,
+  "bit_triples": 130334,
+  "compiler_vm_rounds": 3171,
+  "mpc_seconds": 0.9414,
+  "party_0_data_mb": 56.3145,
+  "global_data_mb": 168.269,
+  "reported_runtime_rounds": 14222
+ },
+ "observed_reduction": {
+  "candidate_count_fraction": 0.5,
+  "integer_triples_fraction": 0.5461056401,
+  "bit_triples_fraction": 0.5319234034,
+  "global_data_fraction": 0.5419500915,
+  "mpc_seconds_fraction": 0.6188331964,
+  "reported_runtime_rounds_fraction": 0.6069995732
+ },
+ "correctness": {
+  "decoded_outputs_identical": true,
+  "comparison": "Exact JSON equality between the four reconstructed ranked rows.",
+  "decoded_output": [
+   {
+    "left_evidence": 101,
+    "right_evidence": 102,
+    "score": 12,
+    "valid": 1
+   },
+   {
+    "left_evidence": 201,
+    "right_evidence": 202,
+    "score": 11,
+    "valid": 1
+   },
+   {
+    "left_evidence": 101,
+    "right_evidence": 204,
+    "score": 7,
+    "valid": 1
+   },
+   {
+    "left_evidence": 301,
+    "right_evidence": 302,
+    "score": 6,
+    "valid": 1
+   }
+  ]
+ },
+ "HANDLE_ALLOCATION_NOTE": "Any evidence handles cited here come from the ten_query fixture's ORIGINAL per-owner allocation (101-105 / 201-205 / 301-306). That allocation leaked the contributing owner to the client and has since been replaced with owner-blind handles, so those values no longer reproduce. The timings and the compaction behaviour are unaffected."
+}

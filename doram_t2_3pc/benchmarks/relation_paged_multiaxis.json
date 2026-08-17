@@ -1,0 +1,301 @@
+{
+ "benchmark_kind": "multi-axis scalability and efficiency measurement of the EXPERIMENTAL relation-paged backend",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+ "scope_warning": "Synthetic fixtures on a single host, 100-800 entities, 2-4 owners, 1-8 queries. All three parties ran on one machine, which does not instantiate the non-collusion assumption. No real dataset, no WAN, no multi-host run. Both protocols involved are passive; nothing here is a malicious-security result.",
+ "question": "relation_paged_scaling.json varied entity count alone. The analytic cost model claims cost is Theta((1 + frontier_slots) * (entities*relations*owners + pool)). This benchmark moves every factor in that expression independently, and validates the model on axes it was not fitted to.",
+ "measurements": [
+  {
+   "axis": "entities",
+   "label": "scale100",
+   "query_count": 1,
+   "seconds": null,
+   "mb": 526.9,
+   "products": 10660,
+   "directory_rows": 808,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "entities",
+   "label": "scale200",
+   "query_count": 1,
+   "seconds": null,
+   "mb": 775.986,
+   "products": 18660,
+   "directory_rows": 1608,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "entities",
+   "label": "scale400",
+   "query_count": 1,
+   "seconds": null,
+   "mb": 1262.93,
+   "products": 34660,
+   "directory_rows": 3208,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "entities",
+   "label": "scale800",
+   "query_count": 1,
+   "seconds": null,
+   "mb": 2243.12,
+   "products": 66660,
+   "directory_rows": 6408,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "owners",
+   "label": "owners2",
+   "query_count": 1,
+   "seconds": 1.60543,
+   "mb": 775.986,
+   "products": 18660,
+   "directory_rows": 1608,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "owners",
+   "label": "owners3",
+   "query_count": 1,
+   "seconds": 3.14085,
+   "mb": 1484.23,
+   "products": 39186,
+   "directory_rows": 1608,
+   "frontier_slots": 6,
+   "owners": 3,
+   "topk_visits": 144,
+   "unpacks": 42
+  },
+  {
+   "axis": "owners",
+   "label": "owners4",
+   "query_count": 1,
+   "seconds": 4.0279,
+   "mb": 2382.12,
+   "products": 67176,
+   "directory_rows": 1608,
+   "frontier_slots": 8,
+   "owners": 4,
+   "topk_visits": 256,
+   "unpacks": 72
+  },
+  {
+   "axis": "per-key-degree",
+   "label": "deg1",
+   "query_count": 1,
+   "seconds": 0.973625,
+   "mb": 421.124,
+   "products": 10422,
+   "directory_rows": 1608,
+   "frontier_slots": 2,
+   "owners": 2,
+   "topk_visits": 16,
+   "unpacks": 6
+  },
+  {
+   "axis": "per-key-degree",
+   "label": "deg4",
+   "query_count": 1,
+   "seconds": 3.45349,
+   "mb": 1714.01,
+   "products": 38232,
+   "directory_rows": 1608,
+   "frontier_slots": 8,
+   "owners": 2,
+   "topk_visits": 256,
+   "unpacks": 72
+  },
+  {
+   "axis": "query-count",
+   "label": "qc1",
+   "query_count": 1,
+   "seconds": 1.59578,
+   "mb": 775.986,
+   "products": 18660,
+   "directory_rows": 1608,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "query-count",
+   "label": "qc2",
+   "query_count": 2,
+   "seconds": 2.57101,
+   "mb": 1531.72,
+   "products": 37320,
+   "directory_rows": 1608,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 128,
+   "unpacks": 40
+  },
+  {
+   "axis": "query-count",
+   "label": "qc4",
+   "query_count": 4,
+   "seconds": 4.82792,
+   "mb": 3177.31,
+   "products": 74640,
+   "directory_rows": 1608,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 256,
+   "unpacks": 80
+  },
+  {
+   "axis": "query-count",
+   "label": "qc8",
+   "query_count": 8,
+   "seconds": 8.83003,
+   "mb": 6179.17,
+   "products": 149280,
+   "directory_rows": 1608,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 512,
+   "unpacks": 160
+  },
+  {
+   "axis": "relations",
+   "label": "rel4",
+   "query_count": 1,
+   "seconds": 1.39205,
+   "mb": 476.619,
+   "products": 9340,
+   "directory_rows": 804,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  },
+  {
+   "axis": "relations",
+   "label": "rel16",
+   "query_count": 1,
+   "seconds": 1.90308,
+   "mb": 1365.07,
+   "products": 37300,
+   "directory_rows": 3216,
+   "frontier_slots": 4,
+   "owners": 2,
+   "topk_visits": 64,
+   "unpacks": 20
+  }
+ ],
+ "scaling_law_per_axis": {
+  "method": "log-log slope between the endpoints of each axis; 'net of floor' subtracts the ~130 MB size-independent term first, which is the honest exponent for the growing part",
+  "graph_size_directory_rows": {
+   "exponent": 0.7,
+   "net_of_floor": 0.81,
+   "verdict": "linear in entities*relations; the sub-1 raw exponent is the fixed floor diluting a 7.9x range"
+  },
+  "federation_size_owners": {
+   "exponent": 1.62,
+   "net_of_floor": 1.8,
+   "verdict": "SUPERLINEAR, approaching quadratic. Per-address work is proportional to owners AND the dependent address count is 1 + owners*frontier_per_owner, also proportional to owners. This is the worst axis in the system, and it is the axis that makes the system federated."
+  },
+  "batch_size_queries": {
+   "exponent": 1.0,
+   "net_of_floor": 1.08,
+   "verdict": "exactly linear. Batching provides NO amortization; 8 queries cost 7.96x one query. This is a controlled confirmation of the cross-fixture observation in relation_paged_scaling.json."
+  },
+  "relation_count": {
+   "exponent": 0.76,
+   "net_of_floor": 0.92,
+   "verdict": "linear in relations, as directory rows = entities * relations"
+  },
+  "per_key_degree": {
+   "exponent": 1.01,
+   "net_of_floor": 1.22,
+   "verdict": "superlinear. Degree sets frontier width, which multiplies the dependent-read count, and also drives a compaction term quadratic in degree."
+  }
+ },
+ "cost_model_validation": {
+  "model": "MB = 0.030487*products + 61.71*unpacks - 16.06*topk_visits + 4.43",
+  "trained_on": [
+   "entities",
+   "owners",
+   "query-count"
+  ],
+  "held_out": [
+   "relations",
+   "per-key-degree"
+  ],
+  "train_error": {
+   "mean_abs_percent": 0.75,
+   "max_abs_percent": 2.26
+  },
+  "held_out_error": {
+   "mean_abs_percent": 5.25,
+   "max_abs_percent": 12.37
+  },
+  "dominant_coefficient": {
+   "value_mb_per_product": 0.0305,
+   "stability": "0.0305 +/- 0.0001 across four independent fits with different feature sets and training splits; this is the one coefficient that is well identified"
+  },
+  "known_residual_structure": "The worst held-out point is per-key-degree 4 at -12.4%, underpredicted. The fitted model omits compaction_selection_cells = queries * owners * slots_per_key * frontier_per_owner, which is quadratic in per-key degree. Adding it would overparameterize a 15-point dataset, so it is documented rather than fitted.",
+  "identifiability_caveat": "The unpacks and topk_visits coefficients are collinear (both proportional to frontier_slots * second_width) and are individually meaningless; the negative topk coefficient is compensating for the inflated unpacks coefficient. Only their combination predicts, and only the products coefficient is interpretable.",
+  "methodological_note": "An earlier two-term fit on entities+owners alone achieved 0.3% error and looked conclusive. It was wrong: held out against the query-count axis it underpredicted by up to 17%, because neither training axis varied the query count. Single-axis validation of a multi-axis cost model is not validation."
+ },
+ "efficiency": {
+  "obliviousness_overhead": {
+   "definition": "total secure products divided by the number of values actually needed to answer the query",
+   "value": 622,
+   "measured_on": "entities=200, relations=8, owners=2 and owners=4 (identical, as expected: the ratio is a property of the layout, not the federation size)",
+   "reading": "This is not waste to be optimized away; it IS the hiding. Touching every row is what makes the access pattern independent of the secret address, and it is why there is no volume or access-pattern leakage to attack."
+  },
+  "versus_cleartext": {
+   "cleartext_oracle_microseconds_per_query": 247.2,
+   "mpc_seconds_per_query": 1.81011,
+   "time_overhead_factor": 7322,
+   "fixture": "ten_query, 16 edges, 11 entities, 3 relations"
+  },
+  "communication_per_unit": {
+   "mb_per_returned_row": 92.5,
+   "mb_per_graph_edge": 23.1,
+   "fixture": "ten_query, top_k 4, 16 edges"
+  },
+  "stage_profile_percent_of_protocol_time": {
+   "input_sharing": 0.0,
+   "hop_1_read": 8.1,
+   "compaction_and_hop2_address": 1.8,
+   "hop_2_dependent_read": 49.5,
+   "candidate_scoring_and_topk": 32.7,
+   "output_resharing": 0.1,
+   "unaccounted_preprocessing": 7.9,
+   "source": "benchmarks/relation_paged_regression.json, 10-query run",
+   "reading": "The dependent second hop plus top-k is 82.2% of protocol time. Optimization effort anywhere else is capped at 18%."
+  },
+  "layout_choice_matters": {
+   "span": "3.07x between best and worst (page_size, pages_per_key) pair at equal semantics",
+   "rule": "set page_size to the maximum (source, relation) degree with pages_per_key = 1 when degree is uniform; the shipped fixture choice (page_size 2, pages_per_key 1) is uniquely optimal under a realistic page budget",
+   "caveat": "computed from the analytic model with page_budget recomputed per page_size from the actual data. Holding page_budget fixed flatters large pages and inverts part of the ranking."
+  }
+ },
+ "what_this_does_not_show": [
+  "Any real-dataset, WAN, or multi-host result.",
+  "Any measurement above 800 entities, 4 owners, or 8 queries.",
+  "Any malicious-security property.",
+  "That the cost model extrapolates beyond the measured ranges; held-out error is 5.25% mean within them and is not a guarantee outside them.",
+  "A fitted compaction term; its omission is the known residual and is documented, not corrected."
+ ]
+}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +25,7 @@ def packed_edge_bits(config: PublicConfig) -> int:
 
 def _require_packed_config(config: PublicConfig) -> None:
     if config.field_prime != SCALABLE_FIELD_PRIME:
-        raise ValueError("packed scalable DORAM requires field_prime=2^127-1")
+        raise ValueError("packed private lookup requires field_prime=2^127-1")
     if packed_edge_bits(config) > config.field_usable_bits:
         raise ValueError(
             f"packed edge needs {packed_edge_bits(config)} bits but the field "
@@ -65,6 +66,81 @@ def unpack_edge(config: PublicConfig, value: int) -> tuple[int, int, int, int, i
     return tuple(result)  # type: ignore[return-value]
 
 
+def _validated_edge(
+    config: PublicConfig,
+    row_number: int,
+    edge: dict[str, Any],
+) -> tuple[int, int, int, int, int]:
+    if set(edge) != {"source", "relation", "target", "evidence", "score"}:
+        raise ValueError(
+            f"edge {row_number} must contain exactly "
+            "source/relation/target/evidence/score"
+        )
+    try:
+        source = config.entities[edge["source"]]
+        target = config.entities[edge["target"]]
+        relation = config.relations[edge["relation"]]
+    except (KeyError, TypeError) as exc:
+        raise ValueError(f"edge {row_number} uses an unknown ontology item") from exc
+    evidence = edge["evidence"]
+    score = edge["score"]
+    if isinstance(evidence, bool) or not isinstance(evidence, int) or evidence <= 0:
+        raise ValueError(f"edge {row_number} has an invalid evidence handle")
+    if isinstance(score, bool) or not isinstance(score, int) or score < 0:
+        raise ValueError(f"edge {row_number} has an invalid score")
+    # Enforce configured widths even when this helper is used only for a
+    # capacity audit.  A report marked as fitting must also be packable.
+    pack_edge(config, target, relation, evidence, score, 1)
+    return source, relation, target, evidence, score
+
+
+def packed_owner_capacity_report(
+    config: PublicConfig,
+    owner: str,
+    edges: list[dict[str, Any]],
+) -> dict[str, int | bool | str]:
+    """Return owner-local capacity requirements for the supplied file.
+
+    Owners can run this before sharing.  The report is deliberately not sent
+    to the computation servers because exact maxima are part of the owner's
+    private degree profile unless the deployment declares them public.  It
+    cannot detect records discarded before this file was produced.
+    """
+
+    _require_packed_config(config)
+    if owner not in config.owners:
+        raise ValueError(f"unknown owner {owner!r}")
+    source_counts: Counter[int] = Counter()
+    relation_counts: Counter[tuple[int, int]] = Counter()
+    for row_number, edge in enumerate(edges, start=1):
+        source, relation, _, _, _ = _validated_edge(config, row_number, edge)
+        source_counts[source] += 1
+        relation_counts[(source, relation)] += 1
+    required_total = max(source_counts.values(), default=0)
+    required_relation = max(relation_counts.values(), default=0)
+    return {
+        "audit_scope": "supplied_file_only",
+        "edge_count": len(edges),
+        "nonempty_source_buckets": len(source_counts),
+        "nonempty_source_relation_buckets": len(relation_counts),
+        "required_fanout_per_owner": required_total,
+        "required_relation_fanout_per_owner": required_relation,
+        "configured_fanout_per_owner": config.fanout_per_owner,
+        "configured_relation_fanout_per_owner": config.relation_frontier_per_owner,
+        "source_overflow_bucket_count": sum(
+            count > config.fanout_per_owner for count in source_counts.values()
+        ),
+        "source_relation_overflow_bucket_count": sum(
+            count > config.relation_frontier_per_owner
+            for count in relation_counts.values()
+        ),
+        "supplied_input_fits_declared_capacity": (
+            required_total <= config.fanout_per_owner
+            and required_relation <= config.relation_frontier_per_owner
+        ),
+    }
+
+
 def packed_owner_vector(
     config: PublicConfig, owner: str, edges: list[dict[str, Any]]
 ) -> list[int]:
@@ -72,23 +148,18 @@ def packed_owner_vector(
     if owner not in config.owners:
         raise ValueError(f"unknown owner {owner!r}")
     buckets: list[list[int]] = [[] for _ in range(config.entity_count)]
+    relation_counts: Counter[tuple[int, int]] = Counter()
     for row_number, edge in enumerate(edges, start=1):
-        if set(edge) != {"source", "relation", "target", "evidence", "score"}:
+        source, relation, target, evidence, score = _validated_edge(
+            config, row_number, edge
+        )
+        relation_counts[(source, relation)] += 1
+        if relation_counts[(source, relation)] > config.relation_frontier_per_owner:
             raise ValueError(
-                f"edge {row_number} must contain exactly source/relation/target/evidence/score"
+                f"owner {owner!r} exceeds public bound relation_fanout_per_owner="
+                f"{config.relation_frontier_per_owner} at entity slot {source}, "
+                f"relation ID {relation}"
             )
-        try:
-            source = config.entities[edge["source"]]
-            target = config.entities[edge["target"]]
-            relation = config.relations[edge["relation"]]
-        except (KeyError, TypeError) as exc:
-            raise ValueError(f"edge {row_number} uses an unknown ontology item") from exc
-        evidence = edge["evidence"]
-        score = edge["score"]
-        if isinstance(evidence, bool) or not isinstance(evidence, int) or evidence <= 0:
-            raise ValueError(f"edge {row_number} has an invalid evidence handle")
-        if isinstance(score, bool) or not isinstance(score, int) or score < 0:
-            raise ValueError(f"edge {row_number} has an invalid score")
         buckets[source].append(pack_edge(config, target, relation, evidence, score, 1))
 
     flat: list[int] = []

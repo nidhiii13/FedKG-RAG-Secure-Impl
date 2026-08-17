@@ -4,14 +4,21 @@ import argparse
 import re
 from pathlib import Path
 
-from .config import EDGE_FIELDS, FIELD_PRIME, PublicConfig
+from .config import (
+    EDGE_FIELDS,
+    FIELD_PRIME,
+    PublicConfig,
+    reject_scan_only_options,
+)
 
 
 def program_name(config: PublicConfig) -> str:
+    reject_scan_only_options(config, "legacy OptimalORAM backend")
     return f"doram_t2_3pc_{config.digest[:16]}"
 
 
 def render_program(config: PublicConfig) -> str:
+    reject_scan_only_options(config, "legacy OptimalORAM backend")
     slot_bits = max(1, (config.entity_count - 1).bit_length())
     relation_bits = max(1, max(config.relations.values()).bit_length())
     entry_sizes = []

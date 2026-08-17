@@ -1,0 +1,84 @@
+{
+ "benchmark_kind": "degree profile of the REAL MetaQA knowledge graph, and what it does to the relation-paged premise",
+ "date_utc": "2026-08-15",
+ "scope_warning": "Computed from the raw knowledge graph, so the degree figures are measurements rather than assumptions. No MPC was run here. The consequences drawn for the relation-paged layout are analytic, following from its cost model, not from an executed MetaQA run, which has still never been performed.",
+ "source": {
+  "raw_kb": "/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/data/raw/metaQA/kb.txt",
+  "manifest": "/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/configs/federated/metaqa_manifest.json",
+  "triples": 134741,
+  "adjacency_construction": "bidirectional with _inverse relations, deduplicated, giving 267,164 edges and 43,234 distinct sources -- matching the 267,153 edges and 43,234 entities recorded in results/doram_metaqa_cap*.json, which confirms this reproduces the adjacency the earlier runs used"
+ },
+ "headline_finding": {
+  "narrowing_factor_on_real_metaqa": 1.0,
+  "statement": "The relation-paged layout exists to narrow a bucket from the maximum SOURCE degree to the maximum (SOURCE, RELATION) degree. On the real MetaQA adjacency those are both 4,176, so the narrowing factor is exactly 1.00 and the layout provides NO benefit on this dataset. NOTE: see CORRECTION_aggregate_retention -- this worst-case ratio understates the layout, which at tight bounds retains substantially more of the graph.",
+  "max_source_degree": 4176,
+  "max_source_relation_degree": 4176
+ },
+ "why": {
+  "cause": "The widest sources are attribute nodes reached through inverse edges, and their edges all sit under a single relation. 'Drama' has 4,176 edges, every one of them has_genre_inverse. 'Comedy' has 3,927, likewise one relation.",
+  "generality": "Of the 105 sources with degree at least 100, 93 (89%) have all their edges under one relation. Splitting by relation cannot narrow a bucket that is already one relation wide.",
+  "forward_edges_only": {
+   "narrowing_factor": 2.83,
+   "note": "Without inverse edges the factor is 2.83, still far below the 8 used in the synthetic crossover fixture. But the recorded runs use the bidirectional adjacency, so 1.00 is the figure that applies."
+  }
+ },
+ "what_this_invalidates": [
+  "benchmarks/relation_page_cost_model.json assumes a maximum (source, relation) degree of 16. The measured value is 4,176, understated by 261x. Every MetaQA projection in that file rests on the wrong input.",
+  "benchmarks/relation_paged_crossover.json measures 17.5x on a synthetic fixture with narrowing factor 8. Real MetaQA has narrowing factor 1.00, so that result does not transfer to this dataset.",
+  "The layout would need slots_per_key >= 4,176 to be lossless on MetaQA, against the 16 assumed, which removes the compactness the design depends on."
+ ],
+ "what_survives": [
+  "The measurement study: the 261x threat-model premium, the layout-versus-micro-optimisation ablation, and the negative results on DORAM, sorting, and batching are all independent of this.",
+  "benchmarks/metaqa_real_lossiness.json: the supported packed scan still discards 56.8% of MetaQA at fanout 2, so the lossiness problem is real even though this particular fix does not address it.",
+  "The federation-wide frontier compaction, the packed descriptors, and the volume-hiding mechanism are all independent of the narrowing premise.",
+  "The relation-paged layout remains correct and remains faster on graphs that DO have relation-splittable hubs; the finding is that MetaQA is not such a graph."
+ ],
+ "honest_conclusion": "The relation-paged layout was motivated, designed, measured, and optimised against synthetic skew. On the real dataset the project targets, the property it exploits is absent. This does not make the implementation wrong, but it does mean the headline 17.5x is not a MetaQA result and must never be presented as one. Choosing a dataset whose hubs are relation-splittable, or restricting to forward edges where the factor is 2.83, are both defensible responses; presenting the synthetic number as though it transfers is not.",
+ "what_this_does_not_show": [
+  "Any executed MetaQA run of the relation-paged backend; there has still never been one.",
+  "That no real graph benefits; only that MetaQA's bidirectional adjacency does not.",
+  "Per-owner volumes, which need the federated party split rather than the raw graph."
+ ],
+ "CORRECTION_aggregate_retention": {
+  "date_utc": "2026-08-15",
+  "what_was_too_strong": "This file concluded the relation-paged layout 'provides NO benefit' on MetaQA because the narrowing factor is 1.00. That metric is max_source_degree / max_source_relation_degree -- a WORST-CASE ratio, set entirely by one hub ('Drama', 2,087 edges under a single relation). It is correct as stated and it is not the whole picture.",
+  "what_the_planner_shows": {
+   "source": "doram_t2_3pc/capacity_planning.py run on the real party_0 data, 133,727 edges",
+   "retention_at_the_same_declared_bound": [
+    {
+     "bound": 1,
+     "source_keyed": 0.261,
+     "source_relation_keyed": 0.525,
+     "gain": 2.01
+    },
+    {
+     "bound": 2,
+     "source_keyed": 0.432,
+     "source_relation_keyed": 0.669,
+     "gain": 1.55
+    },
+    {
+     "bound": 4,
+     "source_keyed": 0.646,
+     "source_relation_keyed": 0.768,
+     "gain": 1.19
+    },
+    {
+     "bound": 8,
+     "source_keyed": 0.8,
+     "source_relation_keyed": 0.828,
+     "gain": 1.04
+    },
+    {
+     "bound": 16,
+     "source_keyed": 0.859,
+     "source_relation_keyed": 0.863,
+     "gain": 1.0
+    }
+   ],
+   "reading": "At the bound the recorded fixtures actually use (2), relation keying retains 66.9% of the graph against the source-keyed 43.2% -- it drops 44,235 edges where source keying drops 75,970. That is a real, measured benefit on real MetaQA. The advantage is largest at tight bounds and vanishes by bound 16."
+  },
+  "revised_conclusion": "Two things are both true and must be stated together. (1) The layout does NOT narrow the widest key: one hub sets both maxima, so lossless operation still needs page_size >= 2,087, and the 17.5x speed crossover measured at synthetic narrowing 8 does not transfer. (2) At the tight bounds these fixtures actually run under, relation keying retains substantially more of the graph -- 1.55x at bound 2. The layout's value on MetaQA is reduced LOSSINESS at a fixed budget, not reduced cost at fixed losslessness.",
+  "why_the_distinction_matters": "The speed claim and the retention claim are different claims with different evidence. Quoting the narrowing factor alone understates the layout; quoting the 17.5x crossover overstates it. The defensible statement on MetaQA is the retention one."
+ }
+}

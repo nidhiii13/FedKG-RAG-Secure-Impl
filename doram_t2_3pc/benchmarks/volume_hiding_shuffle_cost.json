@@ -1,0 +1,64 @@
+{
+ "benchmark_kind": "one-time cost of hiding per-owner data volume by pooling and shuffling pages",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "secure_shuffle measured at 1024 and 4096 rows of 2 columns on a single host. Federation-scale figures are EXTRAPOLATIONS using an n*log(n) permutation-network fit, roughly 50x beyond the largest measured point. The pooling mechanism itself is NOT implemented; this sizes it. Passive protocol only.",
+ "question": "LEAKAGE_ABUSE.md ranks B_i, the per-owner page budget, as the highest-severity leak: it publishes each owner's data volume, readable off the input file length. The only implemented mitigation is uniform padding, which taxes a participant holding 1% of the largest owner's data at 100x its own weight. Owner-blind pooling would remove B_i entirely, but was recorded as needing a secure setup of unknown cost. This measures that cost.",
+ "measurements": [
+  {
+   "rows": 1024,
+   "cols": 2,
+   "seconds": 2.69481,
+   "global_data_mb": 1035.81
+  },
+  {
+   "rows": 4096,
+   "cols": 2,
+   "seconds": 11.7585,
+   "global_data_mb": 5012.93
+  }
+ ],
+ "fit": {
+  "model": "global_data_mb = 0.10157 * n * log2(n)",
+  "residuals_percent": "under 0.5 across both points",
+  "caveat": "two points fitting a two-parameter shape; the exponent is assumed from the permutation-network structure, not established"
+ },
+ "extrapolation": {
+  "status": "EXTRAPOLATION, NOT MEASURED",
+  "three_owners_66788_pages_each": {
+   "pooled_pages": 200364,
+   "one_time_shuffle_gb": 350
+  },
+  "five_owners_66788_pages_each": {
+   "pooled_pages": 333940,
+   "one_time_shuffle_gb": 608
+  },
+  "amortisation_three_owners": {
+   "semi_2_of_3_at_1710_gb_per_query": "0.2 queries",
+   "atlas_1_of_3_at_6.55_gb_per_query": "53 queries"
+  }
+ },
+ "headline": "Under the declared 2-of-3 threat model the one-time shuffle costs LESS THAN A SINGLE QUERY. Hiding per-owner volume is therefore essentially free relative to serving the workload at all, and the padding alternative is strictly worse for every federation with unequal participants.",
+ "leakage_change_if_built": {
+  "before": "L includes B_1..B_n, one published volume bound per owner",
+  "after": "L includes only the sum of B_i, the federation total",
+  "what_stays_public": "the federation's total size",
+  "what_becomes_hidden": "which participant contributes how much"
+ },
+ "open_design_question": {
+  "problem": "Pooling changes where a key's pages live, so the directory descriptors that point at them must be updated to post-shuffle positions. The shuffle permutation must stay hidden from the servers, or the pooling achieves nothing, which rules out simply revealing it and rewriting pointers.",
+  "options": [
+   "Tag each pooled page with its directory row and look it up by oblivious tag match instead of by pointer. Needs no pointer rewriting, but replaces a demux multiplication per page with an equality test per page, which the ORAM path-read measurement showed is far more expensive.",
+   "Apply the same secret shuffle to a parallel position array so pointers can be remapped in-circuit. Cheapest at query time; needs care that the remapping itself does not leak the permutation.",
+   "Have the owners agree on the slot assignment among themselves in a one-time setup. Zero MPC cost and no server-visible permutation, but the owners then learn each other's volumes, which conflicts with the problem statement's mutually distrusting parties."
+  ],
+  "status": "unresolved; this is a design decision with a privacy/cost trade-off, not an implementation detail"
+ },
+ "what_this_does_not_show": [
+  "Any implementation of pooling; only the shuffle primitive was measured.",
+  "The cost of the pointer-update step, which is the unresolved part.",
+  "Any real dataset, WAN, or multi-host result.",
+  "That the n*log(n) fit holds 50x beyond the measured range.",
+  "Any malicious-security property."
+ ]
+}

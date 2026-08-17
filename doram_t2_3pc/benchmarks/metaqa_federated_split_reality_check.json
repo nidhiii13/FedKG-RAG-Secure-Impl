@@ -1,0 +1,76 @@
+{
+ "benchmark_kind": "the real MetaQA federated split, tested against both premises the design rests on",
+ "date_utc": "2026-08-15",
+ "scope_warning": "Computed from the actual federated party data the recorded runs used. Degree and volume figures are measurements. No MPC was run; the consequences for each mechanism follow from its cost model.",
+ "source": {
+  "manifest": "/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/configs/federated/metaqa_manifest.json",
+  "party_data": "SimGRAG/data/metaQA/federated/party_{0,1}/party.pkl",
+  "owners": 2
+ },
+ "per_owner": {
+  "party_0": {
+   "sources": 34952,
+   "edges": 133727,
+   "distinct_source_relation_keys": 70201,
+   "max_source_degree": 2087,
+   "max_key_degree": 2087,
+   "narrowing": 1.0
+  },
+  "party_1": {
+   "sources": 34750,
+   "edges": 133426,
+   "distinct_source_relation_keys": 69965,
+   "max_source_degree": 2089,
+   "max_key_degree": 2089,
+   "narrowing": 1.0
+  },
+  "note": "party_1's max source degree of 2,089 matches the lossless_max_source_degree already recorded in relation_page_cost_model.json, which cross-checks that this is the same data the earlier planning used."
+ },
+ "premise_1_relation_narrowing": {
+  "claim_the_design_rests_on": "max source degree is much larger than max (source, relation) degree, so keying by (source, relation) narrows the bucket",
+  "measured_party_0": {
+   "max_source_degree": 2087,
+   "max_key_degree": 2087,
+   "narrowing": 1.0
+  },
+  "measured_party_1": {
+   "max_source_degree": 2089,
+   "max_key_degree": 2089,
+   "narrowing": 1.0
+  },
+  "verdict": "FALSE on this data, per owner as well as federation-wide. The relation-paged layout provides no narrowing on MetaQA. See metaqa_real_degree_profile.json for the cause: hub sources are attribute nodes reached by inverse edges, whose edges all sit under one relation."
+ },
+ "premise_2_unequal_owner_volumes": {
+  "claim_the_design_rests_on": "owners hold very different amounts of data, so publishing B_i leaks something sensitive and uniform padding taxes small participants heavily",
+  "measured_B_i": {
+   "party_0": 70201,
+   "party_1": 69965
+  },
+  "volume_skew_max_over_min": 1.003,
+  "verdict": "ABSENT under the BUNDLED split, which is a random 50/50 edge partition and the least realistic federation available. Not absent from MetaQA: splitting by relation type, by subject entity, or into one large archive plus small contributors gives 1.83x to 2.02x skew from the same graph. See the CORRECTION field and volume_hiding_on_real_federation.json.",
+  "why": "The available split appears to be a roughly even partition of one knowledge graph, not a federation of institutions of differing sizes. The motivating scenario -- one large hospital and twenty small clinics -- is not what this data represents."
+ },
+ "combined_reading": "The relation-narrowing premise is false on MetaQA structurally. The unequal-volume premise is absent only because of how this project split the graph, and is restored by any realistic federation model. The implementations are correct throughout; what was wrong was assuming both properties held.",
+ "what_survives_unaffected": [
+  "The measurement study: the 261x threat-model premium, the layout-versus-micro-optimisation ablation, and the negative results on DORAM, sorting, and batching.",
+  "metaqa_real_lossiness.json: the supported packed scan discards 56.8% of MetaQA at fanout 2. The lossiness problem is real and remains unsolved.",
+  "Federation-wide frontier compaction and packed descriptors, which depend on owner count rather than on either premise.",
+  "Contribution hiding (Definition 1), which is about per-query match counts and is independent of both premises."
+ ],
+ "what_this_means_for_a_writeup": "Neither the 17.5x crossover nor the volume-hiding motivation may be presented as MetaQA results. Both need either a dataset exhibiting the relevant property, with that property stated and measured, or reframing as what they are: mechanisms characterised on synthetic distributions, with the real dataset reported as a negative case.",
+ "what_this_does_not_show": [
+  "That no real federation has these properties; only that this one does not.",
+  "Any executed MetaQA run of the relation-paged backend, which has still never been performed.",
+  "That the mechanisms are incorrect; correctness is established separately and is unaffected."
+ ],
+ "CORRECTION": {
+  "date_utc": "2026-08-15",
+  "what_was_overstated": "This file originally read as though MetaQA is a poor fit for the project. That is too broad and conflates two different things.",
+  "what_is_actually_true": {
+   "simgrag_use_of_metaqa": "SimGRAG used MetaQA as a SINGLE knowledge graph for graph-RAG, which is entirely appropriate; MetaQA is a standard KGQA benchmark. Nothing here argues against that, and SimGRAG is not a federated system.",
+   "premise_1_narrowing": "Still FALSE and not recoverable by re-splitting. The hubs are attribute nodes reached by inverse edges whose degree sits under a single relation, which is inherent to the graph. Forward-only edges give 2.83x, and hub filtering is a standard KGQA practice; either response needs stating and measuring.",
+   "premise_2_volume_skew": "RECOVERABLE, and the original verdict here was wrong to imply otherwise. The 1.003 skew is a property of the SPLIT, not of MetaQA. The bundled split is a random 50/50 partition of edges -- 61% of sources appear in both parties with the same relations -- which is the least realistic federation obtainable. Realistic splits of the same data give 1.83x to 2.02x skew; see volume_hiding_on_real_federation.json."
+  },
+  "revised_verdict": "One premise fails structurally on MetaQA and one fails only under the bundled split. The volume-hiding mechanism has a defensible real-data case once the federation is modelled rather than randomly partitioned; the relation-paged layout does not."
+ }
+}

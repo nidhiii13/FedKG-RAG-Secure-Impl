@@ -1,0 +1,47 @@
+{
+ "benchmark_kind": "cost of candidate-level secure ranking, as an alternative to oblivious graph scanning",
+ "date_utc": "2026-08-15",
+ "scope_warning": "Single host, three local parties, one query, synthetic zero-valued scores. The noise draw is a PLACEHOLDER (sint.get_random_int(16)), not a calibrated discrete Laplace or Gumbel sampler; a real differentially private mechanism costs more than measured here. Scores are dummy because the circuit is data-independent, which makes the cost figure valid but the privacy claim unmeasured. No DP guarantee is claimed or implemented.",
+ "question": "The implemented design obliviously scans the whole federated graph for every query, which relation_paged_multiaxis.json shows is linear in graph size and near-quadratic in owner count. This probe asks what it would cost to compare only CANDIDATES across parties, moving the graph-sized work out of MPC entirely.",
+ "design_probed": {
+  "idea": "Each party scores its own subgraphs locally in plaintext (free, no MPC, no obliviousness overhead) and submits its top m as secret shares. MPC does only the cross-party comparison: add noise to each candidate score, then take an exact top-k of the noisy scores.",
+  "parties": 3,
+  "candidates_per_party": 64,
+  "total_candidates": 192,
+  "k": 5,
+  "topk_algorithm": "naive O(k*n) select-and-suppress; a sorting network or oblivious heap would be cheaper, so these figures are an upper bound",
+  "what_it_deliberately_avoids": "any oblivious read over the graph; there is no directory scan and no page pool in this circuit at all"
+ },
+ "measurements": {
+  "semi_dishonest_majority_2_of_3": {
+   "seconds": 71.5014,
+   "global_data_mb": 30263.1
+  },
+  "atlas_honest_majority_1_of_3": {
+   "seconds": 4.64019,
+   "global_data_mb": 112.969
+  },
+  "protocol_ratio": 267.9
+ },
+ "comparison_against_the_implemented_design": {
+  "basis": "MetaQA-scale extrapolations from benchmarks/threat_model_cost_fork.json",
+  "implemented_scan_semi_gb_per_query": 1710.55,
+  "implemented_scan_atlas_gb_per_query": 6.55,
+  "candidate_level_atlas_gb_per_query": 0.113,
+  "improvement_over_implemented_semi": 15138,
+  "improvement_over_implemented_atlas": 58,
+  "the_asymptotic_point": "The candidate-level cost is INDEPENDENT of graph size. 192 candidates cost the same whether the federation holds 10^2 or 10^8 entities, because the graph-sized work happens locally in plaintext at each party. Cost becomes O(parties * candidates) instead of O((1 + frontier) * entities * relations * parties)."
+ },
+ "the_tradeoff_this_buys_and_costs": {
+  "buys": "Removes the graph-size and owner-count scaling walls simultaneously. Makes real-dataset evaluation feasible.",
+  "costs": "Local plaintext scoring requires each party to learn enough about the query to score against it. The implemented design hides the query from data owners; this design does not, unless query privacy is recovered separately (for example by routing on a coarse semantic bucket rather than the query itself, which src/semantic/lsh.py and src/orchestration/private_semantic_routing.py already sketch).",
+  "verdict": "This is a threat-model trade, not a free optimization: query privacy against data owners is exchanged for many orders of magnitude of scalability. It should be presented as an explicit design axis with both endpoints measured."
+ },
+ "what_this_does_not_show": [
+  "Any differential privacy guarantee; the noise is a placeholder.",
+  "Any retrieval-quality or answer-quality result.",
+  "Any real dataset, WAN, or multi-host result.",
+  "That local plaintext scoring is acceptable in the target deployment; that is a threat-model decision.",
+  "An optimized top-k; the naive O(k*n) selection measured here is an upper bound."
+ ]
+}

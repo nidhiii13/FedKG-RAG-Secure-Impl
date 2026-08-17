@@ -1,0 +1,59 @@
+{
+ "name": "relation_folded_directory",
+ "date": "2026-08-17",
+ "scope_warning": "Measured on five small covering fixtures (1,064 to 80,840 directory rows) on a single host with three local Semi parties, one query per run. The per-query figures for the full evaluation fixtures are EXTRAPOLATIONS from a fitted line, not runs: the WebQSP eval projection is a 21x reach beyond the largest fixture actually executed. The speedup ratio is a property of the layout (relation count and frontier width) and does not transfer to a layout with different ones.",
+ "headline_finding": "Hop two was re-resolving the same relation once per frontier address. Folding the relation out of the directory before reading it cuts communication 5.7x on the largest WebQSP fixture measured, with byte-identical output, no new public parameter and no change to the threat model.",
+ "the_waste": {
+  "observed": "The directory is 97.7% of per-address cost on WebQSP and 81.8% on MetaQA.",
+  "cause": "read_directory demuxes the combined address entity*relation_count + relation-1 over the whole dense keyspace, so each of the FRONTIER_SLOTS hop-two addresses scanned entity_count * relation_count rows.",
+  "the_observation": "Every hop-two address carries the SAME relation_2 -- only the entity differs. The relation was being resolved once per address instead of once per query."
+ },
+ "the_change": {
+  "what": "Contract the relation out of the directory once per query, leaving a table indexed by entity alone; each frontier address then scans entity_count rows.",
+  "cost_law": "n * E * R  ->  E * R + n * E, a factor of n*R/(R+n)",
+  "why_it_is_free": "A pure re-association of the same sum: the same products over the same shares, grouped differently. No new public parameter, no change to the leakage function L, no change to the corruption threshold, no new trust assumption.",
+  "hop_one_deliberately_not_folded": "Hop one has one address per relation, so there is nothing to amortise and folding would add E products per query for no return.",
+  "ablation_switch": "--ablate-folded-directory restores the unfolded read. It is a renderer argument, never a configuration field, and program_name separates the two variants so an A/B run cannot silently reuse one compiled circuit."
+ },
+ "measured": {
+  "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+  "note": "MB figures are global data sent, all parties, one query.",
+  "runs": [
+   {"dataset": "webqsp", "fixture_questions": 5, "directory_rows": 17776, "unfolded_mb": 17143.1, "folded_mb": 5116.39, "ratio": 3.35, "unfolded_seconds": 15.75, "folded_seconds": 10.63},
+   {"dataset": "webqsp", "fixture_questions": 10, "directory_rows": 38916, "unfolded_mb": 36181.7, "folded_mb": 7721.02, "ratio": 4.69, "unfolded_seconds": 25.36, "folded_seconds": 12.38},
+   {"dataset": "webqsp", "fixture_questions": 20, "directory_rows": 80840, "unfolded_mb": 69766.5, "folded_mb": 12278.6, "ratio": 5.68, "unfolded_seconds": 40.32, "folded_seconds": 15.33},
+   {"dataset": "metaqa", "fixture_questions": 10, "directory_rows": 1064, "unfolded_mb": 644.014, "folded_mb": 501.921, "ratio": 1.28, "unfolded_seconds": 2.06, "folded_seconds": 2.08},
+   {"dataset": "metaqa", "fixture_questions": 20, "directory_rows": 2968, "unfolded_mb": 1059.51, "folded_mb": 748.809, "ratio": 1.42, "unfolded_seconds": 2.19, "folded_seconds": 2.09}
+  ],
+  "the_ratio_grows_with_size": "3.35x -> 4.69x -> 5.68x across the three WebQSP fixtures, because a fixed ~3 GB floor dilutes the headline at small sizes. The fitted per-row term is the honest measure of the change."
+ },
+ "correctness": {
+  "method": "All output values reconstructed from all three party logs (3-of-3 additive shares summed mod 2^127-1) under both circuits and compared.",
+  "arms_checked": ["webqsp n=5", "webqsp n=10", "webqsp n=20", "metaqa n=10", "metaqa n=20"],
+  "result": "IDENTICAL on every arm, 16 values each.",
+  "why_this_matters": "The claim is that folding is semantically a no-op. That is checked against the preserved unfolded circuit, not asserted from the algebra."
+ },
+ "fitted_cost_law": {
+  "webqsp_unfolded": "2,992 MB + 0.8297 MB per directory row (3 points)",
+  "webqsp_folded": "3,197 MB + 0.1129 MB per directory row (3 points)",
+  "webqsp_per_row_improvement": 7.4,
+  "metaqa_unfolded": "352 MB + 0.2412 MB per directory row (3 points)",
+  "metaqa_folded": "364 MB + 0.1297 MB per directory row (2 points only -- weaker fit)",
+  "metaqa_per_row_improvement": 1.9,
+  "consistency_check": "After folding, the per-row slopes of the two datasets converge (0.113 vs 0.130) where before they differed 3.4x. That is the expected signature: what remains per row is the dataset-independent hop-one scan plus the fold, while the removed term carried the frontier-width factor, which is 15 on WebQSP and 9 on MetaQA."
+ },
+ "projections_NOT_runs": {
+  "webqsp_66_question_eval_fixture": {"rows": 1706776, "unfolded_gb": 1386, "folded_gb": 191},
+  "metaqa_400_question_eval_fixture": {"rows": 118296, "unfolded_gb": 28, "folded_gb": 15},
+  "caveat": "Both are extrapolations from the fitted line. The largest fixture actually executed was 80,840 rows, so the WebQSP figure is a 21x reach and should be treated as an order-of-magnitude statement."
+ },
+ "what_this_does_NOT_establish": [
+  "NOT a claim that the cost is now practical. 191 GB per query on the WebQSP eval fixture is a projection, and it is still far above any publishable per-query cost.",
+  "NOT a change to asymptotics. The directory is still dense in entities x relations, so cost still grows with the product of the two. This removes a frontier-width FACTOR, not the dense-keyspace TERM.",
+  "NOT a full-graph result. Nothing here was run at WebQSP or MetaQA scale.",
+  "NOT a retrieval-quality result. Output is byte-identical, so quality is unchanged by construction -- that is the point, not a separate finding.",
+  "NOT applicable to hop one, which is unchanged and still pays a full dense scan per query.",
+  "NOT a malicious-security or sublinear-access result."
+ ],
+ "what_is_still_on_the_table": "The dense entity x relation directory is 2.20% occupied on the WebQSP eval fixture and 0.154% at full scale. A compact table sized to the actual key count would attack the dense-keyspace term itself rather than a factor of it. Not implemented and not measured; the ratios above say nothing about whether it would work."
+}

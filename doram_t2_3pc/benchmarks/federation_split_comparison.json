@@ -1,0 +1,112 @@
+{
+ "benchmark_kind": "how the federation split determines whether the paged layout and volume hiding can BOTH pay",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "A 200-entity connected subgraph of real MetaQA, one query, single host. Real data at small scale, not a full-MetaQA evaluation. All parties on one machine, which does not instantiate the non-collusion assumption.",
+ "question": "metaqa_federated_execution.json found that splitting the federation by relation type suppresses the relation-paged layout's benefit, because each owner then holds only a few relations. Does an entity-based split -- regional catalogues rather than record-type registries -- keep both benefits?",
+ "answer": "Yes, and it improves both simultaneously.",
+ "comparison_same_subgraph_same_bound": [
+  {
+   "split": "by relation type",
+   "relations_per_owner": [
+    4,
+    2,
+    2
+   ],
+   "B_i": [
+    106,
+    63,
+    112
+   ],
+   "volume_skew": 1.78,
+   "source_keyed_retention": 0.673,
+   "relation_keyed_retention": 0.708,
+   "retention_gain": 1.052
+  },
+  {
+   "split": "by entity, even round robin",
+   "relations_per_owner": [
+    8,
+    8,
+    8
+   ],
+   "B_i": [
+    102,
+    97,
+    82
+   ],
+   "volume_skew": 1.24,
+   "source_keyed_retention": 0.523,
+   "relation_keyed_retention": 0.708,
+   "retention_gain": 1.353
+  },
+  {
+   "split": "by entity, uneven 60/20/20",
+   "relations_per_owner": [
+    8,
+    8,
+    7
+   ],
+   "B_i": [
+    172,
+    55,
+    54
+   ],
+   "volume_skew": 3.19,
+   "source_keyed_retention": 0.523,
+   "relation_keyed_retention": 0.708,
+   "retention_gain": 1.353
+  },
+  {
+   "split": "by entity, hashed",
+   "relations_per_owner": [
+    8,
+    8,
+    8
+   ],
+   "B_i": [
+    89,
+    102,
+    90
+   ],
+   "volume_skew": 1.15,
+   "source_keyed_retention": 0.523,
+   "relation_keyed_retention": 0.708,
+   "retention_gain": 1.353
+  }
+ ],
+ "the_mechanism": {
+  "relation_keyed_retention_is_invariant": "It is 70.8% under every split, because a (source, relation) bound caps the same thing wherever that key lives, and no split examined ever divides a key across owners.",
+  "source_keyed_retention_is_not": "67.3% under a relation split against 52.3% under an entity split. A relation-type split scatters one source's edges across owners, so each owner sees only part of that source and a source-keyed bound barely bites. The relation split therefore FLATTERS the packed-scan baseline: it performs relation separation implicitly, at the owner boundary, before the layout gets a chance to.",
+  "consequence": "The 1.05x measured under a relation split was not a property of the layout. It was an artefact of comparing against a baseline the split had already improved."
+ },
+ "recommended_model": {
+  "split": "by entity, uneven",
+  "why": "It is the only configuration measured here where both claims pay at once: relation diversity per owner stays at 7-8 relations, so relation keying retains 1.353x more of the graph, and the entity partition can be as uneven as the institutions are, giving a 3.19x volume skew -- larger than the relation split's 1.78x, which strengthens the volume-hiding case as well.",
+  "realism": "Regional or catalogue-based partitions are at least as plausible as record-type partitions: institutions typically hold complete records about their own subjects rather than one field about everyone."
+ },
+ "execution": {
+  "entities": 200,
+  "edges_after_bound": 364,
+  "directory_rows": 1608,
+  "B_i": [
+   172,
+   55,
+   54
+  ],
+  "volume_skew": 3.19,
+  "evidence_handles": "owner-blind, verified interleaved",
+  "query": "Charles Laughton --starred_actors_inverse--> ? --has_tags--> ?",
+  "private_input_values_per_server": 2289,
+  "mpc_seconds": 2.55405,
+  "global_data_mb": 1161.99,
+  "mpc_matches_cleartext_oracle": true,
+  "valid_rows_returned": 4
+ },
+ "what_this_does_not_establish": [
+  "Any full-MetaQA result; 200 entities of 43,234.",
+  "A speed advantage for the paged layout; retention is not latency, and the narrowing factor on real MetaQA remains 1.00.",
+  "That either split is what a real federation would look like; both are constructed models and should be presented as such.",
+  "Any WAN, multi-host, or malicious-security property."
+ ]
+}

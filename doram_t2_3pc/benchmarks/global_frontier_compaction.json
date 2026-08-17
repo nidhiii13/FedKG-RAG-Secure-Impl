@@ -1,0 +1,96 @@
+{
+ "benchmark_kind": "federation-wide frontier compaction: converting near-quadratic owner scaling to linear",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties, preprocessing included. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "Synthetic fixtures on a single host, 200 entities, 2-6 owners, one query. All three parties ran on one machine, which does not instantiate the non-collusion assumption. No real dataset, WAN, or multi-host run. Passive protocol only.",
+ "motivation": "benchmarks/relation_paged_multiaxis.json measured owner count as the worst scaling axis at exponent 1.80, near quadratic, because the dependent second hop dereferences owners * frontier_per_owner slots. That is the axis which makes the system federated.",
+ "change": {
+  "what": "A second stable compaction pass, across owners rather than within one, narrowing the first-hop frontier to a single declared federation-wide width.",
+  "new_public_bound": "global_frontier: no (source, relation) key holds more than this many edges summed over ALL owners",
+  "why_it_is_a_stronger_declaration": "frontier_per_owner is enforced by each owner on its own data, alone and fail-closed. global_frontier bounds a cross-owner sum that no single owner can see, so owner-local enforcement is impossible.",
+  "enforcement_status": "check_global_frontier verifies the bound offline against the plaintext union, which is available for fixtures and simulation but NOT in a real deployment. The deployment-grade equivalent is a one-time preparation-phase MPC pass over the directory, which is affordable because it is not per-query. That pass is NOT IMPLEMENTED. Until it is, global_frontier is a declared and trusted bound in deployment.",
+  "contribution_hiding_unchanged": "Occupancy still rides in secret validity bits and the emitted width is fixed, so which owner filled which slot, and how many each filled, stays hidden exactly as before."
+ },
+ "why_owner_coverage_matters": "The bound only narrows when owners hold overlapping-but-not-identical key sets. scripts/build_skewed_fixture.py replicates every hub key across every owner, making the federation-wide degree equal to the sum of the per-owner bounds, where global compaction buys exactly nothing. Real federations are not like that; the problem statement's own example has one party contributing zero. These fixtures set coverage to 2 owners per key.",
+ "analytic_effect": [
+  {
+   "owners": 2,
+   "frontier_per_owner_slots": 4,
+   "global_slots": 4,
+   "products_per_owner": 17380,
+   "products_global": 17380,
+   "ratio": 1.0
+  },
+  {
+   "owners": 3,
+   "frontier_per_owner_slots": 6,
+   "global_slots": 4,
+   "products_per_owner": 36498,
+   "products_global": 26070,
+   "ratio": 1.4
+  },
+  {
+   "owners": 4,
+   "frontier_per_owner_slots": 8,
+   "global_slots": 4,
+   "products_per_owner": 62568,
+   "products_global": 34760,
+   "ratio": 1.8
+  },
+  {
+   "owners": 6,
+   "frontier_per_owner_slots": 12,
+   "global_slots": 4,
+   "products_per_owner": 135564,
+   "products_global": 52140,
+   "ratio": 2.6
+  }
+ ],
+ "scaling_change": {
+  "per_owner_products_sequence": [
+   17380,
+   36498,
+   62568,
+   135564
+  ],
+  "global_products_sequence": [
+   17380,
+   26070,
+   34760,
+   52140
+  ],
+  "verdict": "With the per-owner bound, products grow faster than the owner count (2.10x, 1.71x, 2.17x against owner ratios of 1.5, 1.33, 1.5) which is the quadratic behaviour. With the global bound they grow exactly in step with the owner count. The axis is converted from near-quadratic to linear.",
+  "projected_at_20_owners_versus_2": {
+   "per_owner": "about 100x",
+   "global": "about 10x"
+  }
+ },
+ "executed_measurement_4_owners": {
+  "per_owner_frontier": {
+   "mpc_seconds": 3.84298,
+   "global_data_mb": 2184.67
+  },
+  "global_frontier": {
+   "mpc_seconds": 2.42074,
+   "global_data_mb": 1221.22
+  },
+  "speedup": {
+   "mpc_seconds": 1.59,
+   "global_data_mb": 1.79
+  },
+  "correctness": {
+   "per_owner_mpc_matches_its_oracle": true,
+   "global_mpc_matches_its_oracle": true,
+   "global_mpc_identical_to_per_owner_mpc": true,
+   "valid_rows": 4,
+   "comparison": "Exact JSON equality of all four reconstructed ranked rows across both configurations and both cleartext oracles."
+  }
+ },
+ "what_this_does_not_show": [
+  "Any real dataset, WAN, or multi-host result.",
+  "Any benefit when every owner holds every key; there the bound cannot narrow and the ratio is exactly 1.00, as the 2-owner row shows.",
+  "A deployment-grade enforcement of the federation-wide bound; only the offline check exists.",
+  "Any change to the graph-size scaling, which remains linear and is unaffected by this work.",
+  "Any malicious-security property."
+ ]
+}

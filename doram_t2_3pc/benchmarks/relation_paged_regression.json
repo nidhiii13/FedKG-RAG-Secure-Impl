@@ -1,0 +1,54 @@
+{
+  "benchmark_kind": "distinct-query regression of the EXPERIMENTAL relation-paged backend through the shared regression harness",
+  "date_utc": "2026-08-15",
+  "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+  "scope_warning": "Ten distinct queries on the bundled synthetic three-owner fixture, single host, one batch. All three parties ran on one machine, which does not instantiate the non-collusion assumption. This is not a MetaQA, WebQSP, WAN, 250-distinct-query, or production result.",
+  "why_this_exists": "Until now the paged backend could only be exercised by hand-built one-query instances. It could not be driven through scripts/run_doram_regression.py, so it had no distinct-query correctness record comparable to the packed scan's. This closes that gap.",
+  "how": {
+    "command": "scripts/run_doram_regression.py --backend relation-paged --dataset diverse --query-count 10 --batch-size 10",
+    "config": "doram_t2_3pc/examples/ten_query/config_relation_pages.json",
+    "program": "paged_kg_3pc_de5de62333635664",
+    "reference_kind": "independent raw-edge oracle over the supplied owner files",
+    "note": "The paged backend is checked against evaluate_paged_cleartext, its own independently implemented oracle, not against the scan's. The two oracles are separately asserted to agree on every fixture query by tests/unit/test_doram_regression_scripts.py, which is what makes a cross-backend comparison non-circular."
+  },
+  "correctness": {
+    "distinct_queries": 10,
+    "executions": 10,
+    "reference_matching_executions": 10,
+    "all_outputs_match_reference": true,
+    "batch_statuses": {"completed": 1}
+  },
+  "cost": {
+    "mpc_seconds_total": 13.4289,
+    "mpc_seconds_per_execution_amortized": 1.343,
+    "global_data_mb_total": 3524.11,
+    "global_data_mb_per_execution_amortized": 352.411,
+    "wall_seconds_including_compilation": 407.012,
+    "reported_rounds_total": 273384,
+    "rounds_caveat": "MP-SPDZ reports multithreaded rounds with double counting; they are not sequential WAN round trips.",
+    "stage_breakdown_seconds": {
+      "input": 0.000553762,
+      "first_hop_read": 1.08789,
+      "compaction_and_second_address": 0.242272,
+      "dependent_second_hop_read": 6.6451,
+      "candidate_scoring_and_topk": 4.386862,
+      "output_reshare": 0.008314104
+    },
+    "reading": "The dependent second hop and top-k dominate, together about 82% of protocol time. The first hop is cheap because only one address is resolved per query, while the second resolves one per frontier slot."
+  },
+  "comparison_to_the_packed_scan": {
+    "same_fixture_scan_result": "benchmarks/relation_paged_backend_ab.json",
+    "scan_mpc_seconds": 12.1341,
+    "scan_global_data_mb": 2798.19,
+    "paged_is": "1.11x slower and uses 1.26x more communication on this fixture",
+    "expected": true,
+    "why": "This fixture has almost no degree skew: maximum source degree 2, maximum (source, relation) degree 1. The paged layout's extra directory level buys nothing here and costs a level of indirection. See benchmarks/relation_paged_crossover.json for the skewed fixture where it wins 23.6x."
+  },
+  "what_this_does_not_show": [
+    "Any real-dataset result.",
+    "Any WAN or multi-host result.",
+    "A 250-distinct-query evaluation; there are ten distinct queries in this fixture.",
+    "Any malicious-security property; MP-SPDZ Semi is passive-only.",
+    "MetaQA coverage for the paged backend: that fixture ships pre-built packed shards only, and the harness refuses the combination rather than producing something misleading."
+  ]
+}

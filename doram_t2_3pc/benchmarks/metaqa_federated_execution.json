@@ -1,0 +1,58 @@
+{
+ "benchmark_kind": "first execution of the relation-paged backend on real MetaQA data, over a modelled federation",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "A 200-entity connected subgraph of real MetaQA, one query, single host. All three parties ran on one machine, which does not instantiate the non-collusion assumption. This is real DATA at small SCALE; it is not a full-MetaQA evaluation, which has still never been run for this backend.",
+ "why_this_matters": "Every prior paged-backend measurement used synthetic fixtures from scripts/build_skewed_fixture.py. This is the first run on edges taken from the real knowledge graph, over a federation split the way institutions plausibly would be.",
+ "data": {
+  "source": "/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/data/raw/metaQA/kb.txt",
+  "sampling": "connected snowball from seed 'Kismet', skipping sources above degree 40 so a single attribute hub cannot dominate the sample the way Drama dominates the full graph",
+  "edges": 514,
+  "entities": 200,
+  "relations": 8,
+  "directory_rows": 1608
+ },
+ "federation": {
+  "rule": "by relation type, three owners -- institutions holding different record types, rather than the random 50/50 edge partition the bundled split uses",
+  "B_i": [
+   106,
+   63,
+   112
+  ],
+  "volume_skew": 1.78,
+  "evidence_handles": "owner-blind, drawn uniformly from the 2^50 space with an independent generator per owner; handles_leak_owner confirms the ranges interleave"
+ },
+ "retention_at_bound_2": {
+  "source_keyed": {
+   "retained": 346,
+   "of": 514,
+   "fraction": 0.673
+  },
+  "source_relation_keyed": {
+   "retained": 364,
+   "of": 514,
+   "fraction": 0.708
+  },
+  "gain": 1.05,
+  "important_interaction": "This 1.05x is far below the 1.55x measured on a whole owner's data in metaqa_real_degree_profile.json, and the reason is that the two mechanisms INTERACT. Splitting the federation by relation type already gives each owner only about three relations, so within an owner a source-keyed bound and a relation-keyed bound are nearly the same thing. Relation keying pays most when one owner holds many relations. Choosing a relation-type federation therefore spends most of the benefit the relation-paged layout would otherwise provide."
+ },
+ "execution": {
+  "private_input_values_per_server": 2289,
+  "mpc_seconds": 2.44163,
+  "global_data_mb": 1066.38,
+  "mpc_matches_cleartext_oracle": true,
+  "valid_rows_returned": 4,
+  "query": "I'll Be Seeing You --directed_by--> ? --directed_by_inverse--> ?"
+ },
+ "what_this_establishes": [
+  "The relation-paged backend runs correctly on real MetaQA edges, not only on synthetic fixtures.",
+  "It runs over a realistic federation with genuine volume skew (1.78x) and owner-blind evidence handles.",
+  "The full preparation path -- owner-local layout, independent sharing, assembly, circuit, client reconstruction -- works end to end on real data."
+ ],
+ "what_this_does_not_establish": [
+  "Any full-MetaQA result; this is 200 entities of 43,234, chosen to be runnable.",
+  "A speed advantage over the packed scan; that was not measured here and the narrowing factor on real MetaQA is 1.00.",
+  "That the relation-type federation is the right model; it is defensible and it is what makes the volume-hiding case, but it also suppresses most of the relation-keying benefit, as noted above.",
+  "Any WAN, multi-host, or malicious-security property."
+ ]
+}

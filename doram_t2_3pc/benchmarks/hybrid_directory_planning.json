@@ -1,0 +1,53 @@
+{
+ "name": "hybrid_directory_planning",
+ "date": "2026-08-17",
+ "scope_warning": "LAYOUT AND COST MODEL ONLY. No circuit exists for the hybrid; the two halves' circuits exist separately and have never been run together. Every figure is a modelled product count on the same model used for the dense baseline, so the RATIOS are internally consistent, but none is a measured byte count. The primary-type map used here is derived from edge counts, which is a sizing convenience and NOT a deployment path -- a deployment must take it from a published ontology or the block widths leak the owners' edge distribution.",
+ "headline_finding": "Neither candidate layout wins alone. Routing the 54.1% of edges whose relation domain matches the entity's primary type through an affine type-blocked half, and the 45.9% residual through a hashed half, models 92x against the dense folded directory at FULL edge coverage -- 1.80x better than hashed-alone sized the same safe way.",
+
+ "why_a_hybrid": {
+  "type_blocked_alone": "Affine addressing needs a partition, one type per entity. A Freebase entity carries 1 to 189 domains, so forcing a partition drops 45.9% of edges. 186x, but only 54% coverage.",
+  "hashed_alone": "Needs no contiguity, so it keeps every edge, but pays a key-tag comparison on every fetched slot. 51x at full coverage with leakage-safe capacity.",
+  "the_composition": "A key's half is publicly derivable from (entity, relation) and the ontology, so a lookup reads both halves and sums -- at most one contributes, and no secret branch is needed. The hashed half then carries roughly half the keys, so its comparison is paid on half as many."
+ },
+
+ "measured_split_webqsp_full_graph": {
+  "entities": 203027, "relations": 3800, "keys": 626653, "edges": 1187361,
+  "blocked_half": {"keys": 325700, "edges": 642771, "edge_share": 0.541},
+  "hashed_half": {"keys": 300953, "edges": 544590, "edge_share": 0.459},
+  "blocked_geometry": {"rows": 3600073, "widest_block": 35923},
+  "hashed_geometry": {"buckets": 256, "slots": 367, "sizing": "public_capacity_bound", "total_slots": 469760}
+ },
+
+ "modelled_products_per_query": {
+  "frontier_addresses": 15,
+  "blocked": 7738991,
+  "coefficient_lookups": 60800,
+  "hashed": 8984160,
+  "total": 16783951,
+  "reading": "The two halves come out nearly equal (7.7M vs 9.0M), which is the signature of a well-placed split: neither dominates, so moving keys either way would cost more than it saves."
+ },
+
+ "comparison": {
+  "note": "All rows model the same query shape (1 + 15 addresses) on the full WebQSP graph. The dense baseline is the FOLDED circuit, which is the honest reference.",
+  "rows": [
+   {"layout": "dense folded (current, measured circuit)", "products": 1546050605, "vs_dense": 1, "coverage": "100%"},
+   {"layout": "type-blocked, bounding interval", "products": 205000000, "vs_dense": 8, "coverage": "100%"},
+   {"layout": "hashed compact, safe capacity", "products": 30232800, "vs_dense": 51, "coverage": "100%"},
+   {"layout": "hybrid", "products": 16783951, "vs_dense": 92, "coverage": "100%"},
+   {"layout": "type-blocked partition only", "products": 8300000, "vs_dense": 186, "coverage": "54% -- NOT usable"}
+  ]
+ },
+
+ "the_comparison_was_made_fair": {
+  "issue": "An earlier hashed-alone figure of 50x used capacity sized to the MEASURED worst-case bucket load, which LEAKAGE_ABUSE.md section 8 records as a data-dependent public parameter and therefore not deployable.",
+  "resolution": "Re-derived with public_capacity_bound on the full key set: 51x rather than 53x, so the safe bound costs only 1.04x here. The hybrid's 92x uses the safe bound throughout, so the 1.80x advantage over hashed-alone is like-for-like and not an artifact of comparing safe against unsafe sizing."
+ },
+
+ "what_this_does_NOT_establish": [
+  "NOT an MPC result. No hybrid circuit exists; no bytes, rounds or seconds measured.",
+  "NOT a validated cost model. The 50-product equality constant is an estimate; it is applied identically to both sides of every ratio, but absolute figures are uncalibrated.",
+  "NOT a leakage-free split as measured. The primary-type map here comes from edge counts, which is owner data. A deployment needs the map from a published ontology; the split's 54.1/45.9 ratio would then differ.",
+  "NOT practical. 16.8M products per query is 92x better and still far above any usable per-query cost. This narrows five orders of magnitude to roughly three.",
+  "NOT a coverage claim about retrieval quality. 'Full edge coverage' means every edge has a home in one of the two halves; it says nothing about the separate losses from the fanout bound and top-k, which rag_quality_at_scale.json measures at 2.0 points on MetaQA and webqsp_smoke.json at 9.09 on WebQSP."
+ ]
+}

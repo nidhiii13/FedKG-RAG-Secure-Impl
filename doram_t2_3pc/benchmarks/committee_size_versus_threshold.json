@@ -1,0 +1,56 @@
+{
+ "benchmark_kind": "corruption threshold versus committee size: what 2-collusion tolerance actually costs",
+ "date_utc": "2026-08-15",
+ "scope_warning": "A single radix_sort kernel (1024 rows, 16-bit keys) on one host, not the retrieval circuit. All parties ran on one machine, which does not instantiate any non-collusion assumption. The 5-party configuration is NOT implemented in this codebase: the sharing, assembly, and circuits are all hardcoded to three servers. These figures size an option, they do not report a working system. Passive protocols only.",
+ "question": "The project declares a 3-server, any-2-may-collude threat model, which forces dishonest-majority MPC and costs 261x on the growing term. Is there a configuration with the SAME 2-collusion tolerance that does not pay it?",
+ "the_observation": "Tolerating t corruptions needs dishonest-majority protocols only when t >= n/2. With n=3 and t=2 that holds, so Semi is required. With n=5 and t=2, 2 < 2.5, so honest majority holds and cheap protocols apply -- at the same absolute collusion tolerance.",
+ "measurements": {
+  "semi_3_parties": {
+   "tolerates_colluding_servers": 2,
+   "honest_servers_required": 1,
+   "fraction_honest_required": 0.33,
+   "majority": "dishonest",
+   "global_data_mb": 52000.7,
+   "seconds": 121.399
+  },
+  "atlas_3_parties": {
+   "tolerates_colluding_servers": 1,
+   "honest_servers_required": 2,
+   "fraction_honest_required": 0.67,
+   "majority": "honest",
+   "global_data_mb": 158.292,
+   "seconds": 3.20796
+  },
+  "atlas_5_parties": {
+   "tolerates_colluding_servers": 2,
+   "honest_servers_required": 3,
+   "fraction_honest_required": 0.6,
+   "majority": "honest",
+   "global_data_mb": 413.52,
+   "seconds": 8.75866
+  }
+ },
+ "headline": {
+  "comparison": "semi_3_parties versus atlas_5_parties, which tolerate the SAME absolute number of colluding servers",
+  "communication_ratio": 125.8,
+  "time_ratio": 13.9,
+  "reading": "Adding two more servers converts a dishonest majority of three into an honest majority of five, keeping 2-collusion tolerance while removing the dishonest-majority protocol premium almost entirely."
+ },
+ "the_honest_caveat": {
+  "not_a_free_lunch": "The two configurations are equivalent in absolute collusion tolerance but NOT in the fraction of the committee that must stay honest. Three-party Semi needs only 1 of 3 honest (33%); five-party ATLAS needs 3 of 5 honest (60%). Three-party Semi therefore fails only if EVERY server is corrupt, which remains the strongest possible guarantee for a three-server committee.",
+  "which_matters_depends_on_deployment": "If the federation can field five independently administered servers and believes at most two will collude, five-party honest majority gives the same protection for about 1/126th of the communication. If only three candidate operators exist, the option does not apply.",
+  "operational_cost": "Five servers means five sets of shares, five deployments, five audit relationships. That is a real governance cost this benchmark does not price."
+ },
+ "possible_second_benefit_unverified": {
+  "claim": "Information-theoretic t-private PIR with k servers has communication about N^(1/floor((k-1)/t)). For k=3, t=2 the exponent is 1, i.e. linear. For k=5, t=2 it is 1/2, i.e. square-root.",
+  "consequence_if_true": "Moving to five servers would not merely cut constants; it would unblock sublinear dependent reads, which benchmarks/doram_viability_under_dishonest_majority.json shows are unreachable at k=3, t=2.",
+  "status": "NOT VERIFIED. Recalled from the PIR literature and not confirmed against primary sources in this session. It is the single highest-value thing to check before committing to a committee size."
+ },
+ "what_this_does_not_show": [
+  "Any measurement of the retrieval circuit at five parties; only a sorting kernel was run.",
+  "A working five-party implementation; the codebase is hardcoded to three servers throughout.",
+  "Any real dataset, WAN, or multi-host result.",
+  "Any malicious-security property.",
+  "That five independently administered servers are available in the target deployment."
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "benchmark_kind": "real-dataset lossiness of the supported packed-scan backend on MetaQA",
+ "date_utc": "2026-08-15",
+ "scope_warning": "These are statistics extracted from PRIOR recorded runs in results/, not from a run performed now, and not from the raw knowledge graph, which is absent from this tree (data/ is empty). They establish how much the source-keyed fanout cap discards; they do NOT give the degree distribution or the per-owner volumes that a volume-hiding evaluation needs.",
+ "source": [
+  "results/doram_metaqa_cap2_10queries.json",
+  "results/doram_metaqa_cap4.json"
+ ],
+ "dataset": {
+  "name": "MetaQA",
+  "raw_kb_triples": 134741,
+  "entities": 43234,
+  "relations": 9,
+  "federated_owners": 2,
+  "federated_adjacency_edges": 267153,
+  "owner_source_pairs": 86468,
+  "mean_edges_per_owner_source": 3.09,
+  "directory_rows_the_paged_layout_needs": 389115
+ },
+ "the_finding": {
+  "cap_2": {
+   "retained": 115316,
+   "retention_percent": 43.2,
+   "discarded_percent": 56.8
+  },
+  "cap_4": {
+   "retained": 172365,
+   "retention_percent": 64.5,
+   "discarded_percent": 35.5,
+   "owner_source_pairs_exceeding_cap": 16390,
+   "percent_of_pairs_exceeding_cap": 19.0
+  },
+  "reading": "The supported packed-scan backend caps adjacency by SOURCE. On real MetaQA that discards 56.8% of the federated graph at fanout 2 and 35.5% at fanout 4. The mean degree is only 3.09, but 19% of (owner, source) pairs exceed 4, so the loss is driven by a heavy tail rather than by a uniformly high degree. That is precisely the distribution a source-keyed cap handles worst, and precisely what keying by (source, relation) is meant to narrow."
+ },
+ "why_it_matters_here": "Every earlier argument for the relation-paged layout used SYNTHETIC skew from scripts/build_skewed_fixture.py. This is the same argument on real data: the supported backend is not merely slower than it could be, it is lossy, and measurably so. The recorded regression results are bounded-reference matches against a capped graph, so they are consistent with the cap while the cap itself discards most of the edges.",
+ "what_this_does_not_establish": [
+  "The maximum (source, relation) degree, which is what sets page_size and is still an ASSUMED value (16) in relation_page_cost_model.json.",
+  "The narrowing factor on real data, so the 17.5x crossover measurement remains synthetic.",
+  "Per-owner data volumes, so the volume-hiding motivation is still argued rather than measured on a real federation.",
+  "Anything measured now; these are extracted from prior recorded runs.",
+  "Any result for the relation-paged backend on MetaQA, which has never been run."
+ ],
+ "what_would_close_the_gap": "The raw MetaQA knowledge graph. With it, doram_t2_3pc/capacity_planning.py already computes the degree profile, the lossless bounds, and the per-owner key counts directly; prepare_scan plan-capacity is the entry point. That single input would convert three of the five items above from assumed to measured."
+}

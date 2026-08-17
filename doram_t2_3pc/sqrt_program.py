@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from .config import PublicConfig, SCALABLE_FIELD_PRIME
+from .config import PublicConfig, SCALABLE_FIELD_PRIME, reject_scan_only_options
 from .packed import packed_edge_bits, packing_widths
 
 
@@ -19,6 +19,7 @@ SQRT_PROGRAM_VERSION = 2
 
 
 def _validate(config: PublicConfig, query_count: int) -> None:
+    reject_scan_only_options(config, "square-root ORAM experiment")
     if config.field_prime != SCALABLE_FIELD_PRIME:
         raise ValueError("square-root DORAM requires field_prime=2^127-1")
     if not 1 <= query_count <= 100:

@@ -1,0 +1,107 @@
+{
+ "name": "webqsp_smoke",
+ "date": "2026-08-16",
+ "scope_warning": "SMOKE TEST, NOT A WEBQSP EVALUATION. Only 66 of WebQSP's 203 questions (32.5%) are two-hop chains this backend can represent; the other 137 are one-hop and were excluded, not answered. Every number here describes that 32.5% subset on a 1,528-entity covering fixture, not WebQSP. Retrieval is scored with the cleartext oracle; the MPC circuit was NOT run on this fixture, so the equivalence verified on MetaQA is assumed, not re-checked here.",
+ "headline_finding": "The backend runs end to end on a second dataset with a REAL federation, and that is where three MetaQA-derived conclusions stop holding: volume skew collapses to 1.07x, the global frontier degrades to owners x bound, and the price of privacy in retrieval quality rises to 9.09 points against MetaQA's 2.00. Deriving a valid baseline for a second dataset also exposed that MetaQA's recorded 0.3-point figure was measured against a ceiling that was not one; that is corrected in rag_quality_at_scale.json.",
+ "what_was_run": {
+  "command": "scripts/run_rag_eval.py --dataset webqsp --questions 66",
+  "dataset_root": "SimGRAG data/webqsp",
+  "query_graphs": "WebQSP.query_graphs, shipped with the dataset -- NOT derived from the graph as the MetaQA path does",
+  "federation": "the recorded 5-party split (data/webqsp/federated/party_{0..4}/party.pkl), not synthesised",
+  "bound": 3,
+  "top_k": 4,
+  "neighbourhood_cap": 10,
+  "seed": 4242
+ },
+ "coverage": {
+  "query_graphs_available": 203,
+  "representable_two_hop": 66,
+  "representable_fraction": 0.3251,
+  "excluded_reason": "one-hop query graphs; the backend answers (source, relation_1, relation_2) chains",
+  "note": "This is a structural limit of the circuit shape, not a bug and not a tuning failure. It is the single most important caveat on every number in this file."
+ },
+ "fixture": {
+  "entities": 1528,
+  "relations": 1117,
+  "directory_rows": 1706776,
+  "directory_occupancy": 0.021963,
+  "edges_available": 37486,
+  "edges_kept_at_bound_3": 31616,
+  "owners": 5,
+  "B_i": [
+   5140,
+   4882,
+   4912,
+   5218,
+   5090
+  ],
+  "volume_skew": 1.07,
+  "global_frontier": 15
+ },
+ "retrieval": {
+  "evidence_hits": 45,
+  "questions_scored": 66,
+  "evidence_hit_rate": 0.6818,
+  "evidence_hit_ci95": [
+   0.5621,
+   0.7815
+  ],
+  "empty_retrievals": 1,
+  "plaintext_at_federation_bound_15": 0.6667,
+  "plaintext_ceiling_unclipped": 0.7727,
+  "privacy_cost_points": 9.09,
+  "seconds": 170.3
+ },
+ "findings": [
+  {
+   "id": "skew_collapses_on_a_real_federation",
+   "measured": "1.07x volume skew across the recorded 5-party split. MetaQA's synthesised entity split, re-measured the same day on its own 400-question fixture, gives 2.79x (B_i = [10051, 3701, 3608]); federation_split_comparison.json reports 3.19x on a different fixture.",
+   "why_it_matters": "Volume hiding is motivated by per-owner volume leakage, and its break-even analysis (volume_hiding_on_real_federation.json) is driven by how uneven B_i is. A real federation that is nearly balanced weakens that motivation on this dataset. It does NOT show volume hiding is unnecessary in general -- a balanced split is one federation model, and metaqa_federated_split_reality_check.json already records that skew is a property of the split, not of the data. It does show the favourable skew numbers should not be presented as typical.",
+   "direction": "against the volume-hiding motivation, on this dataset"
+  },
+  {
+   "id": "global_frontier_benefit_is_a_property_of_the_entity_split",
+   "measured": "global_frontier = 15 = 5 owners x bound 3, MPC-verified against a measured max federation-wide key degree of 15.",
+   "why_it_matters": "global_frontier_compaction.json converts owner scaling from near-quadratic to linear, and rag_fixture_optimisation.json attributes 3x of its 3.47x saving to the global frontier -- but explicitly because an ENTITY split keeps every (source, relation) key with a single owner, so the federation bound equals the per-owner bound. WebQSP's recorded split is by EDGE, so a key spans parties and the federation bound is owners x bound. The mechanism still works and is still verified; the SAVING does not transfer. The 3x should never be quoted without the split it depends on.",
+   "direction": "scopes global_frontier_compaction.json and rag_fixture_optimisation.json"
+  },
+  {
+   "id": "privacy_costs_4_5x_more_here_than_on_metaqa",
+   "measured": "9.09 points (68.18% oblivious vs 77.27% true ceiling), against 2.00 points on MetaQA (97.25% vs 99.25%) measured the same way on the same day.",
+   "why_it_matters": "rag_quality_at_scale.json's headline -- privacy costs ~0.3 points -- is wrong twice over. Deriving a valid baseline for WebQSP exposed that the MetaQA 'ceiling' was top-k-clipped; corrected, MetaQA costs 2.00 points, not 0.3. WebQSP then costs 4.5x that again. Freebase relations have far higher fanout than MetaQA's 18, so the fixed-width budgets discard answers MetaQA never had. The honest statement is that the oblivious budgets are cheap on low-fanout graphs and expensive on high-fanout ones.",
+   "direction": "corrects rag_quality_at_scale.json and scopes what remains of it",
+   "decomposition": {
+    "webqsp": {
+     "fanout_bound_points": -1.51,
+     "top_k_budget_points": 10.6,
+     "note": "the -1.51 is the ranking artifact recorded under anomaly_investigated, not a gain"
+    },
+    "metaqa": {
+     "fanout_bound_points": 0.5,
+     "top_k_budget_points": 1.5
+    },
+    "reading": "On both datasets the top-k budget dominates the fanout bound, and on WebQSP it dominates overwhelmingly."
+   }
+  },
+  {
+   "id": "dense_directory_scales_with_the_relation_vocabulary",
+   "measured": "1,706,776 directory rows at 2.20% occupancy for 66 questions. Full-graph projection: 203,027 entities x 3,800 relations = 771,502,600 rows at 0.154% occupancy.",
+   "why_it_matters": "The directory is dense in entities x relations, and MetaQA's 18 relations hid the cost. WebQSP has 3,800. This is the clearest evidence that the relation-paged layout is tied to a small relation vocabulary, consistent with metaqa_real_degree_profile.json finding narrowing factor 1.00 on real data.",
+   "direction": "against the relation-paged layout"
+  }
+ ],
+ "anomaly_investigated": {
+  "observation": "The oblivious path scores 68.18% against 66.67% for plaintext at the same federation bound -- privacy appearing to be better than free.",
+  "explanation": "A ranking artifact, not a gain. Both retain the same edges; the oblivious path selects its top-4 by the packed score field, while the plaintext baseline takes them in sorted order. A 1.5-point difference on 66 questions is one question and well inside the CI.",
+  "resolution": "Reported against the unclipped ceiling (77.27%) instead, which is a true upper bound. An earlier version of the script compared against a top-k-clipped 'unbounded' rate that was NOT an upper bound, and against `bound` rather than `global_frontier` -- both were corrected, and the corrected comparison is what appears above."
+ },
+ "what_this_does_NOT_establish": [
+  "NOT a WebQSP evaluation. 67.5% of the dataset's questions are outside the circuit's shape and were excluded.",
+  "NOT an MPC measurement. The oracle was used; the circuit was not run on this fixture, and no communication or wall-clock cost for WebQSP is claimed.",
+  "NOT evidence about full-graph WebQSP. The fixture is 1,528 of 203,027 entities. The 771M-row directory figure is a projection from counting, not a run.",
+  "NOT a claim that volume hiding is unnecessary -- only that this federation is nearly balanced.",
+  "NOT a malicious-security or sublinear-access result. Neither is implemented, and nothing here bears on either.",
+  "NOT answer accuracy. The LLM stage was not run; only evidence retrieval was scored."
+ ],
+ "triggered_a_correction_elsewhere": "rag_quality_at_scale.json: its '0.3 points' headline compared against a top-k-clipped baseline. Corrected in place to 2.0 points. The oblivious hit rate itself re-measured identically (97.25% vs recorded 97.2%)."
+}

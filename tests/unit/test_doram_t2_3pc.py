@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from doram_t2_3pc.packed import (
     create_packed_query_batch_shards,
     pack_edge,
     packed_edge_bits,
+    packed_owner_capacity_report,
     packed_owner_vector,
     unpack_edge,
 )
@@ -30,8 +32,13 @@ from doram_t2_3pc.program import render_program
 from doram_t2_3pc.reference import evaluate_cleartext
 from doram_t2_3pc.run_mpspdz import PROTOCOL_SCRIPT, run
 from doram_t2_3pc.run_party import validate_private_input
+from doram_t2_3pc.scalable_program import query_program_name
 from doram_t2_3pc.sharing import reconstruct, share
-from doram_t2_3pc.scan_program import render_program as render_scan_program
+from doram_t2_3pc.scan_program import (
+    render_program as render_scan_program,
+    scan_cost_estimate,
+)
+from doram_t2_3pc.sqrt_program import program_name as sqrt_program_name
 
 
 @pytest.fixture
@@ -307,6 +314,167 @@ def test_scan_program_has_two_constant_trace_batch_reads_and_no_address_open(
     assert "second_addresses[flat] = valid.if_else(target, sint(0))" in source
     assert ".reveal()" not in source
     assert "reveal_to(0)" in source
+
+
+def test_relation_frontier_bound_fails_closed_without_truncation(
+    scalable_config: PublicConfig,
+):
+    compact = replace(scalable_config, relation_fanout_per_owner=1)
+    compact.validate()
+    edges = json.loads(
+        Path("doram_t2_3pc/examples/ten_query/owner_a.json").read_text()
+    )
+    report = packed_owner_capacity_report(compact, "owner_a", edges)
+    assert report["audit_scope"] == "supplied_file_only"
+    assert report["supplied_input_fits_declared_capacity"] is True
+    assert report["required_fanout_per_owner"] == 2
+    assert report["required_relation_fanout_per_owner"] == 1
+
+    duplicate_relation = [
+        *edges,
+        {
+            "source": "alice",
+            "relation": "referred_to",
+            "target": "carol",
+            "evidence": 999,
+            "score": 1,
+        },
+    ]
+    overflow = packed_owner_capacity_report(
+        compact, "owner_a", duplicate_relation
+    )
+    assert overflow["supplied_input_fits_declared_capacity"] is False
+    assert overflow["source_relation_overflow_bucket_count"] == 1
+    with pytest.raises(ValueError, match="relation_fanout_per_owner"):
+        packed_owner_vector(compact, "owner_a", duplicate_relation)
+
+    source_only_overflow = [
+        {
+            "source": "alice",
+            "relation": relation,
+            "target": target,
+            "evidence": 900 + index,
+            "score": 1,
+        }
+        for index, (relation, target) in enumerate(
+            (
+                ("referred_to", "bob"),
+                ("diagnosed_with", "cancer"),
+                ("treated_with", "drug_x"),
+            )
+        )
+    ]
+    source_overflow = packed_owner_capacity_report(
+        compact, "owner_a", source_only_overflow
+    )
+    assert source_overflow["supplied_input_fits_declared_capacity"] is False
+    assert source_overflow["source_overflow_bucket_count"] == 1
+    assert source_overflow["source_relation_overflow_bucket_count"] == 0
+    with pytest.raises(ValueError, match="public bound is 2"):
+        packed_owner_vector(compact, "owner_a", source_only_overflow)
+
+
+def test_scan_only_options_are_rejected_by_unsupported_oram_experiments(
+    scalable_config: PublicConfig,
+):
+    compact = replace(
+        scalable_config,
+        relation_fanout_per_owner=1,
+        deduplicate_terminal_answers=True,
+    )
+    compact.validate()
+    with pytest.raises(ValueError, match="does not implement scan-only"):
+        render_program(compact)
+    with pytest.raises(ValueError, match="does not implement scan-only"):
+        query_program_name(compact)
+    with pytest.raises(ValueError, match="does not implement scan-only"):
+        sqrt_program_name(compact, 1)
+
+
+def test_compacted_scan_reduces_dependent_addresses_without_opening_frontier(
+    scalable_config: PublicConfig,
+):
+    compact = replace(scalable_config, relation_fanout_per_owner=1)
+    compact.validate()
+    assert compact.block_edges == 6
+    assert compact.frontier_edges == 3
+    assert compact.compacted_candidate_count == 18
+
+    source = render_scan_program(compact, 2)
+    assert "FRONTIER_EDGES = 3" in source
+    assert "CANDIDATE_COUNT = 18" in source
+    assert "raw_first_valids" in source
+    assert "for owner_index in range(OWNER_COUNT):" in source
+    assert "consumed = Array(FANOUT_PER_OWNER, sint)" in source
+    assert "prefix_rank =" not in source
+    assert "second_blocks = oblivious_batch_read(second_addresses, FIRST_COUNT)" in source
+    assert ".reveal()" not in source
+    assert "candidate_terminal =" not in source
+    assert "same_terminal =" not in source
+
+    costs = scan_cost_estimate(compact, 2)
+    assert costs["legacy_second_scan_selected_products"] == 792
+    assert costs["second_scan_selected_products"] == 396
+    assert costs["frontier_compaction_selection_cells"] == 12
+    assert costs["deduplication_candidate_comparisons"] == 0
+    assert costs["second_scan_reduction_factor"] == 2.0
+    assert scan_cost_estimate(scalable_config, 2)[
+        "frontier_compaction_selection_cells"
+    ] == 0
+
+    owners = {
+        owner: json.loads(
+            Path(f"doram_t2_3pc/examples/ten_query/{owner}.json").read_text()
+        )
+        for owner in compact.owners
+    }
+    queries = json.loads(
+        Path("doram_t2_3pc/examples/ten_query/queries.json").read_text()
+    )
+    for query in queries:
+        assert evaluate_cleartext(compact, owners, query) == evaluate_cleartext(
+            scalable_config, owners, query
+        )
+
+
+@pytest.mark.parametrize("relation_fanout_per_owner", [None, 1])
+def test_terminal_answer_deduplication_keeps_distinct_answers_in_topk(
+    scalable_config: PublicConfig, relation_fanout_per_owner: int | None
+):
+    deduplicated = replace(
+        scalable_config,
+        relation_fanout_per_owner=relation_fanout_per_owner,
+        deduplicate_terminal_answers=True,
+    )
+    deduplicated.validate()
+    owners = {
+        owner: json.loads(
+            Path(f"doram_t2_3pc/examples/ten_query/{owner}.json").read_text()
+        )
+        for owner in deduplicated.owners
+    }
+    query = json.loads(
+        Path("doram_t2_3pc/examples/ten_query/queries.json").read_text()
+    )[0]
+    result = evaluate_cleartext(deduplicated, owners, query)
+
+    # Deduplication is about which TERMINALS survive into the top-k, not about
+    # particular evidence handles. Asserting literal handles pinned this test to
+    # one allocation, and it broke when the fixture moved to owner-blind
+    # handles; the property it exists to check did not change.
+    assert len(result) == deduplicated.top_k
+    assert [row["valid"] for row in result] == [1, 1, 0, 0]
+    assert [row["score"] for row in result[:2]] == [12, 11]
+    for row in result[2:]:
+        assert row == {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0}
+
+    # The surviving handles must be real ones from the fixture, not fabricated.
+    fixture_handles = {
+        edge["evidence"] for edges in owners.values() for edge in edges
+    }
+    for row in result[:2]:
+        assert row["left_evidence"] in fixture_handles
+        assert row["right_evidence"] in fixture_handles
 
 
 def test_batch_decoder_requires_every_server_and_query(

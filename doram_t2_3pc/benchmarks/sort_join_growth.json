@@ -1,0 +1,75 @@
+{
+ "benchmark_kind": "growth law of the oblivious sort-join used by the volume-hiding descriptor remap",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "radix_sort measured at 1024/2048/4096 rows with 20-bit keys and a 2-column payload, on a single host. MetaQA-scale figures remain EXTRAPOLATIONS, now 144x beyond the largest measured point rather than the 575x of the previous estimate. Passive protocol only.",
+ "why_this_was_measured": "The descriptor remap is 98% of the cost of owner-blind pooling, and its estimate rested on a single measurement at 1024 rows with 16-bit keys, extrapolated under an assumed LINEAR growth law. Both the width and the law were wrong.",
+ "measurements": [
+  {
+   "rows": 1024,
+   "key_bits": 20,
+   "seconds": 137.462,
+   "global_data_mb": 60935.7,
+   "mb_per_row": 59.51
+  },
+  {
+   "rows": 2048,
+   "key_bits": 20,
+   "seconds": 287.792,
+   "global_data_mb": 131047.0,
+   "mb_per_row": 63.99
+  },
+  {
+   "rows": 4096,
+   "key_bits": 20,
+   "seconds": 616.474,
+   "global_data_mb": 280462.0,
+   "mb_per_row": 68.47
+  }
+ ],
+ "what_the_data_shows": {
+  "cost_per_row_is_not_constant": "59.51 -> 63.99 -> 68.47 MB/row across the measured range, so the linear law used previously understates growth.",
+  "fit_quality": {
+   "linear_MB_eq_a_n": {
+    "a": 63.98916,
+    "coefficient_spread_percent": 14.0
+   },
+   "n_log_n_MB_eq_a_n_log2n": {
+    "a": 5.824613,
+    "coefficient_spread_percent": 4.2
+   }
+  },
+  "empirical_exponent_in_n": 1.101,
+  "mechanism": "radix_sort runs one shuffle-based pass per key bit, and each pass is itself super-linear, so n*log(n) is the expected shape and is what the data supports.",
+  "key_width_correction": "The earlier figure used 16-bit keys. The remap sorts by directory row, needing log2(389115) = 19-20 bits. Cost scales close to linearly in key width: 52,000.7 MB at 16 bits versus 60,935.7 MB at 20 bits for the same 1024 rows, a 1.17x increase for a 1.25x width increase."
+ },
+ "corrected_projection": {
+  "records_to_sort": 589479,
+  "note": "directory_rows 389,115 plus pooled pages 200,364",
+  "previous_estimate_gb": 29243.7,
+  "optimistic_linear_law_gb": 36836,
+  "measured_n_log_n_law_gb": 64274,
+  "correction_factor": 2.2,
+  "reported_value": "the n*log(n) figure, since it is the better fit and the pessimistic end"
+ },
+ "impact_on_volume_hiding": {
+  "one_time_total_gb": 64624,
+  "of_which_shuffle_gb": 350,
+  "of_which_remap_gb": 64274,
+  "amortised_overhead_percent": {
+   "epoch_100_queries": 37.8,
+   "epoch_250_queries": 15.1,
+   "epoch_1000_queries": 3.8
+  },
+  "previous_claim": "6.9% at a 250-query epoch",
+  "corrected_claim": "15.1% at a 250-query epoch",
+  "verdict": "Still viable, and still far better than uniform padding for any federation with unequal participants, but materially more expensive than first estimated. A unit test asserting the old 15% bound failed on the corrected model, which is how the change surfaced."
+ },
+ "what_this_does_not_show": [
+  "Any measurement at or near 589,479 records; the projection still extrapolates 144x.",
+  "Any implementation of the remap; only the sort primitive it would use was measured.",
+  "Any real dataset, WAN, or multi-host result.",
+  "Any malicious-security property.",
+  "That n*log(n) continues to hold two orders of magnitude beyond the measured range."
+ ]
+}

@@ -1,0 +1,46 @@
+{
+  "benchmark_kind": "single-host functional validation of the multi-page overflow path",
+  "date_utc": "2026-08-14",
+  "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+  "scope_warning": "Functional validation on one small synthetic fixture and one query, on a single host. It shows the overflow code path executes correctly; it is not a performance, MetaQA, WebQSP, WAN, or production result.",
+  "why_this_run_exists": "Losslessness at high degree depends on overflow pages, and the earlier crossover and A/B fixtures both used pages_per_key=1, so the multi-page window read had never executed in MPC. That path contains the layout's most novel mechanism: a single demux serving a consecutive page window, where offset j reads the same pool shifted by j, with trailing dummy rows keeping shifted access in range and a secret page count masking pages past the end. Unit tests covered the layout builder, not the circuit.",
+  "fixture": {
+    "generator": "scripts/build_skewed_fixture.py",
+    "arguments": "--entities 40 --relations 3 --owners 2 --hub-sources 4 --degree-per-relation 3 --query-count 1 --top-k 4",
+    "owner_count": 2,
+    "relation_count": 3,
+    "edges_per_owner": 72,
+    "max_source_relation_degree_per_owner": 3
+  },
+  "layout": {
+    "page_size": 2,
+    "pages_per_key": 2,
+    "page_budget": 64,
+    "frontier_per_owner": 3,
+    "pool_rows_including_shifted_scan_tail": 65,
+    "realized_pages_per_owner": 49,
+    "observed_descriptor_for_key_e0_r0": {"page_base": 1, "page_count": 2},
+    "overflow_active": true,
+    "note": "3 edges per key into pages of 2 gives 2 pages with the second half full, so the run exercises offset 1 of the window, a page_count of 2 against other keys' 1, and the tail padding."
+  },
+  "measurement": {
+    "mpc_seconds": 2.32745,
+    "global_data_mb": 545.889
+  },
+  "correctness": {
+    "stored_edges": 72,
+    "supplied_edges": 72,
+    "lossless": true,
+    "mpc_matches_paged_cleartext_oracle": true,
+    "mpc_matches_packed_scan_cleartext_oracle": true,
+    "valid_rows_returned": 4,
+    "top_k": 4,
+    "comparison": "Exact JSON equality of all four reconstructed ranked rows against two independently implemented cleartext oracles."
+  },
+  "what_this_does_not_show": [
+    "Any performance claim; this fixture was sized for path coverage, not speed.",
+    "pages_per_key beyond 2.",
+    "Any real-dataset, WAN, or multi-host result.",
+    "Any malicious-security property; MP-SPDZ Semi is passive-only."
+  ]
+}

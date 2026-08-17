@@ -1,0 +1,67 @@
+{
+  "benchmark_kind": "single-host ablation of the three optimizations built into the relation-paged backend",
+  "date_utc": "2026-08-15",
+  "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+  "motivation": "benchmarks/relation_paged_crossover.json reports a 23.6x end-to-end speedup on a skewed fixture, but that number bundles the layout change with three separate circuit-level optimizations. This benchmark separates them so no single optimization is credited with the whole effect.",
+  "scope_warning": "Synthetic fixtures on a single host, one query each. All three parties ran on one machine, which does not instantiate the non-collusion assumption. These are not MetaQA, WebQSP, WAN, or production results.",
+  "method": {
+    "mechanism": "Each optimization has an ablate_* switch on the circuit renderer, not on the configuration, so no deployed layout can select one. Each variant gets its own program name, so no variant reuses another's compiled schedule.",
+    "repetitions": 3,
+    "reported_statistic": "median over 3 repetitions for time; communication is deterministic",
+    "communication_determinism": "Global data sent was byte-identical across all three repetitions of every arm (spread 0.000 MB), so the communication ratios are exact. Wall-clock on a loaded single host is not: the observed spread reaches 17% of the measured value on some arms, which is comparable to the smaller effects below.",
+    "primary_metric": "communication, because it is the deterministic one; time is reported for context only",
+    "correctness_gate": "Every arm was decoded and compared against the cleartext oracle for its own configuration, and the compaction arms were compared against each other."
+  },
+  "optimizations": [
+    {
+      "id": "opt3",
+      "name": "drop the redundant first-hop relation equality test",
+      "why_it_is_sound": "Relation-resolved indexing means a page reached through directory row (source, relation) contains only that key's edges, so re-testing relation == relation_1 per slot cannot change any result.",
+      "fixture": "/tmp/skew (narrowing factor 8), 1 query",
+      "with_optimization": {"mpc_seconds_median": 1.4975, "global_data_mb": 526.9},
+      "without_optimization": {"mpc_seconds_median": 1.7106, "global_data_mb": 601.985},
+      "saving": {"global_data_mb": 1.143, "mpc_seconds_median": 1.142},
+      "confidence": "communication ratio is exact; the time ratio is consistent with it but the per-arm spread overlaps, so only the communication figure should be quoted"
+    },
+    {
+      "id": "opt4",
+      "name": "share one demux across the whole page window",
+      "why_it_is_sound": "Offset j of a consecutive window is the same pool read shifted by j, so one selector built from the page base serves every offset. POOL_ROWS carries pages_per_key - 1 trailing dummy rows so every shifted access stays in range.",
+      "fixture": "/tmp/ovf (pages_per_key = 2), 1 query",
+      "with_optimization": {"mpc_seconds_median": 2.3011, "global_data_mb": 545.889},
+      "without_optimization": {"mpc_seconds_median": 2.4264, "global_data_mb": 585.142},
+      "saving": {"global_data_mb": 1.072, "mpc_seconds_median": 1.054},
+      "note": "This is the smallest of the three and is only observable at all when pages_per_key > 1. At pages_per_key = 1 the two renderings are equivalent. The saving should grow with pages_per_key, which is untested above 2."
+    },
+    {
+      "id": "opt5",
+      "name": "owner-local frontier compaction",
+      "why_it_is_sound": "Preparation rejects any (source, relation) key holding more records than frontier_per_owner, so compacting to that fixed width discards no match. The realized match count, its owner, and its slot all stay secret.",
+      "fixture": "/tmp/cmp (page_size 2, pages_per_key 2, slots_per_key 4), 1 query",
+      "counterfactual": "frontier_per_owner = 4 with the compaction loop removed entirely, which is what the circuit would look like if the optimization had never been written. Both arms return identical rows.",
+      "with_optimization": {"frontier_per_owner": 2, "mpc_seconds_median": 1.7452, "global_data_mb": 408.261},
+      "without_optimization": {"frontier_per_owner": 4, "mpc_seconds_median": 2.6831, "global_data_mb": 710.444},
+      "saving": {"global_data_mb": 1.740, "mpc_seconds_median": 1.537},
+      "machinery_cost_when_it_narrows_nothing": {
+        "arm": "frontier_per_owner = 4 with the compaction loop present but narrowing 4 to 4",
+        "mpc_seconds_median": 2.6823,
+        "global_data_mb": 728.835,
+        "overhead_versus_no_compaction": {"global_data_mb": 1.026, "mpc_seconds_median": 1.000},
+        "reading": "The compaction machinery costs about 2.6% in communication. It pays for itself whenever it narrows the frontier at all, and is close to free when it does not."
+      }
+    }
+  ],
+  "attribution": {
+    "product_of_the_three_communication_savings": 2.13,
+    "measured_end_to_end_advantage_on_the_skewed_fixture": 17.5,
+    "reading": "The three circuit-level optimizations together account for roughly 2.1x of communication. The remaining factor of about 8x on the skewed fixture comes from the layout itself: reading only the pages for one (source, relation) key instead of scanning every edge of the source. This matches the fixture's narrowing factor of 8, and it means the headline result is a layout result, not a micro-optimization result.",
+    "caveat": "The three savings were measured on three different fixtures chosen so each optimization is active, so their product is an estimate of their combined effect, not a measurement of it. A single fixture exercising all three at once was not run."
+  },
+  "what_this_does_not_show": [
+    "Any real-dataset result.",
+    "Any WAN or multi-host result.",
+    "Any malicious-security property; MP-SPDZ Semi is passive-only.",
+    "That the three optimizations compose multiplicatively; only their individual effects were measured.",
+    "Behaviour at pages_per_key > 2, where the shared-window demux saving should be larger."
+  ]
+}

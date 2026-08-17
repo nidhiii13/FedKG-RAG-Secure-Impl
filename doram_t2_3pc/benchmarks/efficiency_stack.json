@@ -1,0 +1,54 @@
+{
+ "benchmark_kind": "two composable efficiency changes under the unchanged 2-of-3 semi-honest threat model",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties, preprocessing included. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "Synthetic 4-owner fixture on a single host, 200 entities, one query. All three parties ran on one machine, which does not instantiate the non-collusion assumption. No real dataset, WAN, or multi-host run. Passive protocol only.",
+ "changes": [
+  {
+   "name": "federation-wide frontier compaction",
+   "what": "compact the first-hop frontier across owners to one declared global width instead of owner_count * frontier_per_owner",
+   "attacks": "the near-quadratic owner-count scaling measured in relation_paged_multiaxis.json",
+   "adds_public_parameter": "global_frontier",
+   "detail": "benchmarks/global_frontier_compaction.json"
+  },
+  {
+   "name": "packed directory descriptors",
+   "what": "pack several owners' descriptors into disjoint bit ranges of one field element, so the directory scan costs one product per row instead of one per row per owner",
+   "attacks": "the dominant cost term, directory_rows * owner_count",
+   "adds_public_parameter": null,
+   "why_it_needs_no_coordination": "Additive sharing is linear, so owner i shares its own descriptor shifted into its own bit range and the servers' sum IS the packed element. Owners still prepare independently, with no dealer and no knowledge of each other.",
+   "capacity": "field_usable_bits // descriptor_bits owners per element; 15 for this fixture. Beyond that the directory uses multiple columns and the saving is bounded by that ratio.",
+   "leakage": "none added. The same descriptors are present either way; this is a representation change, not a new bound."
+  }
+ ],
+ "measurements_4_owners_1_query": {
+  "baseline_per_owner_frontier_unpacked": {
+   "global_data_mb": 2184.67,
+   "mpc_seconds": 3.84298
+  },
+  "plus_global_frontier": {
+   "global_data_mb": 1221.22,
+   "mpc_seconds": 2.42074,
+   "gain": 1.79
+  },
+  "plus_packed_directory": {
+   "global_data_mb": 871.295,
+   "mpc_seconds": 2.37839,
+   "gain": 1.4
+  },
+  "cumulative_gain": 2.51
+ },
+ "correctness": {
+  "packed_mpc_matches_cleartext_oracle": true,
+  "identical_to_baseline_and_global_frontier_runs": true,
+  "valid_rows": 4,
+  "comparison": "Exact JSON equality of all four reconstructed ranked rows across all three configurations and the independent cleartext oracle."
+ },
+ "what_this_does_not_show": [
+  "Any real dataset, WAN, or multi-host result.",
+  "Any change to the graph-size scaling, which remains linear; these changes reduce constants and the owner-count exponent, not the dependence on entities * relations.",
+  "Any benefit from packing beyond field_usable_bits // descriptor_bits owners per element.",
+  "Any benefit from the global frontier when every owner holds every key.",
+  "Any malicious-security property."
+ ]
+}

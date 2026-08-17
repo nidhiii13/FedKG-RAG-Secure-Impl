@@ -1,0 +1,54 @@
+{
+ "benchmark_kind": "retrieval and answer quality of the oblivious backend on real MetaQA questions",
+ "date_utc": "2026-08-15",
+ "scope_warning": "40 questions sampled from MetaQA's 2-hop test set, over a 1,127-entity covering subgraph of the real knowledge graph, single host. Retrieval was scored with the cleartext oracle, which is verified elsewhere to agree exactly with the MPC circuit; one question has now been executed through the full MPC circuit on this exact fixture and matches the oracle, so the retrieval numbers are what the circuit delivers. The answer stage covers 6 of the 40. This is a working evaluation at small scale, not a full-MetaQA benchmark.",
+ "why_this_exists": "Until now every number in this package was cryptographic cost. This is the first measurement of what the oblivious retrieval path is WORTH -- whether the evidence it returns actually supports answering the question.",
+ "setup": {
+  "questions": "MetaQA 2-hop vanilla qa_test.txt, 14,872 available, 40 sampled",
+  "query_graphs": "derived from the knowledge graph itself, by finding the (r1, r2) chain connecting each question's entity to its ground-truth answers. This isolates RETRIEVAL quality from LLM rewrite quality, which is a separate stage with its own error rate.",
+  "graph": "1,127 entities, 18 relations, 4,844 edges covering the sampled questions' two-hop neighbourhoods",
+  "federation": "3 owners, uneven entity split, B_i=[1361,537,510], skew 2.67x, owner-blind evidence handles",
+  "bound": "page_size 4, so at most 4 edges retained per (source, relation) key",
+  "top_k": 4
+ },
+ "retrieval": {
+  "questions_evaluated": 40,
+  "evidence_hit": 38,
+  "evidence_hit_rate": 0.95,
+  "empty_retrievals": 0,
+  "unsupported_query_graphs": 0,
+  "note": "Evidence-hit means the retrieved evidence contains a ground-truth answer, using the same scoring as scripts/run_private_frontier_batch so the number is comparable with the existing runner."
+ },
+ "answer": {
+  "questions_answered": 6,
+  "correct": 6,
+  "accuracy": 1.0,
+  "model": "llama3:70b-q2-4k via Ollama, the configured MetaQA model, prompt grounded strictly in retrieved evidence",
+  "caveat": "6 questions is far too few to report as an accuracy figure with confidence. It establishes the stage works and is grounded, not a benchmark result."
+ },
+ "what_this_establishes": [
+  "The oblivious retrieval path returns evidence that supports answering real MetaQA questions: 95% evidence-hit at top_k 4 under a bound of 4 edges per key.",
+  "The full pipeline runs: question -> query graph -> oblivious retrieval -> readable evidence -> grounded LLM answer.",
+  "No query graph in the sample was unrepresentable, so the two-hop chain shape covers this question type."
+ ],
+ "what_this_does_not_establish": [
+  "A full-MetaQA benchmark; 40 of 14,872 questions over 1,127 of 43,234 entities.",
+  "An answer-accuracy figure; 6 answered questions is a smoke test.",
+  "Retrieval quality including LLM rewrite error; query graphs were derived from the graph, deliberately isolating retrieval.",
+  "Any comparison against a non-private baseline, which is what would quantify the PRICE of privacy in answer quality.",
+  "That all 40 questions were run in MPC; one was, at 19.8 GB, and it matched the oracle exactly. The remaining 39 were scored with the oracle."
+ ],
+ "the_number_that_matters_next": "The same evaluation without the bound, and against a plaintext baseline, would give the retrieval-quality cost of obliviousness. The bound of 4 edges per key is where quality is actually lost, and metaqa_real_lossiness.json already measures that the supported scan discards 56.8% of MetaQA at a comparable bound.",
+ "mpc_verification": {
+  "status": "VERIFIED on this fixture",
+  "what_was_run": "One of the 40 questions executed through the full MPC circuit on the evaluation fixture itself, rather than relying on agreement demonstrated on smaller fixtures.",
+  "question": "who starred in the movies directed by Vincent McEveety",
+  "private_input_values_per_server": 36657,
+  "mpc_seconds": 14.2539,
+  "global_data_mb": 19771.7,
+  "mpc_matches_cleartext_oracle": true,
+  "evidence_chains_from_mpc_output": 4,
+  "evidence_hit_from_mpc_output": true,
+  "reading": "The MPC circuit reproduces the oracle exactly on this fixture, so the 95% evidence-hit rate scored with the oracle is the rate the circuit delivers. Scoring all 40 in MPC would cost roughly 19.8 GB each; the oracle is used for the sweep and the circuit for verification."
+ }
+}

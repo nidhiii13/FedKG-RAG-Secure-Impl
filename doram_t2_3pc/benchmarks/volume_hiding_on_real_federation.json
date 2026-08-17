@@ -1,0 +1,59 @@
+{
+ "benchmark_kind": "owner-blind pooling versus uniform padding on a realistic MetaQA federation",
+ "date_utc": "2026-08-15",
+ "scope_warning": "Degree figures and per-owner volumes are measured from the raw MetaQA graph. The cost comparison is analytic, using coefficients measured elsewhere in this directory; no MPC was run at this scale. The federation split is constructed, not given -- see below.",
+ "why_this_exists": "metaqa_federated_split_reality_check.json found the bundled two-party split has a volume skew of 1.003, which removes the motivation for hiding per-owner volume. That split is a random 50/50 partition of edges: 61% of sources appear in BOTH parties with the same relations. It is a property of how this project partitioned MetaQA, not a property of MetaQA, and it is the least realistic federation available.",
+ "split_used": {
+  "rule": "by relation type, three owners -- institutions holding different record types",
+  "B_i": [
+   36888,
+   49429,
+   26547
+  ],
+  "sum_B_i": 112864,
+  "max_B_i": 49429,
+  "skew_max_over_min": 1.86,
+  "note": "Other realistic splits give comparable skew: by subject entity 1.83x over four owners, one-large-archive 2.02x. A random edge split gives 1.01x."
+ },
+ "padding_overhead": {
+  "pooled_slots_unpadded": 112864,
+  "pooled_slots_padded": 148287,
+  "factor": 1.314,
+  "reading": "Uniform padding inflates every owner's pool to the largest, adding 31.4% to the page-pool scan on EVERY query."
+ },
+ "pooling_one_time_gb": 54259.6,
+ "sensitivity_to_page_size": [
+  {
+   "page_size": 16,
+   "padding_penalty_gb_per_query": 253.1,
+   "breakeven_queries": 214.4
+  },
+  {
+   "page_size": 64,
+   "padding_penalty_gb_per_query": 1012.4,
+   "breakeven_queries": 53.6
+  },
+  {
+   "page_size": 256,
+   "padding_penalty_gb_per_query": 4049.8,
+   "breakeven_queries": 13.4
+  },
+  {
+   "page_size": 1024,
+   "padding_penalty_gb_per_query": 16199.1,
+   "breakeven_queries": 3.3
+  },
+  {
+   "page_size": 2089,
+   "padding_penalty_gb_per_query": 33046.8,
+   "breakeven_queries": 1.6
+  }
+ ],
+ "headline": "At the MEASURED max (source,relation) degree of 2,089, pooling repays its one-time cost after 1.6 queries. Even at the old assumed page_size of 16 it repays after 214. Across the whole plausible range pooling beats padding for any realistic epoch, and it is strictly more private: padding publishes max B_i, pooling publishes only the federation total.",
+ "the_caveat_that_matters": "The favourable end of this range is driven by page_size being forced to 2,089, which is itself a consequence of the relation-narrowing premise failing on MetaQA. Pooling looks best precisely where the paged layout looks worst. Reporting the break-even without page_size alongside it would be misleading.",
+ "what_this_does_not_show": [
+  "Any executed run; the comparison is analytic from measured coefficients.",
+  "That the relation-type split is the right federation model for MetaQA; it is defensible but constructed.",
+  "Any fix for the relation-narrowing failure, which is independent and unresolved."
+ ]
+}

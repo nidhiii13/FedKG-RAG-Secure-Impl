@@ -1,0 +1,37 @@
+{
+ "benchmark_kind": "first end-to-end RAG run through the oblivious retrieval backend",
+ "date_utc": "2026-08-15",
+ "scope_warning": "One query, a 200-entity subgraph of real MetaQA, single host, cleartext oracle used for the retrieval step in this particular run (the same query has been executed in MPC separately, see metaqa_federated_execution.json). This demonstrates the PATH works end to end; it is not a retrieval-quality or answer-accuracy evaluation, which needs a query set rather than one question.",
+ "why_this_exists": "The project is named for retrieval-augmented generation, and until now every measurement in doram_t2_3pc was cryptographic cost -- bytes, rounds, seconds. There was no retrieval quality, no answer quality, and no language model anywhere in the loop. That was the largest gap between what the project claims to be and what it demonstrated.",
+ "what_was_connected": {
+  "bridge": "doram_t2_3pc/rag_bridge.py",
+  "insight": "SimGRAG's rewrite stage already emits a query graph that, for MetaQA two-hop questions, IS a chain: [[s, r1, UNKNOWN], [UNKNOWN, r2, t]]. That is exactly the (source, relation_1, relation_2) shape page_program answers, so the two halves compose without changing either.",
+  "reused_unchanged": [
+   "SimGRAG prompts (rewrite_metaQA.py, answer_metaQA.py)",
+   "the configured Ollama server and model (llama3:70b-q2-4k on :11451)",
+   "the evidence-hit scoring semantics from run_private_frontier_batch.py, so numbers are comparable with the existing RAG runner"
+  ]
+ },
+ "executed_run": {
+  "federation": "3 owners, entity split, B_i=[172,55,54], skew 3.19x, owner-blind handles",
+  "query": "Charles Laughton --starred_actors_inverse--> ? --has_tags--> ?",
+  "evidence_chains_retrieved": 4,
+  "example_chain": "Charles Laughton -starred_actors_inverse-> Witness for the Prosecution -has_tags-> marlene dietrich",
+  "llm_answer_seconds": 25.8,
+  "llm_answer": "Marlene Dietrich, Billy Wilder, Avi, 15th century",
+  "answer_grounded_in_retrieved_evidence": true
+ },
+ "design_decisions_worth_recording": {
+  "unrepresentable_queries_are_refused": "query_graph_to_hops raises rather than approximating a graph the backend cannot answer. Silently mangling one would credit the evaluation for retrieval that never happened.",
+  "handles_must_be_resolved_outside_the_mpc": "The backend returns opaque evidence handles by design. Turning them into readable edges needs a resolver holding the mapping, which in deployment is the data owner and is a second protocol. For evaluation the resolver is built locally, which is sound for measuring quality and is NOT a deployment path -- it hands the evaluator plaintext the servers never see.",
+  "padding_is_not_evidence": "The circuit pads its output to a fixed width; invalid rows are dropped rather than surfaced as empty evidence."
+ },
+ "what_this_does_not_establish": [
+  "Any retrieval-quality or answer-accuracy number; that needs a query set, and this is one question.",
+  "That the LLM answer is CORRECT against MetaQA ground truth; it is grounded in the retrieved evidence, which is a weaker claim.",
+  "Any full-MetaQA result; 200 entities of 43,234.",
+  "That the retrieval step ran in MPC in THIS run; it used the cleartext oracle. The same query has been executed in MPC separately.",
+  "Any WAN, multi-host, or malicious-security property."
+ ],
+ "next_step_to_make_it_an_evaluation": "Run the existing scripts/run_private_frontier_e2e.py loop with rag_bridge substituted for the semantic matcher, over examples/private_frontier_metaqa_queries.jsonl, which already carries query graphs and ground truths. That yields evidence-hit rate and answer accuracy directly comparable to the existing runner."
+}

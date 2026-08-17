@@ -79,15 +79,27 @@ def decode_batch_logs(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Reconstruct a packed DORAM query batch at the client"
+        description="Reconstruct a packed private-lookup query batch at the client"
     )
     parser.add_argument("--config", required=True)
     parser.add_argument("--query-count", required=True, type=int)
     parser.add_argument("--server-log", action="append", required=True)
-    args = parser.parse_args()
-    results = decode_batch_logs(
-        PublicConfig.load(args.config), args.query_count, args.server_log
+    parser.add_argument(
+        "--relation-paged",
+        action="store_true",
+        help=(
+            "read an EXPERIMENTAL relation-paged config; the client-side output "
+            "contract is identical, only the config envelope differs"
+        ),
     )
+    args = parser.parse_args()
+    if args.relation_paged:
+        from .relation_pages import RelationPageConfig
+
+        config = RelationPageConfig.load(args.config).base
+    else:
+        config = PublicConfig.load(args.config)
+    results = decode_batch_logs(config, args.query_count, args.server_log)
     print(json.dumps(results, indent=2))
 
 

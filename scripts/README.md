@@ -4,9 +4,10 @@ Command-line entry points for setup, party-local indexing, query execution, and 
 
 ## Three-party DORAM regression
 
-`run_doram_regression.py` runs the packed oblivious-scan DORAM over the bundled
-three-owner diverse fixture, the prepared bounded-fanout MetaQA fixture, or
-both. Because the MPC program supports at most ten queries per batch, a
+`run_doram_regression.py` runs the packed MPC-oblivious linear scan over the
+bundled three-owner diverse fixture, the prepared bounded-fanout MetaQA fixture,
+or both. `--backend relation-paged` runs the experimental paged layout instead;
+see below. Because the MPC program supports at most ten queries per batch, a
 250-query run consists of 25 batches. The fixtures contain ten distinct
 validated queries; the runner repeats them cyclically for execution regression
 and checks every decoded result against its cleartext/reference output.
@@ -59,6 +60,31 @@ selected cap-preserving queries. Repeating those queries does not constitute a
 that rounds reported by the multithreaded program can be counted twice; the
 analysis retains that caveat rather than presenting them as sequential WAN
 round trips.
+
+### Running the regression against the experimental paged layout
+
+`--backend relation-paged` drives the same regression through the EXPERIMENTAL
+relation-paged layout instead of the supported packed scan:
+
+```bash
+python3 scripts/run_doram_regression.py \
+  --backend relation-paged --dataset diverse --query-count 10 \
+  --mpspdz-home ../SimGRAG/external/MP-SPDZ \
+  --output-dir /tmp/doram-paged-regression
+```
+
+Only `--dataset diverse` is supported: the MetaQA fixture ships pre-built packed
+shards, and re-sharding it for the paged layout needs raw edges that are not in
+the tree. The harness refuses the combination rather than producing something
+misleading, and it refuses to resume a run recorded under the other backend.
+
+The two backends share the entire client-facing contract — same query shards,
+same output lines, same decoding — and differ only in server-side storage, the
+generated circuit, and the cleartext oracle each is checked against. Because
+each is validated against its **own** independently implemented oracle, a
+comparison of the two runs' `decoded.json` is meaningful rather than circular.
+The recorded `backend` and `backend_status` fields in `run_manifest.json` keep
+the experimental runs distinguishable from supported ones.
 
 ## SimGRAG-compatible semantic embeddings
 

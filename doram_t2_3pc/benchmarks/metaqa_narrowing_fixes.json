@@ -1,0 +1,83 @@
+{
+ "benchmark_kind": "do the proposed fixes restore the relation-narrowing premise on real MetaQA?",
+ "date_utc": "2026-08-15",
+ "scope_warning": "Degree measurements from the raw MetaQA graph, deduplicated. No MPC was run. Consequences for the paged layout follow from its cost model.",
+ "question": "metaqa_real_degree_profile.json found the relation-narrowing factor is 1.00 on the bidirectional MetaQA adjacency, so the relation-paged layout provides no benefit. Two responses were proposed: use forward edges only, or filter attribute hubs as KGQA stop-node lists do. This tests both.",
+ "variants": [
+  {
+   "label": "bidirectional (as used)",
+   "edges": 267164,
+   "max_source": 4176,
+   "max_key": 4176,
+   "narrowing": 1.0,
+   "keys": 112864
+  },
+  {
+   "label": "forward edges only",
+   "edges": 133582,
+   "max_source": 61,
+   "max_key": 31,
+   "narrowing": 1.967741935483871,
+   "keys": 80655
+  },
+  {
+   "label": "bidirectional, hubs >2000 removed",
+   "edges": 259061,
+   "max_source": 1183,
+   "max_key": 1183,
+   "narrowing": 1.0,
+   "keys": 112862,
+   "edge_retention": 0.9696703148627809,
+   "sources_removed": 2
+  },
+  {
+   "label": "bidirectional, hubs >500 removed",
+   "edges": 249829,
+   "max_source": 498,
+   "max_key": 498,
+   "narrowing": 1.0,
+   "keys": 112839,
+   "edge_retention": 0.9351147609707895,
+   "sources_removed": 15
+  },
+  {
+   "label": "bidirectional, hubs >100 removed",
+   "edges": 230620,
+   "max_source": 100,
+   "max_key": 100,
+   "narrowing": 1.0,
+   "keys": 112710,
+   "edge_retention": 0.8632151038313545,
+   "sources_removed": 103
+  },
+  {
+   "label": "bidirectional, hubs >50 removed",
+   "edges": 225330,
+   "max_source": 50,
+   "max_key": 50,
+   "narrowing": 1.0,
+   "keys": 112608,
+   "edge_retention": 0.8434145318980102,
+   "sources_removed": 176
+  }
+ ],
+ "finding_hub_filtering_fails": {
+  "verdict": "Hub filtering does NOT restore narrowing. At every threshold tested -- removing sources above degree 2000, 500, 100, or 50 -- the narrowing factor stays exactly 1.00.",
+  "why": "Removing the widest hubs lowers the ABSOLUTE degree (max key degree falls from 4,176 to 50) but not the RATIO. Whatever source is widest after filtering still has all its edges under one relation. Single-relation concentration is pervasive in this graph, not confined to the top hubs.",
+  "consequence": "The packed scan benefits from hub filtering exactly as much as the paged layout does, so the paged layout gains nothing relative to it. Filtering also costs coverage: removing sources above degree 100 discards 14% of edges."
+ },
+ "finding_forward_only_works_modestly": {
+  "narrowing_factor": 1.97,
+  "page_size_required": 31,
+  "versus_bidirectional": "page_size falls from 4,176 to 31, a 135x reduction in the absolute cost of the paged layout, and the narrowing factor rises from 1.00 to 1.97.",
+  "correction": "An earlier message in this work reported 2.83 for forward-only. That figure came from the raw triple list before deduplication; on the deduplicated forward edges the factor is 1.97. The lower number is the correct one.",
+  "what_it_costs": "Forward-only halves the adjacency, 133,582 edges against 267,164, by dropping inverse edges. Those are not decorative: two-hop questions of the form 'who directed the film starring X' traverse an inverse edge. Removing them changes which queries the system can answer, so this is a semantic restriction, not a free optimisation."
+ },
+ "verdict": "Of the two proposed fixes, one fails outright and one works modestly at a semantic cost. Forward-only is the only configuration in which the relation-paged layout has any real-data standing on MetaQA, and there the narrowing factor is 1.97 against the 8 used in the synthetic crossover fixture that produced the 17.5x headline. The headline does not transfer.",
+ "what_this_does_not_show": [
+  "Any executed run of the paged backend on MetaQA in any variant.",
+  "The end-to-end advantage at narrowing 1.97; only that the narrowing factor is 1.97, whereas the 17.5x measurement was taken at narrowing 8.",
+  "That forward-only is acceptable for the target workload; that is a question about which queries must be answerable, not about cost.",
+  "That other knowledge graphs behave this way; this is MetaQA specifically."
+ ]
+}

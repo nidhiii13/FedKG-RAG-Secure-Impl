@@ -161,7 +161,10 @@ def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the fixed-batch packed DORAM on three local semi parties"
+        description=(
+            "Run the fixed-batch packed MPC-oblivious scan on three local "
+            "Semi parties"
+        )
     )
     parser.add_argument("--config", required=True)
     parser.add_argument("--instance-dir", required=True)

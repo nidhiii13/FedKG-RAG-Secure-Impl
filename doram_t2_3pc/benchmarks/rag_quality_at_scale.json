@@ -1,0 +1,80 @@
+{
+ "benchmark_kind": "retrieval and answer quality of the oblivious backend at scale, with a plaintext baseline",
+ "date_utc": "2026-08-15",
+ "scope_warning": "CORRECTED 2026-08-16: the '0.3 points' headline compared against a top-k-clipped baseline that is not a ceiling. The true figure is 2.0 points. See CORRECTION_the_ceiling_was_top_k_clipped. 400 questions from MetaQA's 2-hop test set over a 6,473-entity covering subgraph, single host. Retrieval was scored with the cleartext oracle, which has been verified equal to the MPC circuit on a comparable fixture; no MPC run was performed at THIS size. Answer accuracy is over 50 of the 400. Not a full-MetaQA benchmark: 400 of 14,872 questions, 6,473 of 43,234 entities.",
+ "supersedes": "rag_retrieval_quality.json and rag_privacy_quality_price.json, which used 40 questions and 6 answers. Their numbers are consistent with these; this one has usable confidence intervals.",
+ "setup": {
+  "questions": 400,
+  "distinct_seed_entities": 397,
+  "graph": {
+   "entities": 6473,
+   "relations": 18,
+   "edges_available": 39526,
+   "edges_after_bound": 26270
+  },
+  "federation": "3 owners, uneven entity split, B_i=[9842,3533,3647], skew 2.79x, owner-blind handles",
+  "layout": "bound 3, global_frontier 3 (verified: max federation-wide degree 3), top_k 4",
+  "query_graphs": "derived from the knowledge graph, isolating retrieval quality from LLM rewrite quality"
+ },
+ "retrieval": {
+  "evidence_hit": 389,
+  "of": 400,
+  "rate": 0.9725,
+  "ci95": [
+   0.956,
+   0.989
+  ],
+  "empty_retrievals": 2,
+  "unsupported_query_graphs": 0
+ },
+ "answer": {
+  "correct": 43,
+  "of": 50,
+  "accuracy": 0.86,
+  "ci95": [
+   0.764,
+   0.956
+  ],
+  "model": "llama3:70b-q2-4k via Ollama, grounded strictly in retrieved evidence",
+  "reading": "86% answer accuracy against 97.2% evidence-hit means the retrieval usually finds the answer and the model sometimes fails to state it. The gap is a generation problem, not a retrieval one."
+ },
+ "plaintext_baseline_bound_sweep_topk4": {
+  "bound_1": 0.79,
+  "bound_2": 0.952,
+  "bound_3": 0.972,
+  "bound_4": 0.975,
+  "bound_8": 0.975,
+  "unbounded": 0.975,
+  "unbounded_topk20": 0.99,
+  "reading": [
+   "The deployed configuration (bound 3) scores 97.2% against an unbounded plaintext ceiling of 97.5% on the same graph: the bound costs 0.3 points, about one question in 400.",
+   "Obliviousness itself costs nothing: the circuit computes exactly the bounded function, so bounded plaintext and the oblivious backend are the same number.",
+   "Quality collapses only below bound 2: 79.0% at bound 1.",
+   "Raising top_k from 4 to 20 on an unbounded graph reaches 99.0%, so the remaining loss is a retrieval-budget choice rather than a privacy cost."
+  ]
+ },
+ "headline": "At the deployed configuration the oblivious path retrieves supporting evidence for 97.2% of real MetaQA two-hop questions, against a 97.5% plaintext ceiling on the same graph. The price of privacy in retrieval quality is about 0.3 points; the price in communication is roughly 5.7 GB per query.",
+ "what_this_does_not_establish": [
+  "A full-MetaQA benchmark; 400 of 14,872 questions over 6,473 of 43,234 entities.",
+  "That these exact numbers came from MPC at this size; the circuit was verified equal to the oracle on a smaller fixture and the oracle was used for the sweep.",
+  "Retrieval quality including LLM rewrite error, which is a separate stage.",
+  "Any WAN, multi-host, or malicious-security property."
+ ],
+ "CORRECTION_the_ceiling_was_top_k_clipped": {
+  "date_utc": "2026-08-16",
+  "found_by": "adding a second dataset (webqsp_smoke.json), which forced the baseline to be re-derived and exposed that the MetaQA one was not an upper bound",
+  "what_was_wrong": "The headline compares 97.2% against a '97.5% unbounded plaintext ceiling'. That 97.5% figure is unbounded in FANOUT but still clipped to top_k=4, so it is not a ceiling -- the oblivious path can and does match it. The evidence was already in this file: unbounded_topk20 is 0.990, strictly above the number being called a ceiling.",
+  "true_ceiling_remeasured": {
+   "no_fanout_bound_no_topk_clip": 0.9925,
+   "oblivious_backend": 0.9725,
+   "privacy_cost_points": 2.0
+  },
+  "decomposition": {
+   "fanout_bound_costs_points": 0.5,
+   "top_k_budget_costs_points": 1.5,
+   "note": "Both are public fixed-width parameters of the oblivious design -- the circuit emits exactly k rows and scans exactly `bound` edges per key -- so both belong in the price of privacy. Isolating only the fanout term is what produced 0.3."
+  },
+  "corrected_claim": "Privacy costs 2.0 points of retrieval quality on MetaQA (97.25% vs a 99.25% true ceiling), not 0.3. The 0.3 figure must not be quoted.",
+  "what_did_NOT_change": "The measured oblivious hit rate is unaffected: re-run at 400 questions on 2026-08-16 it scored 389/400 = 97.25%, matching the recorded 97.2%. Only the baseline it was compared against was wrong."
+ }
+}

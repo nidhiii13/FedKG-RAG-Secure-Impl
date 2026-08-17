@@ -1,0 +1,33 @@
+{
+ "benchmark_kind": "one-time MPC verification of the federation-wide global_frontier bound",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "Synthetic 4-owner fixture on a single host, 1601 directory rows. All three parties ran on one machine, which does not instantiate the non-collusion assumption. No real dataset, WAN, or multi-host run.",
+ "problem_it_closes": "global_frontier bounds a per-key edge count summed across all owners. No owner can see that sum, so preparation could not enforce it the way it enforces the per-owner bound. An understated global_frontier does NOT fail closed: the retrieval circuit compacts to a fixed width without checking overflow, so it would silently drop matches at the second hop and look like a retrieval-quality problem rather than a bug.",
+ "design": {
+  "key_insight": "The retrieval circuit is expensive because it must hide WHICH key it reads. This check verifies EVERY key, so the row index is public at every step. There is no demux, no one-hot selector, and no oblivious indexing at all -- one linear pass with a comparison per row.",
+  "no_unpacking_needed": "Every owner writes its per-key count at the same bit position, so the servers' additive reconstruction is already the federation-wide count.",
+  "cost": "directory_rows comparisons, paid once at preparation, never per query.",
+  "opened_values": 1,
+  "what_is_opened": "The number of keys exceeding the bound. That is a fact about whether the declared bound holds, which declaring it already asserts publicly. It deliberately does NOT identify the offending keys, since that would leak the degree distribution the bound exists to summarize."
+ },
+ "executed_verification": {
+  "fixture": "4 owners, 200 entities, 8 relations, true federation-wide max key degree 4",
+  "valid_bound_g4": {
+   "result": "ACCEPT",
+   "violations": 0
+  },
+  "understated_bound_g2": {
+   "result": "REJECT",
+   "violations": 64
+  },
+  "reading": "The check correctly accepts a sound bound and rejects an understated one, in real MPC, without revealing which keys overflowed."
+ },
+ "status_change": "A layout declaring global_frontier was previously a declared and TRUSTED assumption in deployment, verifiable only offline against the plaintext union. It is now verifiable in MPC with no party seeing another's counts.",
+ "what_this_does_not_show": [
+  "Any real dataset, WAN, or multi-host result.",
+  "That the check is run automatically; it is a separate preparation step an operator must invoke before using the layout.",
+  "Any malicious-security property; a malicious owner can still submit an occupancy vector inconsistent with its own pages, which this check does not detect.",
+  "Protection against an owner understating its own occupancy counts; binding occupancy to the shared pages needs authenticated input, which is not implemented."
+ ]
+}

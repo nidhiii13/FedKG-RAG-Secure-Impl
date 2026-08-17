@@ -1,0 +1,96 @@
+{
+ "benchmark_kind": "executed verification of the owner-blind pooling circuit",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude. No dealer, no trusted setup, no FSS.",
+ "scope_warning": "Eight key blocks of two values, on a single host. This verifies the MECHANISM, not federation-scale performance; the remap here is a direct oblivious scan, whereas at scale it becomes the sort-join measured in sort_join_growth.json. All three parties ran on one machine, which does not instantiate the non-collusion assumption. Passive protocol only.",
+ "what_was_verified": "That the pooling mechanism works end to end in MPC: the pooled array is permuted under a secret permutation the servers never learn, every descriptor is remapped through a parallel position array, and every key still reads back its own data.",
+ "construction": {
+  "row_is_a_whole_key_block": "Each row holds one key's entire page block, so shuffling ROWS moves a key's pages atomically and the (base, count) descriptor stays addressable. Shuffling individual pages would split multi-page keys.",
+  "one_permutation_two_arrays": "A single shuffle handle is applied forward to the pool and in reverse to an identity array, yielding new_slot_of[p] = where original row p landed. The permutation exists only as a handle and is never opened.",
+  "remap": "Each descriptor's old row is looked up in new_slot_of. At federation scale this lookup is the sort-join; the mechanism is identical, only the lookup implementation differs."
+ },
+ "executed_result": {
+  "key_blocks": 8,
+  "block_width": 2,
+  "all_keys_read_back_correctly": true,
+  "rows": [
+   {
+    "directory_row": 0,
+    "returned": [
+     100,
+     200
+    ]
+   },
+   {
+    "directory_row": 1,
+    "returned": [
+     101,
+     201
+    ]
+   },
+   {
+    "directory_row": 2,
+    "returned": [
+     102,
+     202
+    ]
+   },
+   {
+    "directory_row": 3,
+    "returned": [
+     103,
+     203
+    ]
+   },
+   {
+    "directory_row": 4,
+    "returned": [
+     104,
+     204
+    ]
+   },
+   {
+    "directory_row": 5,
+    "returned": [
+     105,
+     205
+    ]
+   },
+   {
+    "directory_row": 6,
+    "returned": [
+     106,
+     206
+    ]
+   },
+   {
+    "directory_row": 7,
+    "returned": [
+     107,
+     207
+    ]
+   }
+  ],
+  "permutation_was_non_identity": true,
+  "observed_permutation": {
+   "0": 4,
+   "1": 2,
+   "2": 0,
+   "3": 7,
+   "4": 6,
+   "5": 3,
+   "6": 1,
+   "7": 5
+  },
+  "note": "The permutation was opened here ONLY by the verification variant, so the test could confirm it is not the identity. The production circuit never reveals it, and a unit test enforces that.",
+  "seconds": 7.53416
+ },
+ "status_change": "Owner-blind pooling was a design with a cost model. It is now a mechanism that has been executed and verified in MPC. What remains is scale and integration, not feasibility.",
+ "remaining": [
+  "Only run at eight key blocks; no federation-scale execution.",
+  "The remap is a direct oblivious scan here; the sort-join that makes it affordable at scale is measured but not implemented in the circuit.",
+  "Not integrated with the relation-paged backend.",
+  "No real dataset, WAN, or multi-host run.",
+  "No malicious-security property."
+ ]
+}

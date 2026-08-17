@@ -1,0 +1,57 @@
+{
+  "benchmark_kind": "cost of running the same generated circuit under a malicious-security protocol instead of a passive one",
+  "date_utc": "2026-08-15",
+  "scope_warning": "Single host, one query, one repetition, on the smallest bundled fixture. All three parties ran on one machine, which does not instantiate the non-collusion assumption. This measures the cost of a protocol swap on one circuit shape; it does NOT make the system maliciously secure, because the owner-input and client-output boundaries remain unauthenticated. See what_this_does_NOT_establish below.",
+  "what_was_measured": "The identical compiled program, identical private inputs, and identical three-party committee, executed once under MP-SPDZ Semi and once under MP-SPDZ MASCOT.",
+  "protocols": {
+    "semi": {
+      "binary": "semi-party.x",
+      "script": "Scripts/semi.sh",
+      "security": "semi-honest, dishonest majority, mod prime",
+      "source": "external/MP-SPDZ/README.md protocol table",
+      "note": "This is the protocol every other benchmark in this directory uses."
+    },
+    "mascot": {
+      "binary": "mascot-party.x",
+      "script": "Scripts/mascot.sh",
+      "security": "malicious, dishonest majority, mod prime",
+      "reference": "https://eprint.iacr.org/2016/505",
+      "source": "external/MP-SPDZ/README.md protocol table",
+      "note": "Same corruption threshold as Semi: three parties, up to two corrupted. Only the adversary's behaviour changes, from passive to actively deviating."
+    }
+  },
+  "fixture": {
+    "config": "doram_t2_3pc/examples/ten_query/config_relation_pages.json",
+    "backend": "EXPERIMENTAL relation-paged layout",
+    "owners": 3,
+    "query_count": 1,
+    "top_k": 4,
+    "note": "The smallest available paged fixture was used because MASCOT's preprocessing cost made anything larger impractical to run here."
+  },
+  "measurements": {
+    "semi": {"mpc_seconds": 1.81011, "global_data_mb": 369.844},
+    "mascot": {"mpc_seconds": 56.7005, "global_data_mb": 57496.2},
+    "overhead_mascot_over_semi": {"mpc_seconds": 31.32, "global_data_mb": 155.5}
+  },
+  "correctness": {
+    "semi_matches_cleartext_oracle": true,
+    "mascot_matches_cleartext_oracle": true,
+    "semi_and_mascot_agree": true,
+    "valid_rows_returned": 4,
+    "top_k": 4,
+    "comparison": "Both runs were decoded from the three per-server output logs and compared for exact JSON equality against evaluate_paged_cleartext."
+  },
+  "what_this_establishes": [
+    "The generated circuit compiles and executes correctly under a malicious-security protocol without modification: it uses no construct that requires passive security.",
+    "A concrete price for the upgrade on this circuit shape: about 31x wall-clock and about 155x communication on a single host with preprocessing included."
+  ],
+  "what_this_does_NOT_establish": [
+    "This system is NOT maliciously secure end to end, and no such claim is made anywhere in this repository.",
+    "The owner-to-server input boundary is unauthenticated. Owners hand each server an additive share; nothing forces an owner to submit shares that reconstruct to a well-formed layout, and MASCOT does not check this because the check would have to happen outside the MPC. A malicious owner can therefore still corrupt results.",
+    "The server-to-client output boundary is unauthenticated. Each server prints its own output share; nothing stops a malicious server from releasing a wrong share, and the client cannot detect it.",
+    "No ideal functionality has been written and no simulation proof exists, for either protocol.",
+    "Single host, one query, one repetition. All three parties ran on one machine, which does not instantiate the non-collusion assumption.",
+    "MASCOT's abort guarantee is security-with-abort: a detected cheater halts the computation, it does not yield a correct answer."
+  ],
+  "reading": "Malicious security of the three-party computation is available off the shelf and costs about two orders of magnitude in communication. Closing the remaining gap is not a protocol swap: it needs authenticated owner input (a commitment or MAC on each owner's shares, checked in-circuit) and authenticated output release, neither of which is implemented."
+}

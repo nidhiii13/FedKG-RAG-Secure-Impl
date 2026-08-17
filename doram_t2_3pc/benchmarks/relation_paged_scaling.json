@@ -1,0 +1,64 @@
+{
+  "benchmark_kind": "how the relation-paged backend's cost grows with graph size",
+  "date_utc": "2026-08-15",
+  "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+  "scope_warning": "Synthetic fixtures on a single host, one query each, 100 to 800 entities. All three parties ran on one machine, which does not instantiate the non-collusion assumption. The MetaQA figures below are EXTRAPOLATIONS roughly 60x beyond the largest measured point, not measurements, and no MetaQA run has been performed.",
+  "question": "Every other benchmark here compares layouts at a fixed, tiny size. This one asks the separate question of whether the paged backend's cost curve permits a realistic knowledge graph at all.",
+  "method": {
+    "generator": "scripts/build_skewed_fixture.py",
+    "held_fixed": "8 relations, 2 owners, 8 hub sources, degree-per-relation 2, top_k 4, 1 query, page_size 2, pages_per_key 1, page_budget 129, frontier_per_owner 2 (frontier_slots 4)",
+    "varied": "entity count only: 100, 200, 400, 800",
+    "why_this_isolates_it": "directory_rows = entity_count * relation_count, so varying entities alone moves the directory scan while leaving the page pool, the frontier width, the top-k width, and every bit-decomposition count unchanged."
+  },
+  "measurements": [
+    {"entities": 100, "directory_rows": 808, "page_budget": 129, "mpc_seconds": 1.43743, "global_data_mb": 526.9},
+    {"entities": 200, "directory_rows": 1608, "page_budget": 129, "mpc_seconds": 1.8993, "global_data_mb": 775.986},
+    {"entities": 400, "directory_rows": 3208, "page_budget": 129, "mpc_seconds": 1.9849, "global_data_mb": 1262.93},
+    {"entities": 800, "directory_rows": 6408, "page_budget": 129, "mpc_seconds": 2.61568, "global_data_mb": 2243.12}
+  ],
+  "fit": {
+    "model": "global_data_mb = 281.3 + 0.30618 * directory_rows",
+    "max_residual_percent": 0.3,
+    "interpretation": "Communication is linear in directory_rows = entity_count * relation_count, with an essentially exact fit over the measured range. The 281 MB intercept is the size-independent part: bit-decomposition of packed records, the top-k comparison network, and output resharing. The 0.306 MB per directory row is the oblivious directory scan, which is the term that grows."
+  },
+  "the_asymptotic_fact": {
+    "per_address_products": "directory_rows * owner_count + owner_count * pages_per_key * page_budget * page_size",
+    "addresses_per_query": "1 + frontier_slots",
+    "consequence": "Cost per query is Theta((1 + frontier_slots) * (entities * relations + total_pages)). This is LINEAR in the size of the whole federated graph. The relation-paged layout improves the CONSTANT versus a lossless packed scan; it does not change this asymptotic. No sublinear read is implemented or claimed.",
+    "why_no_sublinear_read": "The standard route to sublinear oblivious reads is a two-server DPF/FSS scheme. This threat model permits any two of the three servers to collude, so a two-party DPF key pair can end up entirely inside the adversary's view. Sublinearity here would require either a different primitive or a weaker, one-corruption threat model."
+  },
+  "extrapolation_to_metaqa": {
+    "status": "EXTRAPOLATION, NOT MEASURED",
+    "extrapolation_factor_beyond_measured_range": 61,
+    "metaqa_entities": 43235,
+    "metaqa_relations": 9,
+    "metaqa_directory_rows": 389115,
+    "source_of_graph_shape": "doram_t2_3pc/benchmarks/relation_page_cost_model.json measured_inputs",
+    "cases": [
+      {"owners": 2, "frontier_per_owner": 4, "frontier_slots": 8, "projected_gb_per_query": 209.7},
+      {"owners": 3, "frontier_per_owner": 4, "frontier_slots": 12, "projected_gb_per_query": 454.0},
+      {"owners": 3, "frontier_per_owner": 16, "frontier_slots": 48, "projected_gb_per_query": 1710.6}
+    ],
+    "note": "The third case is the realistic one if the assumed maximum (source, relation) degree of 16 holds, since the frontier must be wide enough to carry a full first-hop match set. On a 1 Gbps link, 1.7 TB is roughly 4 hours of transfer for a single two-hop query.",
+    "caveats": [
+      "Linearity is established only between 808 and 6408 directory rows.",
+      "The per-row constant could improve at larger sizes through better vectorization, or worsen through memory pressure; neither was tested.",
+      "Page-pool growth is excluded: page_budget was held at 129 here, but a real graph needs a page per distinct (source, relation) key, which the cost model estimates at 66788 per owner for MetaQA. Including it makes these projections optimistic."
+    ]
+  },
+  "batching_does_not_amortize": {
+    "one_query_global_data_mb": 369.844,
+    "ten_queries_global_data_mb": 3524.11,
+    "per_query_at_batch_ten_mb": 352.411,
+    "saving_from_batching_ten": "5%",
+    "source": "benchmarks/malicious_protocol_overhead.json (Semi arm) and benchmarks/relation_paged_regression.json, same configuration",
+    "why": "A batch shares one pass over the tables but still pays one selector product per (row, query) pair, so the dominant term grows linearly in the batch size. Batching buys rounds and vectorization, not asymptotic amortization."
+  },
+  "reading": "The relation-paged layout is the right shape for reducing the constant, and it demonstrably does so (see relation_paged_crossover.json). It does not change the fact that every dependent read is a linear pass over the federated graph. Interactive retrieval at MetaQA scale is out of reach on this design; the regime it fits is small graphs or offline batch analytics.",
+  "what_this_does_not_show": [
+    "Any measured result above 800 entities.",
+    "Any real-dataset, WAN, or multi-host result.",
+    "That the linear fit continues to MetaQA scale; that is the extrapolation being flagged.",
+    "Any malicious-security property; MP-SPDZ Semi is passive-only."
+  ]
+}

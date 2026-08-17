@@ -1,0 +1,147 @@
+{
+ "benchmark_kind": "owner-side plaintext tree-ORAM construction: feasibility and cost of removing in-circuit initialisation",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude. No FSS, no dealer, no trusted setup.",
+ "scope_warning": "One tree level at N=1024 on a single host, one access. The recursive position map is NOT built or measured. All parties ran on one machine, which does not instantiate the non-collusion assumption. MetaQA figures are extrapolations. Passive protocol only.",
+ "hypothesis_tested": "doram_viability_under_dishonest_majority.json found DORAM access is 2.65x CHEAPER than the linear scan at MetaQA scale, and that the only blocker was batch_init at 56 billion triples, paid every run. batch_init builds the structure obliviously. Since each owner holds its own data in plaintext, that obliviousness is unnecessary: the owner can build the structure locally and share the result.",
+ "result": "Confirmed for the tree level. An owner-built tree loads from shares with ZERO in-circuit initialisation and is read correctly in MPC.",
+ "layout_verification": {
+  "shape_formula_matches_mpspdz": true,
+  "sizes_checked": [
+   16,
+   64,
+   256,
+   1024,
+   4096,
+   16384,
+   389115
+  ],
+  "invariants": [
+   "every real entry lands in a leaf bucket; internal buckets empty, matching post-batch_init state",
+   "no leaf bucket overflows; the builder redraws the assignment locally instead",
+   "every entry is reachable along the root-to-leaf path an access walks",
+   "leaf assignment is uniform, not derived from the logical index"
+  ]
+ },
+ "executed_read": {
+  "n": 1024,
+  "bucket_size": 51,
+  "depth": 6,
+  "entries_touched_per_access": 357,
+  "linear_scan_entries": 1024,
+  "correct": true,
+  "note": "Path indices are public because Path ORAM reveals the accessed leaf; that is safe because the leaf is uniformly random and remapped after each access. Only the bucket CONTENTS are secret."
+ },
+ "cost_of_the_read": {
+  "full_width_index_equality": {
+   "triples": 428400,
+   "global_data_mb": 8786.6,
+   "seconds": 20.4962
+  },
+  "bounded_index_equality": {
+   "triples": 106386,
+   "global_data_mb": 2830.17,
+   "seconds": 7.50622,
+   "index_bits": 10,
+   "improvement": 3.1,
+   "why": "Logical indices are bounded by the table size, so matching needs log2(N) bits rather than the full 124-bit field. The equality test is the dominant per-entry cost."
+  }
+ },
+ "honest_assessment": {
+  "what_this_buys": "Initialisation, not access speed. The access cost of an owner-built path read is comparable to MP-SPDZ's own RecursiveORAM access, which already includes a recursive position map. The contribution is removing batch_init's 56 billion triples, which was the actual blocker.",
+  "at_n_1024_it_loses": "106,386 triples against about 4,024 for a linear scan, roughly 26x worse. That is expected: the measured per-access crossover is around 83,000 entries and this fixture is far below it.",
+  "extrapolated_at_metaqa": {
+   "entries_touched": 1035,
+   "index_bits": 19,
+   "estimated_triples_per_access": 585000,
+   "linear_scan_triples_per_access": 1531000,
+   "estimated_advantage": 2.6,
+   "status": "EXTRAPOLATION, consistent with the independent estimate of 576,347 in doram_viability_under_dishonest_majority.json"
+  },
+  "share_volume_cost": "The tree occupies about 6.4x the slots of the flat table at N=1024 and about 5.8x at MetaQA scale, because of bucket padding. That is one-time streaming input, not MPC work."
+ },
+ "remaining_before_this_is_usable": [
+  "The recursive position map (TreeORAM.index) is not built. A logical-index-to-leaf lookup must itself be oblivious, and MP-SPDZ solves it with a further ORAM at each of log N levels. The same owner-side construction applies at each level, but it is not implemented.",
+  "Persistence across runs: without it the tree is re-shared every run, though sharing is streaming input rather than MPC work.",
+  "Eviction and remapping after each access, which Path ORAM security requires when a block is accessed more than once in a run.",
+  "Integration with the relation-paged backend; this is a standalone probe."
+ ],
+ "what_this_does_not_show": [
+  "An executed circuit for the recursive access; only the single data-tree level has been run in MPC.",
+  "Any advantage at small sizes; the crossover is around 83,000 entries.",
+  "Any real dataset, WAN, or multi-host result.",
+  "Any malicious-security property.",
+  "Security under repeated access to the same index within one run, which needs the eviction and remapping step that is not implemented."
+ ],
+ "recursive_position_map": {
+  "status": "IMPLEMENTED and verified in cleartext; not yet executed as a circuit",
+  "design": "Level i>0 stores the leaf labels of level i-1, packed chi per entry, recursing until a level fits under base_threshold and is read with a linear scan.",
+  "correctness": "Every logical index resolves through the full recursion at N=256/512/2048/5000 with chi=4/8/16/64, and each level is asserted to hold exactly the leaf labels of the level below.",
+  "tuning_finding": "The naive chi=8 recursion erases most of the tree-level advantage, dropping it from 2.65x to 1.20x over the linear scan. Per-entry cost is dominated by the index equality test rather than the payload, so fewer-and-fatter levels beat more-and-thinner: chi=256 gives 2 tree levels and recovers 2.16x.",
+  "chi_sweep_at_metaqa_scale": {
+   "8": {
+    "tree_levels": 5,
+    "entries_touched_per_access": 2798,
+    "projected_triples_per_access": 1274546,
+    "advantage_over_linear_scan": 1.2
+   },
+   "16": {
+    "tree_levels": 4,
+    "entries_touched_per_access": 2259,
+    "projected_triples_per_access": 1044997,
+    "advantage_over_linear_scan": 1.46
+   },
+   "32": {
+    "tree_levels": 3,
+    "entries_touched_per_access": 1877,
+    "projected_triples_per_access": 897963,
+    "advantage_over_linear_scan": 1.7
+   },
+   "64": {
+    "tree_levels": 3,
+    "entries_touched_per_access": 1726,
+    "projected_triples_per_access": 821705,
+    "advantage_over_linear_scan": 1.86
+   },
+   "128": {
+    "tree_levels": 2,
+    "entries_touched_per_access": 1499,
+    "projected_triples_per_access": 746222,
+    "advantage_over_linear_scan": 2.05
+   },
+   "256": {
+    "tree_levels": 2,
+    "entries_touched_per_access": 1412,
+    "projected_triples_per_access": 708346,
+    "advantage_over_linear_scan": 2.16
+   }
+  },
+  "chosen_default": {
+   "chi": 256,
+   "base_threshold": 64,
+   "metaqa_shape": "389,115 -> 1,520 -> 6 (linear base)",
+   "entries_touched_per_access": 1412,
+   "versus_linear_scan_entries": 389115,
+   "entries_ratio": 275.6,
+   "note": "The 275x reduction in ENTRIES TOUCHED does not become a 275x cost reduction, because per-entry cost is far higher for a path search (secret index equality) than for a demux-driven linear scan (one multiplication). The projected end-to-end advantage is about 2.16x."
+  }
+ },
+ "remaining": [
+  "integration with the relation-paged backend; the construction and its access model are standalone, and the recursive access has been verified in cleartext but not yet executed as a circuit"
+ ],
+ "read_only_stash_instead_of_eviction": {
+  "status": "IMPLEMENTED and verified in cleartext",
+  "problem": "Path ORAM must remap an accessed block to a fresh leaf and write the path back, or reading the same index twice reveals the same path and leaks the repeat. That write-back roughly doubles every access.",
+  "why_this_workload_can_avoid_it": "The graph is fixed for the duration of a run and the owner reshuffles between runs anyway, so nothing is ever written. That admits the classic square-root-ORAM treatment: fetch each index from the tree at most once, serve repeats from a stash, and read a freshly drawn dummy path so the servers still observe one uniformly random path per access.",
+  "security_property_tested": "For every level, a given (level, index) is fetched from the tree at most once. Explicitly NOT 'no leaf repeats' -- distinct blocks routinely share a leaf, which is why buckets hold several entries.",
+  "bug_found_while_building": "A single data-level stash is insufficient. Level i is addressed by a // chi**i, so two DIFFERENT logical indices can collide at an upper level and refetch it, revealing that upper path twice. The stash must be per level. This was caught by the test asserting the property rather than by inspection.",
+  "cost_at_metaqa_scale_50_accesses": {
+   "path_entries": 70600,
+   "stash_entries": 1225,
+   "total_entries": 71825,
+   "stash_overhead_percent": 1.74,
+   "full_eviction_would_cost": "roughly 100% overhead rather than 1.74%"
+  },
+  "declared_bound": "max_accesses is public and sizes the stash. Once reached the owner must reshuffle and re-share, which is what re-sharing between runs already does, so it is a bound to declare rather than machinery to build. Exceeding it fails closed."
+ }
+}

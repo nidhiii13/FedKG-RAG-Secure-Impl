@@ -122,7 +122,7 @@ def run_party(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run one distributed packed DORAM Semi party"
+        description="Run one distributed packed MPC-oblivious-scan Semi party"
     )
     parser.add_argument("--server-id", type=int, required=True)
     parser.add_argument("--config", required=True)

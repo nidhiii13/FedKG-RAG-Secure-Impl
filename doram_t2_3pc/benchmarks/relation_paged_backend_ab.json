@@ -1,0 +1,67 @@
+{
+  "benchmark_kind": "single-host A/B correctness and cost measurement",
+  "date_utc": "2026-08-14",
+  "protocol": "MP-SPDZ Semi, three local parties, preprocessing included",
+  "scope_warning": "One tiny synthetic fixture (10 real entities, 3 owners, 3 relations) on a single host. Do not extrapolate latency or communication to MetaQA, WebQSP, WAN, or production deployments. This fixture is deliberately the worst case for the paged layout; see headline_finding.",
+  "headline_finding": "On this fixture the relation-paged backend is SLOWER than the packed scan: 13.9897 s vs 12.1341 s and 3524.11 MB vs 2798.19 MB global. This is the expected and correct outcome, not a regression. The paged layout narrows a bucket from max-source-degree to max-(source,relation)-degree; on a fixture where those are 2 and 1 there is nothing to narrow, so the added directory level is pure overhead. Its advantage is asymptotic and appears only when the source-wide fanout bound would otherwise have to be large, which is exactly the uncapped high-degree case the packed scan cannot represent at all.",
+  "environment": {
+    "kernel": "Linux 6.8.0-111-generic x86_64",
+    "cpu": "Intel Xeon Gold 6136 @ 3.00GHz, 48 logical CPUs",
+    "mpspdz_home": "external/MP-SPDZ"
+  },
+  "fixture": {
+    "path": "doram_t2_3pc/examples/ten_query",
+    "query_count": 10,
+    "distinct_queries": 10,
+    "entity_count_including_dummy": 11,
+    "owner_count": 3,
+    "relation_count": 3,
+    "top_k": 4,
+    "deduplicate_terminal_answers": false,
+    "max_source_degree_in_fixture": 2,
+    "max_source_relation_degree_in_fixture": 1
+  },
+  "packed_scan_backend": {
+    "config": "examples/ten_query/config_scalable.json",
+    "layout": "per-source buckets, fanout_per_owner=2, block_edges=6",
+    "candidate_count_per_query": 36,
+    "mpc_seconds": 12.1341,
+    "party_0_data_mb": 936.637,
+    "global_data_mb": 2798.19,
+    "reported_rounds_party_0": 218378
+  },
+  "relation_paged_backend": {
+    "config": "examples/ten_query/config_relation_pages.json",
+    "layout": "directory 33 rows x 3 owners, page pool 16 rows x 2 slots per owner, pages_per_key=1",
+    "candidate_count_per_query": 36,
+    "mpc_seconds": 13.9897,
+    "party_0_data_mb": 1179.53,
+    "global_data_mb": 3524.11,
+    "reported_rounds_party_0": 273384,
+    "program": "paged_kg_3pc_<digest>",
+    "stage_seconds_two_query_run": {
+      "input": 0.000335728,
+      "first_hop_lookup": 0.339015,
+      "compaction_and_second_address": 0.0495778,
+      "dependent_second_hop_lookup": 1.4087
+    }
+  },
+  "observed_ratio_paged_over_scan": {
+    "mpc_seconds": 1.1529,
+    "global_data_mb": 1.2594,
+    "note": "Ratios above 1.0 mean the paged backend costs more on this fixture."
+  },
+  "correctness": {
+    "executed_queries": 10,
+    "mpc_matches_paged_cleartext_oracle": 10,
+    "mpc_matches_packed_scan_cleartext_oracle": 10,
+    "comparison": "Exact JSON equality of all four reconstructed ranked rows per query, against two independently implemented cleartext oracles.",
+    "note": "Agreement with the packed-scan oracle also confirms the two layouts are semantically equivalent on inputs both can represent."
+  },
+  "what_this_does_not_show": [
+    "Any lossless high-degree result: this fixture fits both layouts, so it does not exercise overflow pages.",
+    "Any MetaQA or WebQSP result.",
+    "Any WAN or multi-host result; all three parties ran on one machine, which does not instantiate the non-collusion assumption.",
+    "Any malicious-security property; the runtime is MP-SPDZ Semi, which is passive-only."
+  ]
+}

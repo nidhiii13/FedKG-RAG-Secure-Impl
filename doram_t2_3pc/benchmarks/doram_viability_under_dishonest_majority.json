@@ -1,0 +1,45 @@
+{
+ "benchmark_kind": "viability of a real DORAM (recursive Path ORAM) under the declared 2-of-3 semi-honest dishonest-majority threat model",
+ "date_utc": "2026-08-15",
+ "scope_warning": "Compile-time operation counts from MP-SPDZ, not executed runs, at N=1024/4096/16384 with a 64-bit entry size. MetaQA-scale figures are EXTRAPOLATIONS using O(n log^2 n) for the initialisation sort and O(log^2 n) for access. Nothing here is a malicious-security result.",
+ "question": "The README records that a previous OptimalORAM attempt was abandoned because initialisation needed 'billions of preprocessing operations'. Compiler/oram.py provides batch_init, which bulk-loads an ORAM with one oblivious shuffle and sort instead of N oblivious writes. Does batch_init make a DORAM-backed hybrid viable?",
+ "answer": "No.",
+ "method": "Compile the same probe at fixed N with 1 access and with 9 accesses; the difference over 8 isolates per-access cost, and the remainder is one-time initialisation.",
+ "measurements": {
+  "linear_oram_n1024": {
+   "total_triples_init_plus_8_accesses": 32232,
+   "triples_per_entry_per_access": 3.93,
+   "note": "OptimalORAM selects LinearORAM below its threshold; this is a scan, and it is the baseline to beat"
+  },
+  "linear_oram_n4096": {
+   "total_triples_init_plus_8_accesses": 106632
+  },
+  "recursive_oram_n16384": {
+   "batch_init_triples": 1386607313,
+   "per_access_triples": 327585,
+   "note": "the 13000x jump from N=4096 to N=16384 is OptimalORAM crossing from LinearORAM to RecursiveORAM, not a scaling effect"
+  }
+ },
+ "findings": {
+  "per_access_crossover_entries": 83258,
+  "doram_penalty_at_n16384": "5.1x WORSE per access than a linear scan",
+  "batch_init_is_the_wall": "batch_init at N=16384 costs 1.39 billion triples, which is 4200x the cost of one access. It is dominated by an oblivious sort of ~2N entries, so it does not go away with tuning.",
+  "metaqa_extrapolation": {
+   "directory_rows": 389115,
+   "linear_per_access_triples": 1531000,
+   "doram_per_access_triples": 576347,
+   "doram_saving_per_access_triples": 954653,
+   "doram_batch_init_triples": 56053588577,
+   "break_even_accesses": 58716,
+   "break_even_queries_in_one_program_run": 1198,
+   "current_batch_cap_queries": 10
+  }
+ },
+ "conclusion": "Under this threat model a DORAM only starts winning per access above roughly 83k entries, and its one-time initialisation needs about 1,200 queries in a SINGLE MP-SPDZ program run to amortise at MetaQA scale. The batch cap is 10, and there is no persistent ORAM state across runs, so the initialisation is paid every run. A DORAM-backed hybrid is therefore not the right design here, and this is a quantitative confirmation of the qualitative note already in the README rather than a new obstacle.",
+ "what_this_does_not_show": [
+  "That DORAM is unviable under other threat models; honest-majority protocols make every secure operation far cheaper and would move all of these numbers.",
+  "That a persistent, cross-run ORAM would not amortise; that is a different system design and is not implemented.",
+  "Executed wall-clock or communication figures; these are compile-time operation counts.",
+  "That a hand-built ORAM variant could not beat MP-SPDZ's RecursiveORAM constants."
+ ]
+}

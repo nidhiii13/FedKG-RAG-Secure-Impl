@@ -10,13 +10,19 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from .config import EDGE_FIELDS, PublicConfig, SCALABLE_FIELD_PRIME
+from .config import (
+    EDGE_FIELDS,
+    PublicConfig,
+    SCALABLE_FIELD_PRIME,
+    reject_scan_only_options,
+)
 
 
 SCALABLE_PROGRAM_VERSION = 1
 
 
 def _require_scalable_config(config: PublicConfig) -> None:
+    reject_scan_only_options(config, "RecursiveORAM experiment")
     if config.field_prime != SCALABLE_FIELD_PRIME:
         raise ValueError(
             "scalable DORAM requires field_prime=2^127-1 for RecursiveORAM"

@@ -1,0 +1,63 @@
+{
+ "benchmark_kind": "free optimisation of the RAG evaluation fixture: 3.47x less communication at identical answers",
+ "date_utc": "2026-08-15",
+ "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+ "scope_warning": "One query executed in MPC on the 1,127-entity evaluation fixture; quality verified over all 40 questions with the cleartext oracle, which is verified equal to the circuit on this fixture. Single host. Not a full-MetaQA result.",
+ "question": "The evaluation fixture cost 19.8 GB for a single query. How much of that was avoidable without weakening security or answers?",
+ "two_changes_both_already_measured_elsewhere": [
+  {
+   "change": "bound 4 -> 3",
+   "why_free": "rag_privacy_quality_price.json shows evidence-hit saturates at bound 3: 75.0% at 1, 92.5% at 2, 95.0% from 3 upward. Bound 4 was already past the plateau."
+  },
+  {
+   "change": "per-owner frontier -> global frontier",
+   "why_free": "global_frontier_compaction.json shows the compacted circuit returns byte-identical rows. Here it is worth more than usual: because the federation uses an ENTITY split, each (source, relation) key lives with exactly one owner, so the federation-wide degree EQUALS the per-owner degree and the global frontier can be 3 rather than 3 owners x 3 = 9.",
+   "verified": "check_global_frontier reports max federation-wide degree 3 against a declared bound of 3, headroom 0"
+  }
+ ],
+ "effect": {
+  "addresses_per_query": {
+   "before": 10,
+   "after": 4
+  },
+  "products": {
+   "before": 476424,
+   "after": 130248,
+   "ratio": 3.66
+  },
+  "private_input_values_per_server": {
+   "before": 36657,
+   "after": 32565
+  },
+  "measured_global_data_mb": {
+   "before": 19771.7,
+   "after": 5690.4,
+   "ratio": 3.47
+  },
+  "measured_seconds": {
+   "before": 14.2539,
+   "after": 4.5646,
+   "ratio": 3.12
+  },
+  "evidence_hit_rate": {
+   "before": 0.95,
+   "after": 0.95,
+   "change": "none, verified over all 40 questions"
+  },
+  "mpc_matches_oracle": true
+ },
+ "where_the_remaining_cost_sits": {
+  "directory_share_of_per_address_cost": 0.55,
+  "directory_rows": 20286,
+  "distinct_keys_actually_present": 2408,
+  "occupancy": 0.119,
+  "observation": "88.1% of the directory is padding. Compacting it to only the keys that exist would be 8.4x smaller on what is now the dominant term.",
+  "why_it_is_not_done": "The padding IS the privacy. A compact directory needs a public map from (source, relation) to a compact index, which discloses exactly WHICH keys exist -- far more than the current leakage function, which publishes only counts. Shrinking the dominant term therefore trades directly against the leakage claim in IDEAL_FUNCTIONALITY.md, and is not a free win like the two above."
+ },
+ "what_this_does_not_show": [
+  "Any full-MetaQA result; 1,127 of 43,234 entities.",
+  "That bound 3 is safe on the full graph; quality saturates at 3 on THIS question set and subgraph, where high-degree keys are already truncated by the covering construction.",
+  "That the global frontier equals the per-owner bound in general; that follows from the entity split and would not hold if a key were shared across owners.",
+  "Any WAN, multi-host, or malicious-security property."
+ ]
+}
