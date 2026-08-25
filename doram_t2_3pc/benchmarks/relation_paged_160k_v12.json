@@ -1,0 +1,76 @@
+{
+  "name": "relation_paged_160k_v12",
+  "date": "2026-08-21",
+  "status": "completed native MP-SPDZ execution with exact reconstruction",
+  "scope_warning": "One synthetic query, three Semi parties on one localhost, preprocessing included. This does not instantiate physical server separation, measure WAN latency, exercise a public KG ontology, or make the linear lookup sublinear.",
+  "protocol": "MP-SPDZ Semi, mod prime, semi-honest dishonest majority, exactly three parties",
+  "dataset": {
+    "real_entities": 100000,
+    "entity_slots_including_dummy": 100001,
+    "real_edges": 160000,
+    "relations": 3,
+    "owners": 3,
+    "owner_edge_counts": [53334, 53333, 53333],
+    "distinct_source_relation_keys": 160000,
+    "maximum_owner_key_degree": 1,
+    "maximum_federation_wide_key_degree": 1
+  },
+  "layout": {
+    "kind": "dense relation-paged v12 with folded hop-two relation",
+    "directory_rows": 300003,
+    "directory_columns": 1,
+    "page_size": 2,
+    "pages_per_key": 1,
+    "page_budget_per_owner": 53335,
+    "global_frontier": 1,
+    "candidate_count": 6,
+    "top_k": 4,
+    "ontology_layout": false,
+    "explanation": "The synthetic fixture supplies no external public ontology. No edge-derived type map was introduced. The lossless global frontier of one was verified over the plaintext union for this benchmark; deployment needs the documented one-time MPC bound check."
+  },
+  "preparation": {
+    "private_input_values_per_server": 620016,
+    "private_input_file_mb_per_server": 24,
+    "capacity_checks_passed": true,
+    "static_lookup_products": 1240026,
+    "widest_compiler_stage": 256
+  },
+  "execution": {
+    "program": "paged_kg_3pc_8a54ca80d2fb4daf",
+    "wall_seconds_including_preprocessing": 26.7591,
+    "input_seconds": 0.526996,
+    "first_hop_seconds": 11.0784,
+    "frontier_compaction_seconds": 0.00490293,
+    "dependent_second_hop_seconds": 14.7526,
+    "candidate_and_topk_seconds": 0.0347272,
+    "output_reshare_seconds": 0.00288516,
+    "party_0_data_mb": 14948.9,
+    "global_data_mb": 44693.1,
+    "party_0_reported_rounds": 72800,
+    "bytecode_files": 413,
+    "aggregate_bytecode_bytes": 158365212,
+    "compiler_scale_note": "Compilation processed more than 9.8 million reported lines and produced 413 bytecode files. It completed after the interactive wait was interrupted; schedule timestamps indicate roughly twelve minutes of compilation."
+  },
+  "correctness": {
+    "independent_paged_oracle_match": true,
+    "fields_compared": 16,
+    "mismatches": 0,
+    "decoded_result": [
+      {"valid": 1, "left_evidence": 1, "right_evidence": 100002, "score": 4},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0}
+    ]
+  },
+  "comparison_with_packed_scan_same_fixture": {
+    "packed_source": "results/doram_160k_packed_scan.json",
+    "packed_seconds": 43.0716,
+    "packed_global_data_mb": 95185.5,
+    "v12_runtime_reduction_percent": 37.873,
+    "v12_communication_reduction_percent": 53.046,
+    "packed_dependent_second_hop_seconds": 34.5936,
+    "v12_dependent_second_hop_reduction_percent": 57.355,
+    "comparison_caveat": "The v12 layout uses a verified global frontier of one, while the packed scan carries its configured six-slot owner-major frontier. The narrower v12 frontier is lossless on this fixture and is the primary source of the improvement."
+  },
+  "verdict": "The v12 relation-paged backend is executable and exact at 160,000 edges and 100,000 entities. It materially improves over the packed scan on this favorable bounded-degree fixture, but 44.7 GB per query and roughly twelve-minute compilation remain impractical."
+}

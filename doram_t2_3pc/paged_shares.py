@@ -20,6 +20,7 @@ reveals only the declared configuration, never a realized degree or page count.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +44,51 @@ def owner_flat_vector(
     if len(layout.directory) != config.directory_rows:
         raise AssertionError("directory height does not match the configuration")
     directory_vector: list[int] = list(layout.directory)
-    if params.uses_compact_directory:
+    if config.uses_hybrid_directory:
+        from .compact_directory import build_owner_table
+
+        residual_descriptors = layout.residual_descriptors or {}
+        if params.partition_residual_by_relation:
+            residual = []
+            by_relation: dict[int, dict[int, int]] = {
+                relation: {} for relation in range(1, config.relation_count + 1)
+            }
+            for combined_tag, descriptor in residual_descriptors.items():
+                dense_index = combined_tag - 1
+                source = dense_index // config.relation_count
+                relation = dense_index % config.relation_count + 1
+                # Zero is reserved for an empty compact slot.
+                by_relation[relation][source + 1] = descriptor
+            for relation in range(1, config.relation_count + 1):
+                residual.extend(
+                    build_owner_table(
+                        by_relation[relation],
+                        owner_index=config.base.owners.index(owner),
+                        buckets=params.directory_buckets,
+                        slots=params.bucket_slots,
+                        owner_count=len(config.base.owners),
+                        descriptor_bits=params.descriptor_bits,
+                    )
+                )
+            residual_width = len(config.base.owners) * params.bucket_slots
+            residual.extend(
+                [0]
+                * (
+                    config.residual_directory_rows * residual_width
+                    - len(residual)
+                )
+            )
+        else:
+            residual = build_owner_table(
+                residual_descriptors,
+                owner_index=config.base.owners.index(owner),
+                buckets=params.directory_buckets,
+                slots=params.bucket_slots,
+                owner_count=len(config.base.owners),
+                descriptor_bits=params.descriptor_bits,
+            )
+        directory_vector.extend(residual)
+    elif params.uses_compact_directory:
         # Re-index the dense layout into the compact table. The dense row index
         # IS the key, so no extra information is needed and the two layouts stay
         # provably consistent: whatever the dense builder placed at row r is what
@@ -140,10 +185,16 @@ def _validated_owner_document(
     pages = document.get("pages")
     expected_pages = config.pages.pool_rows * config.pages.page_size
     params = config.pages
-    expected_directory = (
-        params.directory_buckets * len(config.base.owners) * params.bucket_slots
+    compact_values = (
+        config.residual_directory_rows
+        * len(config.base.owners) * params.bucket_slots
         if params.uses_compact_directory
-        else config.directory_rows
+        else 0
+    )
+    expected_directory = (
+        config.directory_rows + compact_values
+        if config.uses_hybrid_directory
+        else compact_values or config.directory_rows
     )
     if (
         not isinstance(directory, list)
@@ -194,7 +245,28 @@ def assemble_paged_batch_input(
     if set(by_index) != set(range(len(config.base.owners))):
         raise ValueError("paged owner shard set is incomplete")
 
-    combined = list(query_values)
+    values = iter_paged_batch_input_values(
+        config, query_values, by_index
+    )
+    destination = Path(output_path)
+    write_private_lines(destination, values)
+    return destination
+
+
+def iter_paged_batch_input_values(
+    config: RelationPageConfig,
+    query_values: list[int],
+    by_index: dict[int, tuple[list[int], list[int]]],
+) -> Iterator[int]:
+    """Yield one server input in circuit order without an assembled-size list.
+
+    Owner shard documents have already been validated by the caller.  Streaming
+    the merged representation matters for large page pools: assembly now needs
+    only the loaded owner shards plus a few row accumulators, instead of those
+    shards *and* another full private-input vector.
+    """
+
+    yield from query_values
     # Directory: row-major over (source, relation), then one element per packed
     # column. Several owners' descriptors share an element in disjoint bit
     # ranges, so a column is the modular SUM of those owners' shifted shares --
@@ -202,7 +274,30 @@ def assemble_paged_batch_input(
     # produced its shard alone with no knowledge of the others.
     prime = config.base.field_prime
     owner_count = len(config.base.owners)
-    if config.pages.uses_compact_directory:
+    if config.uses_hybrid_directory:
+        # Affine half: pack owners into field elements exactly like the dense
+        # directory. Residual half: owner-specific compact slots are already
+        # disjoint, so combine by modular addition.
+        for row in range(config.directory_rows):
+            columns = [0] * config.directory_columns
+            for owner_index in range(owner_count):
+                column, offset = config.directory_slot(owner_index)
+                shifted = (by_index[owner_index][0][row] << offset) % prime
+                columns[column] = (columns[column] + shifted) % prime
+            yield from columns
+        compact_offset = config.directory_rows
+        compact_values = (
+            config.residual_directory_rows * owner_count * config.pages.bucket_slots
+        )
+        for position in range(compact_values):
+            total = 0
+            for owner_index in range(owner_count):
+                total = (
+                    total
+                    + by_index[owner_index][0][compact_offset + position]
+                ) % prime
+            yield total
+    elif config.pages.uses_compact_directory:
         # Compact: each owner already occupies its own columns and is zero
         # elsewhere, so the table is the plain modular sum with no shifting --
         # the tag/descriptor packing happens inside a slot, not across owners.
@@ -211,7 +306,7 @@ def assemble_paged_batch_input(
             total = 0
             for owner_index in range(owner_count):
                 total = (total + by_index[owner_index][0][position]) % prime
-            combined.append(total)
+            yield total
     else:
         for row in range(config.directory_rows):
             columns = [0] * config.directory_columns
@@ -219,14 +314,10 @@ def assemble_paged_batch_input(
                 column, offset = config.directory_slot(owner_index)
                 shifted = (by_index[owner_index][0][row] << offset) % prime
                 columns[column] = (columns[column] + shifted) % prime
-            combined.extend(columns)
+            yield from columns
     # Pages: owner-major so each owner's pool is a contiguous scan range.
     for owner_index in range(len(config.base.owners)):
-        combined.extend(by_index[owner_index][1])
-
-    destination = Path(output_path)
-    write_private_lines(destination, combined)
-    return destination
+        yield from by_index[owner_index][1]
 
 
 def expected_private_input_values(
@@ -234,7 +325,12 @@ def expected_private_input_values(
 ) -> int:
     owner_count = len(config.base.owners)
     params = config.pages
-    if params.uses_compact_directory:
+    if config.uses_hybrid_directory:
+        directory_values = (
+            config.directory_rows * config.directory_columns
+            + config.residual_directory_rows * owner_count * params.bucket_slots
+        )
+    elif params.uses_compact_directory:
         directory_values = (
             params.directory_buckets * owner_count * params.bucket_slots
         )
@@ -316,7 +412,12 @@ def assemble_bound_check_input(
         raise ValueError("layout does not declare global_frontier")
 
     prime = config.base.field_prime
-    totals = [0] * config.directory_rows
+    occupancy_rows = (
+        config.dense_directory_rows
+        if config.uses_hybrid_directory
+        else config.directory_rows
+    )
+    totals = [0] * occupancy_rows
     seen: set[int] = set()
     for path in owner_shard_paths:
         document = read_json(path)
@@ -327,7 +428,7 @@ def assemble_bound_check_input(
         occupancy = document.get("occupancy")
         if (
             not isinstance(occupancy, list)
-            or len(occupancy) != config.directory_rows
+            or len(occupancy) != occupancy_rows
             or any(
                 isinstance(value, bool)
                 or not isinstance(value, int)

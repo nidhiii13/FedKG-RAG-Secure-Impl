@@ -1,0 +1,63 @@
+{
+  "benchmark_kind": "controlled end-to-end dependent two-hop KG retrieval: recursive read-only ORAM versus relation-paged linear lookup",
+  "date_utc": "2026-08-21",
+  "scope_warning": "Two-owner, four-entity localhost correctness fixture. Temi minimum preprocessing batches materially distort both timings. This is executable composition evidence, not large-scale performance evidence.",
+  "security_model": "three MP-SPDZ Temi parties; static passive adversary corrupting any two; fresh 3-of-3 owner and client shares",
+  "fixture": {
+    "owners": 2,
+    "entities_including_dummy": 4,
+    "relations": 2,
+    "slots_per_key_per_owner": 2,
+    "global_frontier": 2,
+    "query": ["alice", "knows", "likes"],
+    "cross_owner_path": "owner_a: alice-knows-bob; owner_b: bob-likes-carol"
+  },
+  "correctness": {
+    "kg_oram": {"valid": 1, "left_evidence": 11, "right_evidence": 13, "score": 6},
+    "relation_paged": {"valid": 1, "left_evidence": 11, "right_evidence": 13, "score": 6},
+    "exact_match": true
+  },
+  "kg_oram_temi": {
+    "program": "kg_readonly_oram_3pc_c3c46fbc7c79ff92",
+    "program_version": 2,
+    "storage_layout": "row-major physical records with vectorized position-map payload processing",
+    "seconds_including_preprocessing": 0.445275,
+    "global_data_mb": 22.4965,
+    "party0_data_mb": 8.97054,
+    "party0_reported_rounds": 4812,
+    "compiler_vm_rounds": 919,
+    "bit_triples": 192117,
+    "integer_triples": 1124
+  },
+  "relation_paged_temi": {
+    "program": "paged_kg_3pc_ba24c911415cd034",
+    "seconds_including_preprocessing": 0.789453,
+    "global_data_mb": 74.0878,
+    "party0_data_mb": 36.4109,
+    "party0_reported_rounds": 3898,
+    "compiler_vm_rounds": 672,
+    "bit_triples": 41075,
+    "integer_triples": 473
+  },
+  "controlled_ratio": {
+    "runtime_reduction_percent": 43.6,
+    "communication_reduction_percent": 69.64,
+    "warning": "Do not extrapolate these tiny-fixture ratios; ORAM has higher bit-triple and VM-round counts, while Temi batching dominates wall time."
+  },
+  "implemented_security_controls": [
+    "secret hop-one target becomes hop-two ORAM address without opening",
+    "independent owner permutations and fixed-width records",
+    "global fixed-width contribution-hiding compaction",
+    "fresh dummy paths for repeated per-level indices",
+    "config- and query-bound zero-violation epoch authorization",
+    "atomic per-server one-time epoch consumption",
+    "fresh client-only output resharing"
+  ],
+  "remaining": [
+    "large-scale execution and distinct-query evaluation",
+    "distributed multi-host runner and LAN/WAN measurements",
+    "independent review of the conservative 2^-80 placement-conditioning bound",
+    "authenticated authorization receipt and malicious owner input validation",
+    "update/persistent-state protocol"
+  ]
+}

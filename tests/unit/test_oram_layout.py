@@ -24,6 +24,8 @@ from doram_t2_3pc.oram_layout import (
     path_buckets,
     tree_cost_estimate,
     tree_shape,
+    leaf_overflow_log2_bound,
+    secure_tree_shape,
 )
 
 
@@ -139,6 +141,19 @@ def test_cost_estimate_reports_zero_in_circuit_initialisation():
     )
     # An access touches the path, not the table.
     assert estimate["entries_touched_per_access"] < estimate["logical_entries"]
+
+
+@pytest.mark.parametrize("size", (1172, 1520, 300003, 389115))
+def test_secure_shape_bounds_conditioning_across_recursive_stack(size: int):
+    bucket, depth = secure_tree_shape(size, statistical_security_bits=80)
+    assert bucket >= tree_shape(size)[0]
+    # secure_tree_shape budgets for at most 64 recursive levels.
+    assert leaf_overflow_log2_bound(size, bucket, depth) <= -86
+
+
+def test_kg_security_shape_remains_sublinear_at_six_figure_scale():
+    bucket, depth = secure_tree_shape(300003, statistical_security_bits=80)
+    assert (depth + 1) * bucket < 300003
 
 
 def test_remaining_work_stays_documented():

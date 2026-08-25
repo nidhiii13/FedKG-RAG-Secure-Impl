@@ -1,0 +1,147 @@
+{
+  "name": "relation_paged_oram_q10_matched_temi",
+  "date": "2026-08-25",
+  "status": "completed matched-protocol localhost A/B/C correctness benchmark",
+  "scope_warning": "Ten distinct queries over a controlled 10-entity, 16-edge fixture. All three MP-SPDZ Temi parties ran on one host and timings include protocol preprocessing. This establishes executable composition and comparative overhead on the fixture; it is not evidence of MetaQA runtime, WAN latency, malicious security, or production scalability.",
+  "matched_conditions": {
+    "queries": 10,
+    "distinct_queries": 10,
+    "owners": 3,
+    "entities": 10,
+    "relations": 3,
+    "edges": 16,
+    "global_frontier": 3,
+    "top_k": 4,
+    "field_prime": "170141183460469231731687303715885907969",
+    "protocol": "MP-SPDZ Temi: semi-honest dishonest-majority, up to two of three passively corrupted servers",
+    "host": "three local parties on one machine; non-collusion is not instantiated by this benchmark"
+  },
+  "results": [
+    {
+      "backend": "linear relation-paged oblivious lookup",
+      "program": "paged_kg_3pc_5ffc3aa223f3a859",
+      "exact_queries": "10/10",
+      "fields_compared": 160,
+      "mpc_seconds_including_preprocessing": 3.44393,
+      "global_data_mb": 315.538,
+      "party0_data_mb": 143.813,
+      "party0_reported_rounds": 14658,
+      "fresh_oram_epoch_required": false,
+      "trace": "fixed full scans of the public relation directory/page layout"
+    },
+    {
+      "backend": "wide-record recursive read-only KG-ORAM v3",
+      "program": "kg_readonly_oram_3pc_de5f7cef7c1caef8",
+      "exact_queries": "10/10",
+      "fields_compared": 160,
+      "mpc_seconds_including_preprocessing": 46.9058,
+      "global_data_mb": 1188.29,
+      "party0_data_mb": 452.138,
+      "party0_reported_rounds": 2210060,
+      "owner_shared_values_per_server": 2847,
+      "fresh_oram_epoch_required": true,
+      "trace": "one recursive ORAM lookup per fixed scheduled KG lookup; uniformly random opened path label, with repeat hiding via a secret stash"
+    },
+    {
+      "backend": "relation-paged dual recursive read-only ORAM v2",
+      "program": "relation_paged_recursive_oram_3pc_6ebe60817f9801d9",
+      "exact_queries": "10/10",
+      "fields_compared": 160,
+      "mpc_seconds_including_preprocessing": 82.4006,
+      "global_data_mb": 1919.55,
+      "party0_data_mb": 724.579,
+      "party0_reported_rounds": 3634324,
+      "owner_shared_values_per_server": 3861,
+      "fresh_oram_epoch_required": true,
+      "trace": "one directory ORAM plus a fixed number of page ORAM accesses per scheduled KG lookup; secret descriptors and dummy page zero hide occupancy"
+    }
+  ],
+  "controlled_ratios": {
+    "wide_oram_runtime_over_linear": 13.62,
+    "wide_oram_communication_over_linear": 3.766,
+    "dual_oram_runtime_over_linear": 23.926,
+    "dual_oram_communication_over_linear": 6.083,
+    "dual_oram_runtime_over_wide_oram": 1.757,
+    "dual_oram_communication_over_wide_oram": 1.615
+  },
+  "metaqa_public_shape_capacity": {
+    "status": "capacity plan followed by one completed Temi execution",
+    "entities": 12715,
+    "relations": 18,
+    "directory_records": 228888,
+    "page_records_per_owner": 20054,
+    "query_count": 1,
+    "dual_oram_path_entries_all_owners": 39684,
+    "linear_layout_rows_for_same_fixed_schedule": 1156200,
+    "dual_path_entry_reduction_ignoring_stash": 29.135,
+    "dual_owner_shared_values_per_server": 32397501,
+    "wide_owner_shared_values_per_server": 39421248,
+    "dual_setup_field_reduction_percent": 17.82,
+    "measured_hybrid_q1": {
+      "program": "relation_paged_recursive_oram_3pc_23db7c4074424f55",
+      "query": ["Mike Barker", "directed_by_inverse", "written_by"],
+      "exact_fields": "16/16",
+      "owner_epoch_prepare_seconds": 155.71807,
+      "fresh_input_bytes_all_servers": 3824233956,
+      "compiler_expanded_lines_approx": 5200000,
+      "mpc_seconds_including_preprocessing": 248.065,
+      "global_data_mb": 5502.09,
+      "party0_data_mb": 2343.97,
+      "party0_reported_rounds": 5677158,
+      "localhost": true
+    },
+    "warning": "One successful query is feasibility evidence, not a dataset evaluation. Path-entry counts are not MPC byte or latency predictions. The fresh epoch input remains linear and the dual layout performs two recursive accesses per logical KG lookup."
+  },
+  "optimization_and_security_notes": [
+    "The generated ORAM circuits scan only prior public stash slots and write directly to the current public slot. This removes no secret-dependent operation or trace event.",
+    "MP-SPDZ compilation preserves memory order because later repeated-address reads depend on earlier stash writes.",
+    "The recursive builder and planner stop before a pointless one-record position-map ORAM, retaining the remaining secret labels in the fixed scanned base.",
+    "The current replay-hiding stash remains quadratic in accesses per epoch; database access is sublinear but large query batches are not yet scalable.",
+    "All result fields are freshly reshared and reconstructed only by combining the three private output logs."
+  ],
+  "metaqa_chi_optimization": {
+    "status": "completed matched Temi A/B on the same MetaQA query",
+    "unchanged_security": "Both runs use statistical_security_bits=80, three Temi parties, fresh independently randomized 3-of-3 shares, fixed access schedules, and client-only reconstruction.",
+    "chi256": {
+      "base_threshold": 64,
+      "exact_fields": "16/16",
+      "owner_values_per_server": 32397501,
+      "fresh_input_bytes_all_servers": 3824233956,
+      "epoch_prepare_seconds": 155.71807,
+      "mpc_seconds_including_preprocessing": 248.065,
+      "global_data_mb": 5502.09,
+      "party0_data_mb": 2343.97,
+      "party0_reported_rounds": 5677158,
+      "compiler_integer_triples": 2384400,
+      "compiler_bit_triples": 36643986,
+      "compiler_vm_rounds": 1441975
+    },
+    "chi32": {
+      "base_threshold": 64,
+      "exact_fields": "16/16",
+      "owner_values_per_server": 31275429,
+      "fresh_input_bytes_all_servers": 3691779844,
+      "epoch_prepare_seconds": 214.41288,
+      "mpc_seconds_including_preprocessing": 222.463,
+      "global_data_mb": 4229.16,
+      "party0_data_mb": 1660.42,
+      "party0_reported_rounds": 7678180,
+      "compiler_integer_triples": 888408,
+      "compiler_bit_triples": 41033526,
+      "compiler_vm_rounds": 1954858
+    },
+    "chi32_change_percent": {
+      "mpc_time": -10.32,
+      "global_communication": -23.14,
+      "party0_communication": -29.16,
+      "owner_values_and_input_bytes": -3.46,
+      "epoch_preparation_time": 37.69,
+      "reported_rounds": 35.25,
+      "compiler_integer_triples": -62.74,
+      "compiler_bit_triples": 11.98,
+      "compiler_vm_rounds": 35.57
+    },
+    "selection": "chi=32 is the measured localhost/communication profile. chi=256 remains preferable when minimizing rounds and likely WAN latency. Neither should be made universal without LAN/WAN measurements."
+  },
+  "conclusion": "On the ten-query fixture, linear relation paging is the practical winner and wide-record ORAM is the faster of the two ORAM variants. The dual relation-paged ORAM now executes exactly at MetaQA storage scale; chi=32 improves its one-query localhost result to 222.463 seconds and 4.229 GB, but this is still not practical and its 35% round increase is likely harmful on WAN. It must be presented as a feasibility backend, not the selected scalable backend."
+}

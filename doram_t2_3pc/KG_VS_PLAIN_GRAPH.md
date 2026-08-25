@@ -1,5 +1,42 @@
 # What makes this a knowledge-graph design, and not a graph design
 
+## 0. Asymptotics, before anything else
+
+Every layout in this document — dense, type-blocked, hashed compact, hybrid — is a
+**full linear scan**. Each dependent read touches every row of its table, so all of
+them are `Theta(table)` per access. What the layouts change is the *size of the
+table*:
+
+| Layout | Table size | Cost per read |
+| --- | --- | --- |
+| Dense | `E * R` | `Theta(E * R)` |
+| Type-blocked / hashed / hybrid | roughly `O(keys)` | `Theta(keys)` |
+
+Going from linear-in-keyspace to linear-in-data is worth 92x here and is **not**
+sublinearity. No layout here has sublinear access, and the 92x must never be
+described as an asymptotic improvement.
+
+**The direction of the GORAM comparison follows from that, and it is the opposite
+of what one might assume.** GORAM is an ORAM, so sublinear access is the point of
+the construction, and ABY3's **honest majority** is what lets it have one. This
+design tolerates two corrupted servers, which closes ORAM off:
+`benchmarks/doram_viability_under_dishonest_majority.json` measures `batch_init`
+at **56 billion triples** at MetaQA scale. That same benchmark found DORAM
+*access* is 2.65x **cheaper** than scanning — access was never the obstacle,
+initialisation was.
+
+So:
+
+* **GORAM** — sublinear access, tolerates **one** corrupted server.
+* **This design** — linear access, tolerates **two**.
+
+The advantage here is the corruption threshold, and losing sublinearity is what it
+costs. That cost is the **261x** premium in
+`benchmarks/threat_model_cost_fork.json`. Claiming sublinearity would be false and
+would also discard the one differentiator that is actually established.
+
+---
+
 GORAM (PVLDB'25, [GORAM-ABY3](https://github.com/Fannxy/GORAM-ABY3)) is the
 closest prior art, so "how is this different" has to be answered concretely
 rather than by adjective. There are two independent answers. The first is the
@@ -181,12 +218,28 @@ against the current `E*R + E*R + frontier * E`. Both terms shrink: the table by
 single extra comparison. Under the dense layout that entity still consumed a
 full row.
 
+### Executable lossless hybrid
+
+The strict partition above cannot cover multi-domain entities by itself. The
+executable opt-in path therefore reads two tables on every access: the affine
+primary-type block and a hashed residual containing every key outside that
+primary type. At most one descriptor is non-zero, so their sum is the desired
+descriptor and the trace does not reveal which half supplied it. Owner
+preparation fails closed on either table's capacity.
+
+`benchmarks/hybrid_directory_execution.json` records a one-query MP-SPDZ Semi
+run with exact agreement on all 16 output fields. This closes the earlier
+"model-only" implementation gap on a small fixture. Batched residual-tag
+decomposition now lets all ten distinct fixture queries compile and match all
+160 oracle fields. It does not validate the modelled WebQSP ratio: compilation
+still processes roughly 4.2 million lines, so compiler expansion remains a
+scaling concern.
+
 ## 4. What is NOT established
 
-- **Not implemented.** v2 is a design and a measurement of its *layout*; no
-  circuit exists and nothing has been run in MPC. The 124x is a modelled product
-  count on the same model used for the dense side, so the ratio is internally
-  consistent, but it is not bytes.
+- **The large-scale v2 projection is not executed.** Only the small lossless
+  hybrid above has run in MPC. The full-WebQSP ratio remains a modelled product
+  count, not measured bytes or latency.
 - **The 133x is an upper bound.** The measurement derives entity types from the
   relations each entity is *observed* to carry, which is owner data. A genuinely
   public type map also contains entities with no observed edges of that type,

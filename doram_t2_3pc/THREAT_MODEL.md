@@ -21,7 +21,11 @@ same well-formed record or query. Malicious external inputs are addressed under
 
 External values are additively shared over the exact prime selected by the
 public configuration. The legacy fixture uses `p = 2^61 - 1`; packed scalable
-fixtures use `p = 2^127 - 1`. Two shares are independently uniform field elements and the
+Semi fixtures use `p = 2^127 - 1`. Hemi/Temi fixtures use the audited
+NTT-compatible 128-bit prime
+`170141183460469231731687303715885907969` and must be freshly shared under
+that field. Both scalable fields keep the same 124-bit packing envelope. Two
+shares are independently uniform field elements and the
 third is their modular correction. For any fixed view of any two servers and
 any possible secret, exactly one missing share is consistent with that secret.
 Consequently, a view containing at most two input shares is independent of the
@@ -55,6 +59,18 @@ This is an implementation-level argument, not a new cryptographic proof or a
 security audit. A paper should state the ideal functionality and simulator
 formally, cite the selected MPC and ORAM results, and have the final system
 reviewed independently.
+
+The experimental KG read-only-ORAM backend has an additional trace argument.
+Each owner independently assigns uniform leaf labels and shares the complete
+tree. A first access opens only that uniform label; a repeated per-level index
+is served from a secret stash while a fresh uniform dummy label is opened. The
+number and shape of accesses are public and fixed. `secure_tree_shape` bounds
+the effect of conditioning on successful placement by `2^-80` per owner stack,
+so the federation-wide trace is statistically within at most
+`owner_count * 2^-80` of the ideal uniform-label trace. This relies on one-time
+epoch consumption and fresh resharing: reusing a tree after resetting its stash
+can link repeated logical addresses. Operational marker files are not a
+maliciously robust distributed state machine.
 
 ## Explicit leakage
 

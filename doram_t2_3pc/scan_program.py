@@ -3,16 +3,16 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from .config import PublicConfig, SCALABLE_FIELD_PRIME
+from .config import PublicConfig, SCALABLE_FIELD_PRIMES
 from .packed import packed_edge_bits, packing_widths
 
 
-SCAN_PROGRAM_VERSION = 2
+SCAN_PROGRAM_VERSION = 3
 MAX_BATCH_QUERIES = 10
 
 
 def _validate(config: PublicConfig, query_count: int) -> None:
-    if config.field_prime != SCALABLE_FIELD_PRIME:
+    if config.field_prime not in SCALABLE_FIELD_PRIMES:
         raise ValueError("packed oblivious scan requires the scalable field prime")
     if not 1 <= query_count <= MAX_BATCH_QUERIES:
         raise ValueError(
@@ -37,8 +37,10 @@ def program_name(config: PublicConfig, query_count: int) -> str:
     return f"doram_scan_3pc_{suffix}"
 
 
-def _dedup_source_fragments(enabled: bool) -> tuple[str, str, str, str, str]:
-    """Return generated-source fragments with zero default-path overhead."""
+def _dedup_source_fragments(
+    enabled: bool,
+) -> tuple[str, str, str, str, str, str, str]:
+    """Return generated-source fragments with optimized winner suppression."""
 
     if not enabled:
         return (
@@ -46,7 +48,14 @@ def _dedup_source_fragments(enabled: bool) -> tuple[str, str, str, str, str]:
             "",
             "",
             "",
-            "            suppress = best_index == candidate",
+            "    became_best = Array(CANDIDATE_COUNT, sint)",
+            "            became_best[candidate] = better",
+            """        later_winner = sint(0)
+        for reverse_offset in range(CANDIDATE_COUNT):
+            candidate = CANDIDATE_COUNT - 1 - reverse_offset
+            winner = became_best[candidate] * (sint(1) - later_winner)
+            selected[candidate] = selected[candidate] + winner
+            later_winner = later_winner + winner""",
         )
     return (
         "    candidate_terminal = Array(CANDIDATE_COUNT, sint)",
@@ -55,8 +64,13 @@ def _dedup_source_fragments(enabled: bool) -> tuple[str, str, str, str, str]:
         """            best_terminal = better.if_else(
                 candidate_terminal[candidate], best_terminal
             )""",
-        """            same_terminal = candidate_terminal[candidate] == best_terminal
-            suppress = same_terminal""",
+        "",
+        "",
+        """        for candidate in range(CANDIDATE_COUNT):
+            same_terminal = candidate_terminal[candidate] == best_terminal
+            selected[candidate] = selected[candidate] + best_valid * (
+                same_terminal
+            )""",
     )
 
 
@@ -77,7 +91,9 @@ def _render_full_frontier_program(config: PublicConfig, query_count: int) -> str
         terminal_store,
         best_terminal_init,
         best_terminal_update,
-        suppress_update,
+        winner_array,
+        winner_record,
+        suppression_block,
     ) = _dedup_source_fragments(config.deduplicate_terminal_answers)
     return f'''# Generated fixed-batch packed MPC-oblivious linear scan.
 from Compiler.library import map_sum, print_ln_to, start_timer, stop_timer
@@ -263,11 +279,11 @@ for query_index in range(QUERY_COUNT):
     result_left = Array(TOP_K, sint)
     result_right = Array(TOP_K, sint)
     result_score = Array(TOP_K, sint)
+{winner_array}
 
     for rank in range(TOP_K):
         best_valid = sint(0)
         best_score = sint(0)
-        best_index = sint(0)
         best_left = sint(0)
         best_right = sint(0)
 {best_terminal_init}
@@ -281,19 +297,15 @@ for query_index in range(QUERY_COUNT):
             )
             best_valid = better.if_else(available, best_valid)
             best_score = better.if_else(candidate_score[candidate], best_score)
-            best_index = better.if_else(sint(candidate), best_index)
             best_left = better.if_else(left_evidence[candidate], best_left)
             best_right = better.if_else(right_evidence[candidate], best_right)
+{winner_record}
 {best_terminal_update}
         result_valid[rank] = best_valid
         result_score[rank] = best_valid * best_score
         result_left[rank] = best_valid * best_left
         result_right[rank] = best_valid * best_right
-        for candidate in range(CANDIDATE_COUNT):
-{suppress_update}
-            selected[candidate] = selected[candidate] + best_valid * (
-                suppress
-            )
+{suppression_block}
     stop_timer(20 + query_index * 2)
 
     start_timer(21 + query_index * 2)
@@ -328,7 +340,9 @@ def _render_compacted_frontier_program(
         terminal_store,
         best_terminal_init,
         best_terminal_update,
-        suppress_update,
+        winner_array,
+        winner_record,
+        suppression_block,
     ) = _dedup_source_fragments(config.deduplicate_terminal_answers)
     return f'''# Generated packed oblivious scan with private frontier compaction.
 from Compiler.library import map_sum, print_ln_to, start_timer, stop_timer
@@ -567,11 +581,11 @@ for query_index in range(QUERY_COUNT):
     result_left = Array(TOP_K, sint)
     result_right = Array(TOP_K, sint)
     result_score = Array(TOP_K, sint)
+{winner_array}
 
     for rank in range(TOP_K):
         best_valid = sint(0)
         best_score = sint(0)
-        best_index = sint(0)
         best_left = sint(0)
         best_right = sint(0)
 {best_terminal_init}
@@ -585,19 +599,15 @@ for query_index in range(QUERY_COUNT):
             )
             best_valid = better.if_else(available, best_valid)
             best_score = better.if_else(candidate_score[candidate], best_score)
-            best_index = better.if_else(sint(candidate), best_index)
             best_left = better.if_else(left_evidence[candidate], best_left)
             best_right = better.if_else(right_evidence[candidate], best_right)
+{winner_record}
 {best_terminal_update}
         result_valid[rank] = best_valid
         result_score[rank] = best_valid * best_score
         result_left[rank] = best_valid * best_left
         result_right[rank] = best_valid * best_right
-        for candidate in range(CANDIDATE_COUNT):
-{suppress_update}
-            selected[candidate] = selected[candidate] + best_valid * (
-                suppress
-            )
+{suppression_block}
     stop_timer(20 + query_index * 2)
 
     start_timer(21 + query_index * 2)

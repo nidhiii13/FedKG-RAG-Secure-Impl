@@ -8,8 +8,10 @@ every address is range-checked before it indexes a table.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -232,6 +234,195 @@ def test_program_name_is_bound_to_the_layout_digest(config: RelationPageConfig):
     assert program_name(config, 3) != name
 
 
+def test_hybrid_circuit_reads_both_type_block_and_hashed_residual():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid.json"
+    )
+    source = render_program(hybrid, 1)
+    assert "TYPE_COEFFICIENTS" in source
+    assert "blocked_ok.if_else(address, sint(0))" in source
+    assert "first_blocked = read_directory" in source
+    assert "first_residual = read_compact_directory" in source
+    assert "first_blocked[:] + first_residual[:]" in source
+    assert "second_blocked[:] + second_residual[:]" in source
+    assert source.count("reveal_to(") == 3
+
+
+def test_relation_partitioned_residual_is_smaller_and_losslessly_tagged():
+    from doram_t2_3pc.compact_directory import bucket_of
+    from doram_t2_3pc.relation_pages import build_owner_page_layout
+
+    old = RelationPageConfig.load(FIXTURE / "config_relation_pages_hybrid.json")
+    config = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid_partitioned.json"
+    )
+    owner_count = len(config.base.owners)
+    width = owner_count * config.pages.bucket_slots
+    assert config.residual_directory_rows * width == 12
+    assert (
+        old.residual_directory_rows * owner_count * old.pages.bucket_slots == 48
+    )
+
+    for owner_index, owner in enumerate(config.base.owners):
+        edges = _owner_edges()[owner]
+        layout = build_owner_page_layout(config, owner, edges)
+        directory, _ = owner_flat_vector(config, owner, edges)
+        residual = directory[config.directory_rows:]
+        for combined_tag, descriptor in (layout.residual_descriptors or {}).items():
+            dense = combined_tag - 1
+            source = dense // config.relation_count
+            relation = dense % config.relation_count + 1
+            tag = source + 1
+            row = (
+                (relation - 1) * config.pages.directory_buckets
+                + bucket_of(tag, config.pages.directory_buckets)
+            )
+            packed = residual[row * width + owner_index]
+            assert packed >> config.pages.descriptor_bits == tag
+            assert packed & ((1 << config.pages.descriptor_bits) - 1) == descriptor
+
+
+def test_partitioned_residual_relation_is_part_of_secret_row_address():
+    config = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid_partitioned.json"
+    )
+    source = render_program(config, 10)
+    assert "RESIDUAL_ROWS = 4" in source
+    assert "tag = valids[address].if_else(entities[address] + 1" in source
+    assert "(relations[address] - 1) * DIRECTORY_BUCKETS" in source
+    assert "selectors = demux_matrix(row_bits" in source
+    assert "if DIRECTORY_BUCKETS == 1:" in source
+    assert "return sint(0, size=address_count)" in source
+    assert source.count("reveal_to(") == 3
+
+
+def test_partitioned_residual_fails_closed_on_relation_bucket_overflow():
+    config = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid_partitioned.json"
+    )
+    edges = list(_owner_edges()["owner_a"])
+    edges.append(
+        {
+            "source": "carol",
+            "relation": "treated_with",
+            "target": "drug_y",
+            "evidence": 123456,
+            "score": 1,
+        }
+    )
+    with pytest.raises(ValueError, match="bucket 0 overflows"):
+        owner_flat_vector(config, "owner_a", edges)
+
+
+def test_hybrid_hop_two_folds_primary_block_once_and_keeps_residual_lookup():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid.json"
+    )
+    source = render_program(hybrid, 2)
+    assert "TYPE_BLOCK_STARTS" in source
+    assert "TYPE_MAX_BLOCK" in source
+    assert "def fold_type_block_directory(" in source
+    assert "def read_folded_type_block(" in source
+    assert "fold_type_block_directory(\n        relation_2, relation_ok" in source
+    assert "read_folded_type_block(" in source
+    assert "second_residual.assign_vector(read_compact_directory(" in source
+    # The optimized path validates relation_2 once per query and does not invoke
+    # directory_address's relation demux independently for every frontier slot.
+    assert "ok, address = directory_address(frontier_targets[flat]" not in source
+    assert "second_blocked = read_directory(" not in source
+
+    ablated = render_program(hybrid, 2, ablate_folded_directory=True)
+    assert "second_blocked = read_directory(" in ablated
+    assert "ok, address = directory_address(frontier_targets[flat]" in ablated
+    assert "second_residual = read_compact_directory(" in ablated
+    assert program_name(hybrid, 2) != program_name(
+        hybrid, 2, ablate_folded_directory=True
+    )
+
+
+def test_partitioned_residual_is_folded_once_per_query_with_exact_ablation():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid_partitioned.json"
+    )
+    source = render_program(hybrid, 2)
+    assert "def fold_partitioned_residuals(" in source
+    assert "def read_folded_residuals(" in source
+    assert "folded_residuals = fold_partitioned_residuals(" in source
+    assert "second_residual.assign_vector(read_folded_residuals(" in source
+    assert "second_residual.assign_vector(read_compact_directory(" not in source
+    assert source.count("reveal_to(") == 3
+
+    ablated = render_program(hybrid, 2, ablate_folded_residual=True)
+    assert "second_residual.assign_vector(read_compact_directory(" in ablated
+    assert "folded_residuals = fold_partitioned_residuals(" not in ablated
+    assert program_name(hybrid, 2) != program_name(
+        hybrid, 2, ablate_folded_residual=True
+    )
+
+
+def test_hybrid_fold_uses_public_fixed_width_and_secret_range_gate():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid.json"
+    )
+    source = render_program(hybrid, 2)
+    assert "folded = sint(0, size=TYPE_MAX_BLOCK * DIRECTORY_COLUMNS)" in source
+    assert "padding = (TYPE_MAX_BLOCK - width) * DIRECTORY_COLUMNS" in source
+    assert "in_block = (entity >= type_start) * (entity < type_start + type_width)" in source
+    assert "offsets[address] = use.if_else(entity - type_start, sint(0))" in source
+    # No relation, type block, entity offset, or selected descriptor is opened.
+    assert source.count("reveal_to(") == 3
+
+
+def test_residual_hash_and_wanted_tag_decompositions_are_batched():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid.json"
+    )
+    source = render_program(hybrid, 2)
+    # One vector decomposition hashes all requested tags. The old renderer
+    # called compact_bucket(tag) inside the address loop.
+    assert "def compact_buckets(tags, address_count):" in source
+    assert "products.assign_vector(tags[:] * HASH_MULTIPLIER)" in source
+    assert "buckets.assign_vector(compact_buckets(tags, address_count))" in source
+    assert "compact_bucket(tag)" not in source
+    # Wanted tags are decomposed at address_count width once, then their secret
+    # bits are broadcast over public bucket columns. They are not materialised
+    # BUCKET_WIDTH times and decomposed again.
+    assert "tag_bits = tags[:].bit_decompose(TAG_BITS)" in source
+    assert "broadcast[address * BUCKET_WIDTH + column] = lanes[address]" in source
+    assert "wanted.get_vector(0, total_slots).bit_decompose(TAG_BITS)" not in source
+    assert source.count("reveal_to(") == 3
+
+
+def test_descriptor_and_page_unpacking_are_batched_across_owners():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid.json"
+    )
+    source = render_program(hybrid, 10)
+    assert "packed_bits = descriptors[:].bit_decompose(" in source
+    assert "window = read_page_windows(bases, address_count)" in source
+    assert "window[:].bit_decompose(PACKED_EDGE_BITS)" in source
+    assert "page_bases = sint.bit_compose(" in source
+    assert "edge_targets = sint.bit_compose(" in source
+    assert "valid_values = Array.create_from(ok)" in source
+    # The scalar helpers remain for the explicit relation-check ablation, but
+    # the default read_keys body must not invoke either one per element.
+    read_keys = source.split("def read_keys(descriptors, valids, address_count):", 1)[1]
+    read_keys = read_keys.split("def emit_output_shares", 1)[0]
+    assert "unpack_descriptor(" not in read_keys
+    assert "unpack_edge(" not in read_keys
+
+    owner_ablated = render_program(hybrid, 10, ablate_owner_batching=True)
+    ast.parse(owner_ablated)
+    assert "packed_descriptors[:].bit_decompose(" in owner_ablated
+    assert "window = read_page_window(owner, bases, address_count)" in owner_ablated
+    assert "read_page_windows(" not in owner_ablated
+
+    ablated = render_program(hybrid, 1, ablate_relation_check=True)
+    assert "unpack_descriptor(" in ablated
+    assert "unpack_edge(" in ablated
+    assert "ablation_relation == wanted[address]" in ablated
+
+
 def test_circuit_never_opens_a_value_except_output_shares(
     config: RelationPageConfig,
 ):
@@ -258,7 +449,8 @@ def test_circuit_range_checks_every_secret_address(config: RelationPageConfig):
     assert "usable = (page_base < PAGE_BUDGET) * (page_count <= PAGES_PER_KEY)" in source
     assert "usable.if_else(page_base, sint(0))" in source
     # Second-hop targets checked before becoming addresses.
-    assert "(target != 0)" in source and "(target < ENTITY_COUNT)" in source
+    assert "(edge_targets != 0)" in source
+    assert "(edge_targets < ENTITY_COUNT)" in source
 
 
 def test_circuit_uses_one_demux_per_page_window(config: RelationPageConfig):
@@ -273,9 +465,9 @@ def test_circuit_uses_one_demux_per_page_window(config: RelationPageConfig):
     assert "selectors = demux_matrix(address_bits" in source      # hop-one read
     assert "selector = demux_matrix(relation_bits" in source      # relation fold
     assert "selectors = demux_matrix(entity_bits" in source       # folded read
-    assert "selectors = demux_matrix(bucket_bits" in source       # compact read
+    assert "selectors = demux_matrix(row_bits" in source          # compact read
     # The shifted access is what lets one selector serve every offset.
-    assert "pages[row_offset + page + offset][slot]" in source
+    assert "(batch_start + local_owner) * POOL_ROWS + page + offset" in source
     assert "POOL_ROWS = " in source
 
 
@@ -329,6 +521,47 @@ def test_circuit_has_no_first_hop_relation_equality_test(
     assert "relation_1" not in source
 
 
+def test_default_topk_suppresses_winner_without_secret_index_equality(
+    config: RelationPageConfig,
+):
+    source = render_program(config, 2)
+    assert "became_best[candidate].assign_vector(better)" in source
+    assert "candidate = CANDIDATE_COUNT - 1 - reverse_offset" in source
+    assert "winner = became_best[candidate][:] * (one - later_winner)" in source
+    assert "best_index" not in source
+
+
+def test_terminal_dedup_keeps_terminal_suppression(config: RelationPageConfig):
+    dedup = RelationPageConfig(
+        base=replace(config.base, deduplicate_terminal_answers=True),
+        pages=config.pages,
+    )
+    source = render_program(dedup, 2)
+    assert "same_terminal = candidate_terminal[candidate][:] == best_terminal" in source
+    assert "became_best" not in source
+    assert "best_index" not in source
+
+
+def test_batch_candidate_and_topk_are_simd_vectorized(config: RelationPageConfig):
+    source = render_program(config, 10)
+    assert "Matrix(CANDIDATE_COUNT, QUERY_COUNT, sint)" in source
+    assert "one = sint(1, size=QUERY_COUNT)" in source
+    assert "best_valid = sint(0, size=QUERY_COUNT)" in source
+    assert "candidate_valid[candidate].assign_vector(valid)" in source
+    assert "result_valid[rank].assign_vector(best_valid)" in source
+    # Candidate/ranking has one timer pair for the whole SIMD batch rather than
+    # ten independently emitted scalar blocks.
+    assert "start_timer(20)" in source
+    assert "start_timer(20 + query_index * 2)" not in source
+
+
+def test_one_query_keeps_scalar_candidate_topk_reference(config: RelationPageConfig):
+    source = render_program(config, 1)
+    assert "left_evidence = Array(CANDIDATE_COUNT, sint)" in source
+    assert "became_best[candidate] = better" in source
+    assert "sint(0, size=QUERY_COUNT)" not in source
+
+
 def test_circuit_compaction_is_present_and_bounded(config: RelationPageConfig):
     source = render_program(config, 2)
     assert "FRONTIER_PER_OWNER = " in source
@@ -374,6 +607,17 @@ def test_cost_estimate_agrees_with_the_assembled_input_size(
         expected_private_input_values(config, 4)
     )
     assert estimate["second_hop_products"] > estimate["first_hop_products"]
+
+
+def test_hybrid_cost_estimate_reports_folded_primary_separately():
+    hybrid = RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid.json"
+    )
+    estimate = page_cost_estimate(hybrid, 10)
+    assert estimate["hybrid_primary_second_hop_folded_products"] < estimate[
+        "hybrid_primary_second_hop_unfolded_products"
+    ]
+    assert estimate["hybrid_primary_folded_product_ratio"] > 1
 
 
 def test_distributed_runner_validates_its_own_shard_before_contacting_peers(
@@ -543,6 +787,7 @@ def test_compaction_bound_is_enforced_at_preparation_not_in_the_circuit(
 ABLATIONS = (
     {"ablate_relation_check": True},
     {"ablate_window_demux": True},
+    {"ablate_owner_batching": True},
 )
 
 
@@ -598,10 +843,11 @@ def test_window_demux_ablation_builds_one_selector_per_offset(
 ):
     base = render_program(config, 1)
     ablated = render_program(config, 1, ablate_window_demux=True)
-    # The textual demux_matrix count is equal in both because the ablated call
-    # sits inside a loop, so compare the structure that actually differs.
-    assert "parts.append(Array.create_from(scan_page()))" not in base
-    assert "parts.append(Array.create_from(scan_page()))" in ablated
+    # Both variants retain owner batching. The ablation moves selector creation
+    # inside the public page-offset loop and therefore rebuilds it per offset.
+    assert "for offset in range(PAGES_PER_KEY):\n        base_bits" not in base
+    assert "for offset in range(PAGES_PER_KEY):\n        base_bits" in ablated
+    assert "def scan_owner_pages(" in ablated
     assert "for offset in range(PAGES_PER_KEY):" in ablated
 
 
@@ -702,3 +948,63 @@ def test_packing_cuts_the_directory_scan_by_the_owner_count(
     assert estimate["first_hop_products"] < unpacked + owners * (
         config.pages.pages_per_key * config.pages.page_budget * config.pages.page_size
     )
+
+
+def test_compile_shape_report_flags_the_stage_that_actually_failed():
+    """Program size tracks map_sum OUTPUT WIDTH, not iteration count.
+
+    Three circuits failed to compile before this was understood. The dense
+    directory read iterates 200,000 times at width ~1 and compiles in seconds;
+    the compact bucket fetch iterated 16 times at width 1,425 and never finished.
+    This pins the predictor so the wall is visible from a configuration instead
+    of after a 30-minute timeout.
+    """
+
+    from doram_t2_3pc.page_program import (
+        MAP_SUM_WIDTH_WARNING,
+        compile_shape_report,
+    )
+
+    config = RelationPageConfig.load(FIXTURE / "config_relation_pages.json")
+    report = compile_shape_report(config, 1)
+    stages = report["stages"]
+
+    # The dense read is narrow no matter how tall the directory is -- that is
+    # exactly why it compiles where the bucket fetch did not.
+    assert stages["dense_directory_read"] <= 8
+    # The relation fold emits one entry per entity, so it is the stage whose
+    # width grows with the graph. Naming it here keeps that visible.
+    assert stages["relation_fold"] == (
+        config.base.entity_count * config.directory_columns
+    )
+    assert report["widest_stage"] in stages
+    assert report["threshold"] == MAP_SUM_WIDTH_WARNING
+
+
+def test_relation_fold_width_predicts_the_evaluation_fixtures_will_not_compile():
+    """A measured speedup does not imply the projection can be run.
+
+    relation_folded_directory.json projects per-query cost for the MetaQA and
+    WebQSP evaluation fixtures by extrapolating a fitted line. Those fixtures
+    have entity counts of 6,573 and 1,529, so the relation fold's map_sum would
+    be that wide -- comparable to or larger than the 1,425 that repeatedly failed
+    to compile. The projections are therefore not merely unrun, they are probably
+    unrunnable in the current emission, and that belongs beside them.
+    """
+
+    from doram_t2_3pc.page_program import (
+        MAP_SUM_WIDTH_WARNING,
+        compile_shape_report,
+    )
+
+    class _Fixture:
+        def __init__(self, entities):
+            self.entities = entities
+
+    # Every fixture that compiled had a fold width at or below ~216.
+    assert MAP_SUM_WIDTH_WARNING > 216, (
+        "the threshold must not flag fixtures that are known to compile"
+    )
+    # And both evaluation fixtures are far above it.
+    for entity_count in (1529, 6573):
+        assert entity_count > MAP_SUM_WIDTH_WARNING

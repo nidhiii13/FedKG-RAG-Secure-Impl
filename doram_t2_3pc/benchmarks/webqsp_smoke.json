@@ -80,7 +80,8 @@
      "fanout_bound_points": 0.5,
      "top_k_budget_points": 1.5
     },
-    "reading": "On both datasets the top-k budget dominates the fanout bound, and on WebQSP it dominates overwhelmingly."
+    "reading": "On both datasets the top-k budget dominates the fanout bound, and on WebQSP it dominates overwhelmingly.",
+    "CORRECTED_2026_08_17": "topk_budget_sweep.json sweeps the parameter directly. WebQSP: 7.58 of the 9.09 points are recoverable by raising top_k to 32, leaving 1.51 from the fanout bound. MetaQA: the curve is FLAT from k=4 to k=27, so none of its 2.0 points is top_k -- the 1.5 attributed here was inferred from a baseline without the fanout bound and conflated the two limits. The reading below ('top-k dominates on both datasets') is correct for WebQSP and wrong for MetaQA."
    }
   },
   {

@@ -1,0 +1,98 @@
+{
+  "name": "relation_paged_160k_temi_v13",
+  "date": "2026-08-21",
+  "status": "completed native MP-SPDZ Temi execution with exact reconstruction",
+  "scope_warning": "One favorable degree-one synthetic query, three parties on one localhost, preprocessing included. This does not instantiate physical server separation, measure WAN latency, establish general MetaQA/WebQSP scalability, make the linear lookup sublinear, or provide malicious security.",
+  "protocol": {
+    "name": "MP-SPDZ Temi",
+    "security": "semi-honest dishonest majority, exactly three parties, up to two passive corruptions",
+    "preprocessing": "LWE-based semi-homomorphic encryption adaptation of CDN01 with diagonal packing",
+    "field_prime": "170141183460469231731687303715885907969",
+    "field_requirement": "prime is 1 modulo 32768; all graph and query shares were regenerated under this field",
+    "default_unchanged": "Semi remains the repository default; Temi is an explicitly selected execution backend"
+  },
+  "dataset": {
+    "real_entities": 100000,
+    "entity_slots_including_dummy": 100001,
+    "real_edges": 160000,
+    "relations": 3,
+    "owners": 3,
+    "owner_edge_counts": [53334, 53333, 53333],
+    "maximum_owner_key_degree": 1,
+    "maximum_federation_wide_key_degree": 1
+  },
+  "layout": {
+    "program_version": 12,
+    "program": "paged_kg_3pc_8235243ac6c25191",
+    "kind": "dense relation-paged with folded hop-two relation",
+    "directory_rows": 300003,
+    "directory_columns": 1,
+    "page_size": 2,
+    "pages_per_key": 1,
+    "page_budget_per_owner": 53335,
+    "global_frontier": 1,
+    "candidate_count": 6,
+    "top_k": 4,
+    "private_input_values_per_server": 620016
+  },
+  "one_time_global_frontier_gate": {
+    "program_version": 3,
+    "program": "paged_bound_check_8a3c7d14c99bf815",
+    "result": "ACCEPT",
+    "violations": 0,
+    "wall_seconds_including_preprocessing": 32.1667,
+    "global_data_mb": 1931.96,
+    "party_0_data_mb": 965.978,
+    "party_0_rounds": 2671,
+    "integer_triples": 1800018,
+    "opened_values": 1,
+    "opened_semantics": "number of keys exceeding global_frontier; no key identity or per-key count",
+    "optimization": "SIMD Horner evaluation of the exact bounded-domain overflow polynomial; no bit decomposition",
+    "assumption": "owner inputs obey their preparation-enforced occupancy range, as required by the passive external-input model"
+  },
+  "execution": {
+    "wall_seconds_including_preprocessing": 8.76819,
+    "input_seconds": 0.559183,
+    "first_hop_seconds": 3.25452,
+    "frontier_compaction_seconds": 0.00987917,
+    "dependent_second_hop_seconds": 4.54517,
+    "candidate_and_topk_seconds": 0.0364434,
+    "output_reshare_seconds": 0.00191986,
+    "party_0_data_mb": 1303.47,
+    "global_data_mb": 2608.22,
+    "party_0_reported_rounds": 16686,
+    "integer_triples": 2395220,
+    "bytecode_files": 413,
+    "aggregate_bytecode_bytes": 158378120,
+    "compile_started_local": "2026-08-21T18:46:14+01:00",
+    "schedule_written_local": "2026-08-21T18:58:11+01:00",
+    "compiler_scale_note": "More than 9.8 million reported lines; roughly twelve minutes. Temi changes preprocessing/execution, not circuit-generation scale."
+  },
+  "correctness": {
+    "independent_paged_oracle_match": true,
+    "fields_compared": 16,
+    "mismatches": 0,
+    "decoded_result": [
+      {"valid": 1, "left_evidence": 1, "right_evidence": 100002, "score": 4},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0}
+    ]
+  },
+  "controlled_small_fixture": {
+    "queries": 10,
+    "oracle_fields": 160,
+    "semi_v12": {"seconds": 10.603, "global_data_mb": 3462.83},
+    "hemi_v12": {"seconds": 7.53693, "global_data_mb": 529.869, "exact": true},
+    "temi_v12": {"seconds": 6.11794, "global_data_mb": 466.802, "exact": true},
+    "temi_reduction_vs_semi_percent": {"seconds": 42.2999, "global_data_mb": 86.5196}
+  },
+  "comparison_same_160k_fixture": {
+    "v12_semi": {"seconds": 26.7591, "global_data_mb": 44693.1},
+    "packed_scan_semi": {"seconds": 43.0716, "global_data_mb": 95185.5},
+    "temi_reduction_vs_v12_semi_percent": {"seconds": 67.2329, "global_data_mb": 94.1642},
+    "temi_reduction_vs_packed_semi_percent": {"seconds": 79.6428, "global_data_mb": 97.2599},
+    "comparability_caveat": "All retrieval arms use the same graph/query semantics and favorable verified global frontier where applicable, but Temi uses a different compatible field and preprocessing protocol. All shares were freshly generated and outputs independently checked."
+  },
+  "claim_boundary": "This is a protocol-backend and systems integration result, not a new cryptographic primitive. The strongest claim is exact dependent two-hop federated KG retrieval under a passive two-of-three corruption threshold with a KG-aware linear oblivious layout and HE-backed preprocessing."
+}

@@ -1,7 +1,7 @@
 # What an adversary can do with the public parameters
 
 `IDEAL_FUNCTIONALITY.md` claims the servers' view is simulatable from the public
-parameters `L = (n, E, R, k, p, m, B_1..B_n, f, g, Q)`. That claim is only reassuring
+parameters `L = (n, E, R, k, p, m, B_1..B_n, f, g, b, s, rho, Q)`. That claim is only reassuring
 if `L` itself is harmless. This document argues it is **not** harmless, states
 what it gives away, and separates the parameters that are genuinely free from the
 ones that are a real disclosure.
@@ -21,7 +21,15 @@ the stated claim — every item is *inside* `L` by construction. The point is th
 | `n`, `k`, `Q` | committee size, result width, batch size | low |
 | `b` (directory buckets) | a public choice, independent of the data | none |
 | `s` (bucket slots) | **depends on how the keys cluster** unless set from the public bound — see §8 | low, but NOT zero |
+| `rho` (`partition_residual_by_relation`) | which public residual representation is deployed; with `b`, `s`, and `R`, fixes the padded residual height | low |
 | `g` (global frontier) | a JOINT property: federation-wide max per-key degree, hence how much participants' key sets overlap | medium, and structurally different — see §7 |
+
+`rho` does not disclose the relation used by any query: the circuit scans the
+uniform relation-major residual under a secret selector. It does disclose that
+the deployment chose this representation. More importantly, an operator that
+chooses the accompanying `b` and `s` from measured per-relation loads can leak
+that the relation split admits a narrower table. Treat `rho` as a free public
+design bit only when `b` and `s` are set from public capacity declarations.
 
 ### `B_i` is the one to worry about
 

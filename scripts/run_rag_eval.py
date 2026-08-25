@@ -42,7 +42,7 @@ import random
 import re
 import sys
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -365,6 +365,9 @@ def main() -> int:
     parser.add_argument("--qa", type=Path, default=DEFAULT_QA)
     parser.add_argument("--webqsp-root", type=Path, default=WEBQSP)
     parser.add_argument("--llm-config", type=Path, default=None)
+    parser.add_argument("--llm-timeout", type=float, default=60.0,
+                        help="per-answer LLM timeout in seconds")
+    parser.add_argument("--llm-max-tokens", type=int, default=80)
     parser.add_argument("--skip-baseline", action="store_true")
     args = parser.parse_args()
     if args.llm_config is None:
@@ -522,8 +525,11 @@ def main() -> int:
 
         conf = json.loads(args.llm_config.read_text())
         llm = conf.get("llm", conf)
-        client = OpenAI(base_url=llm["base_url"],
-                        api_key=llm.get("api_key", "ollama"))
+        client = OpenAI(
+            base_url=llm["base_url"],
+            api_key=llm.get("api_key", "ollama"),
+            max_retries=0,
+        )
         picked = random.Random(args.seed).sample(
             [json.loads(line) for line in
              (args.out / "per_question.jsonl").read_text().splitlines()
@@ -531,6 +537,7 @@ def main() -> int:
             min(args.answers, scored),
         )
         correct = answered = 0
+        errors: Counter[str] = Counter()
         answer_started = time.time()
         with (args.out / "answers.jsonl").open("w", encoding="utf-8") as log:
             for position, row in enumerate(picked, start=1):
@@ -545,11 +552,17 @@ def main() -> int:
                     out = client.chat.completions.create(
                         model=llm["model"],
                         messages=[{"role": "user", "content": prompt}],
-                        temperature=0.0, max_tokens=80, timeout=60,
+                        temperature=0.0,
+                        max_tokens=args.llm_max_tokens,
+                        timeout=args.llm_timeout,
                     ).choices[0].message.content.strip()
                 except Exception as exc:  # noqa: BLE001
+                    errors[type(exc).__name__] += 1
                     log.write(json.dumps({"query": row["query"],
                                           "error": type(exc).__name__}) + "\n")
+                    if position % 10 == 0:
+                        print(f"  answered {position}/{len(picked)}  "
+                              f"successful {answered}, errors {sum(errors.values())}")
                     continue
                 ok = any(str(g).casefold() in out.casefold()
                          for g in row["groundtruths"])
@@ -562,18 +575,28 @@ def main() -> int:
                 if position % 50 == 0:
                     print(f"  answered {position}/{len(picked)}  "
                           f"running accuracy {100*correct/answered:.1f}%")
+        summary.update({
+            "answers_attempted": len(picked),
+            "answers_scored": answered,
+            "answers_errors": sum(errors.values()),
+            "answer_error_types": dict(errors.most_common()),
+            "answer_seconds": round(time.time() - answer_started, 1),
+            "llm_model": llm["model"],
+            "llm_timeout": args.llm_timeout,
+            "llm_max_tokens": args.llm_max_tokens,
+        })
         if answered:
             alow, ahigh = wilson(correct, answered)
             summary.update({
-                "answers_attempted": len(picked), "answers_scored": answered,
                 "answers_correct": correct,
                 "answer_accuracy": round(correct / answered, 4),
                 "answer_accuracy_ci95": [round(alow, 4), round(ahigh, 4)],
-                "answer_seconds": round(time.time() - answer_started, 1),
-                "llm_model": llm["model"],
             })
             print(f"answers  : {correct}/{answered} = {100*correct/answered:.2f}%  "
                   f"95% CI [{100*alow:.2f}%, {100*ahigh:.2f}%]")
+        else:
+            print(f"answers  : 0/{len(picked)} scored; "
+                  f"errors {dict(errors.most_common())}")
 
     summary["total_seconds"] = round(time.time() - started, 1)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=1) + "\n")

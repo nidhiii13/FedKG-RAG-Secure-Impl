@@ -17,6 +17,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .compiler_options import CompilerOptions
 from .page_program import program_name, write_program
 from .paged_shares import expected_private_input_values, validate_private_input
 from .protocols import DEFAULT_PROTOCOL, PROTOCOLS, resolve
@@ -30,6 +31,7 @@ def _compile_if_needed(
     config: RelationPageConfig,
     timeout: int,
 ) -> None:
+    compiler = CompilerOptions.from_environment()
     source = home / "Programs" / "Source" / generated.name
     source.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(generated, source)
@@ -39,7 +41,7 @@ def _compile_if_needed(
         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "field_bits": config.base.field_usable_bits,
         "field_prime": config.base.field_prime,
-        "preserve_memory_order": True,
+        **compiler.stamp_fields(),
     }
     schedule = home / "Programs" / "Schedules" / f"{name}.sch"
     if stamp_path.is_file() and schedule.is_file():
@@ -49,15 +51,12 @@ def _compile_if_needed(
         except (OSError, ValueError):
             pass
     subprocess.run(
-        [
-            str(home / "compile.py"),
-            "-F",
-            str(config.base.field_usable_bits),
-            "-P",
-            str(config.base.field_prime),
-            "--preserve-mem-order",
-            name,
-        ],
+        compiler.command(
+            home,
+            field_bits=config.base.field_usable_bits,
+            field_prime=config.base.field_prime,
+            program_name=name,
+        ),
         cwd=home,
         check=True,
         timeout=timeout,
@@ -78,6 +77,8 @@ def run(
     ablate_window_demux: bool = False,
     ablate_compaction: bool = False,
     ablate_folded_directory: bool = False,
+    ablate_folded_residual: bool = False,
+    ablate_owner_batching: bool = False,
     protocol: str = DEFAULT_PROTOCOL,
     allow_weaker_threat_model: bool = False,
 ) -> list[Path]:
@@ -94,6 +95,7 @@ def run(
         )
     instance = Path(instance_dir).resolve()
     config = RelationPageConfig.load(config_path)
+    chosen.validate_field_prime(config.base.field_prime)
     home = Path(mpspdz_home).resolve()
     required = [
         home / "compile.py",
@@ -125,6 +127,8 @@ def run(
         ablate_window_demux=ablate_window_demux,
         ablate_compaction=ablate_compaction,
         ablate_folded_directory=ablate_folded_directory,
+        ablate_folded_residual=ablate_folded_residual,
+        ablate_owner_batching=ablate_owner_batching,
     )
     if not re.fullmatch(r"paged_kg_3pc_[0-9a-f]{16}", name):
         raise AssertionError("unsafe generated program name")
@@ -136,6 +140,8 @@ def run(
         ablate_window_demux=ablate_window_demux,
         ablate_compaction=ablate_compaction,
         ablate_folded_directory=ablate_folded_directory,
+        ablate_folded_residual=ablate_folded_residual,
+        ablate_owner_batching=ablate_owner_batching,
     )
 
     player_data = home / "Player-Data"
@@ -187,7 +193,7 @@ def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the relation-paged circuit on three local Semi parties"
+        description="Run the relation-paged circuit on three local MPC parties"
     )
     parser.add_argument("--config", required=True)
     parser.add_argument("--instance-dir", required=True)
@@ -213,9 +219,20 @@ def main() -> None:
              "address instead of folding the shared relation out first",
     )
     parser.add_argument(
+        "--ablate-folded-residual",
+        action="store_true",
+        help="ABLATION ONLY: repeat relation selection for every hop-two "
+             "residual lookup instead of folding it once per query",
+    )
+    parser.add_argument(
         "--ablate-compaction",
         action="store_true",
         help="ABLATION ONLY: carry every first-hop slot into hop two uncompacted",
+    )
+    parser.add_argument(
+        "--ablate-owner-batching",
+        action="store_true",
+        help="ABLATION ONLY: restore separate page resolution for each owner",
     )
     parser.add_argument(
         "--protocol",
@@ -249,6 +266,8 @@ def main() -> None:
         ablate_window_demux=args.ablate_window_demux,
         ablate_compaction=args.ablate_compaction,
         ablate_folded_directory=args.ablate_folded_directory,
+        ablate_folded_residual=args.ablate_folded_residual,
+        ablate_owner_batching=args.ablate_owner_batching,
         protocol=args.protocol,
         allow_weaker_threat_model=args.allow_weaker_threat_model,
     ):

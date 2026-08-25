@@ -1,0 +1,59 @@
+{
+ "name": "topk_budget_sweep",
+ "date": "2026-08-17",
+ "scope_warning": "Scored with the cleartext oracle on two already-built evaluation fixtures (MetaQA 400 questions, WebQSP 66). The oracle is verified equal to the MPC circuit on these layouts (rag_quality_at_scale.json), but no MPC run was made at raised top_k, so the CIRCUIT cost of k=32 is a product-count estimate, not a measured byte count. WebQSP figures describe the 32.5% of that dataset this backend can represent.",
+ "headline_finding": "On WebQSP, 7.58 of the 9.09 measured points of privacy cost are not the price of obliviousness at all -- they are the price of top_k having been set to 4. Raising it to 32 recovers them for roughly 0.005% additional product cost and changes nothing in the threat model, because top_k is a public parameter either way.",
+
+ "why_this_was_worth_testing": "The decomposition in webqsp_smoke.json attributed most of the measured privacy cost to the output budget rather than the fanout bound, and rag_quality_at_scale.json already recorded unbounded_topk20 = 0.990 against the 0.975 it was calling a ceiling. The hint was in the data and nobody followed it, including the author of both files.",
+
+ "cost_of_raising_k": {
+  "model": "top-k selection is k passes over the candidate list",
+  "metaqa_eval": {"candidates": 27, "k4": "0.002% of query", "k27": "0.016% of query"},
+  "webqsp_eval": {"candidates": 225, "k4": "0.001% of query", "k32": "~0.005% of query", "k225": "0.037% of query"},
+  "reading": "The output budget is the cheapest parameter in the system and was set to the most restrictive value."
+ },
+
+ "webqsp_eval_66_questions": {
+  "unclipped_plaintext_ceiling": 0.7727,
+  "sweep": [
+   {"top_k": 4, "hit_rate": 0.6818, "delta_points": 0.0},
+   {"top_k": 8, "hit_rate": 0.6970, "delta_points": 1.52},
+   {"top_k": 16, "hit_rate": 0.7273, "delta_points": 4.55},
+   {"top_k": 32, "hit_rate": 0.7576, "delta_points": 7.58},
+   {"top_k": 64, "hit_rate": 0.7576, "delta_points": 7.58},
+   {"top_k": 128, "hit_rate": 0.7576, "delta_points": 7.58},
+   {"top_k": 225, "hit_rate": 0.7576, "delta_points": 7.58}
+  ],
+  "saturates_at": 32,
+  "privacy_cost_at_k4": 9.09,
+  "privacy_cost_at_k32": 1.51,
+  "reading": "Quality saturates at k=32 and never reaches the 77.27% ceiling: the residual 1.51 points are the fanout bound, which is a genuine privacy cost. The other 7.58 were a tuning choice."
+ },
+
+ "metaqa_eval_400_questions": {
+  "unclipped_plaintext_ceiling": 0.9925,
+  "sweep": [
+   {"top_k": 4, "hit_rate": 0.9725, "delta_points": 0.0},
+   {"top_k": 8, "hit_rate": 0.9725, "delta_points": 0.0},
+   {"top_k": 16, "hit_rate": 0.9725, "delta_points": 0.0},
+   {"top_k": 27, "hit_rate": 0.9725, "delta_points": 0.0}
+  ],
+  "reading": "COMPLETELY FLAT. Raising top_k does nothing on MetaQA, because the binding constraint is the candidate count itself -- 27, being frontier x owners x page_size -- not the output budget. All 2.0 points of MetaQA's privacy cost are the fanout bound."
+ },
+
+ "CORRECTION_to_the_earlier_decomposition": {
+  "what_was_claimed": "webqsp_smoke.json's decomposition attributes 1.5 of MetaQA's 2.0 points and 10.6 of WebQSP's to the 'top_k budget', and its reading says 'on both datasets the top-k budget dominates the fanout bound'.",
+  "what_the_sweep_shows": "That is right for WebQSP and WRONG for MetaQA. MetaQA's curve is perfectly flat from k=4 to k=27, so none of its 2.0 points is recoverable by raising top_k. The earlier decomposition inferred the split from a plaintext baseline computed WITHOUT the fanout bound, which conflates two limits; sweeping the actual parameter separates them.",
+  "corrected_reading": "The output budget dominates on WebQSP and is irrelevant on MetaQA. The difference is candidate count: 225 versus 27. A graph with high fanout produces many candidates and then discards them at the output; a graph with low fanout never produces enough to fill even k=4."
+ },
+
+ "what_this_does_NOT_establish": [
+  "NOT an MPC measurement at raised k. The quality figures are oracle; the cost figures are modelled products.",
+  "NOT a change to the threat model. top_k is public at any value, the circuit emits exactly k rows either way, and the servers learn nothing new. Raising it is a tuning change, not a security trade.",
+  "NOT a claim that privacy is free. WebQSP still costs 1.51 points at k=32 and MetaQA still costs 2.0, both from the fanout bound, which IS a real privacy cost.",
+  "NOT transferable to a layout with a different candidate count. The whole effect is governed by frontier x owners x page_size, and both datasets' numbers move if that changes.",
+  "NOT answer accuracy. Only evidence retrieval was scored; the LLM stage was not re-run at k=32."
+ ],
+
+ "recommended_action": "Raise the deployed top_k from 4 to 32 on high-fanout graphs, or more precisely to the candidate count when that is small. It is the cheapest quality improvement available in this system by a wide margin, and it was sitting behind a default."
+}

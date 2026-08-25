@@ -51,6 +51,7 @@ def run(
             flush=True,
         )
     config = RelationPageConfig.load(config_path)
+    chosen.validate_field_prime(config.base.field_prime)
     instance = Path(instance_dir).resolve()
     home = Path(mpspdz_home).resolve()
 
@@ -59,12 +60,17 @@ def run(
         raise FileNotFoundError(
             "instance must contain Input-P0-0, Input-P1-0, and Input-P2-0"
         )
+    expected_rows = (
+        config.dense_directory_rows
+        if config.uses_hybrid_directory
+        else config.directory_rows
+    )
     for path in inputs:
         lines = path.read_text(encoding="utf-8").split()
-        if len(lines) != config.directory_rows:
+        if len(lines) != expected_rows:
             raise ValueError(
                 f"{path} has {len(lines)} values; expected "
-                f"{config.directory_rows}"
+                f"{expected_rows}"
             )
 
     name = program_name(config)

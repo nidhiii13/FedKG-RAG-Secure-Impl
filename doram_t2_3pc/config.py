@@ -9,10 +9,19 @@ from typing import Any
 
 # 2^61 - 1 remains the default for backwards-compatible small linear-ORAM
 # fixtures. Recursive MP-SPDZ ORAM needs more than 61 bits once its position
-# map grows, so scalable configurations explicitly opt in to 2^127 - 1.
+# map grows, so scalable configurations explicitly opt in to a field with a
+# 124-bit audited packing envelope.  The second prime is NTT-friendly and is
+# used only when an HE-backed MP-SPDZ protocol (Hemi/Temi) is selected.  Shares
+# are field-specific and must never be reused between the two configurations.
 FIELD_PRIME = 2_305_843_009_213_693_951
 SCALABLE_FIELD_PRIME = 170_141_183_460_469_231_731_687_303_715_884_105_727
-SUPPORTED_FIELD_PRIMES = frozenset((FIELD_PRIME, SCALABLE_FIELD_PRIME))
+HE_SCALABLE_FIELD_PRIME = (
+    170_141_183_460_469_231_731_687_303_715_885_907_969
+)
+SCALABLE_FIELD_PRIMES = frozenset(
+    (SCALABLE_FIELD_PRIME, HE_SCALABLE_FIELD_PRIME)
+)
+SUPPORTED_FIELD_PRIMES = frozenset((FIELD_PRIME, *SCALABLE_FIELD_PRIMES))
 FORMAT_VERSION = 1
 EDGE_FIELDS = ("target", "relation", "evidence", "score", "valid")
 
@@ -138,7 +147,7 @@ class PublicConfig:
         if not 1 <= self.evidence_bits <= 59:
             raise ValueError("evidence_bits must be in [1, 59]")
         if self.field_prime not in SUPPORTED_FIELD_PRIMES:
-            raise ValueError("field_prime must be one of the audited Mersenne primes")
+            raise ValueError("field_prime must be one of the audited primes")
 
     @property
     def entity_count(self) -> int:
@@ -205,8 +214,12 @@ class PublicConfig:
         # compiler configuration. Packed scalable records need up to 124 bits;
         # exact-prime compilation handles non-linear operations without the
         # additional generic masking headroom.
-        headroom = 3 if self.field_prime == SCALABLE_FIELD_PRIME else 2
-        return self.field_prime.bit_length() - headroom
+        if self.field_prime in SCALABLE_FIELD_PRIMES:
+            # Both scalable fields intentionally expose exactly the same
+            # packing/range envelope, so switching preprocessing backends does
+            # not alter any encoded record width or circuit comparison width.
+            return 124
+        return self.field_prime.bit_length() - 2
 
     @property
     def digest(self) -> str:

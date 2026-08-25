@@ -40,7 +40,10 @@ FORBIDDEN_CLAIMS = (
     (r"\bmaliciously[- ]secure backend\b", "claims a malicious-secure backend"),
     (r"\bfull\s+(?:uncapped\s+)?MetaQA\s+(?:accuracy|evaluation|results?)\b",
      "claims full/uncapped MetaQA results"),
-    (r"\bWebQSP\s+(?:evaluation|results?|benchmark)\b",
+    # "the WebQSP evaluation fixture" names a fixture built from WebQSP; it is
+    # not a claim to have evaluated on WebQSP. The lookahead keeps the guard
+    # aimed at the claim rather than at the noun phrase.
+    (r"\bWebQSP\s+(?:evaluation|results?|benchmark)\b(?!\s+fixture)",
      "claims a WebQSP evaluation"),
     (r"\bdistinct[- ]query accuracy\b", "claims distinct-query accuracy"),
 )
@@ -302,6 +305,41 @@ def test_weaker_threat_model_requires_explicit_opt_in():
             assert resolve(key).key == key
 
 
+def test_full_threshold_passive_protocols_are_not_security_downgrades():
+    """Changing preprocessing must not silently change the collusion bound."""
+
+    from doram_t2_3pc.protocols import PROTOCOLS
+    from doram_t2_3pc.config import HE_SCALABLE_FIELD_PRIME
+
+    expected = {
+        "semi": ("semi.sh", "semi-party.x"),
+        "hemi": ("hemi.sh", "hemi-party.x"),
+        "temi": ("temi.sh", "temi-party.x"),
+    }
+    for key, (script, binary) in expected.items():
+        protocol = PROTOCOLS[key]
+        assert protocol.script == script
+        assert protocol.binary == binary
+        assert protocol.max_corrupted_servers == 2
+        assert not protocol.malicious
+        assert not protocol.weaker_than_declared
+        assert "dishonest majority" in protocol.describe()
+        if key in {"hemi", "temi"}:
+            assert HE_SCALABLE_FIELD_PRIME % protocol.prime_congruence_modulus == 1
+
+
+def test_he_protocols_reject_the_mersenne_field_before_launch():
+    from doram_t2_3pc.config import HE_SCALABLE_FIELD_PRIME, SCALABLE_FIELD_PRIME
+    from doram_t2_3pc.protocols import PROTOCOLS
+
+    import pytest as _pytest
+
+    for key in ("hemi", "temi"):
+        with _pytest.raises(ValueError, match="new input shares"):
+            PROTOCOLS[key].validate_field_prime(SCALABLE_FIELD_PRIME)
+        PROTOCOLS[key].validate_field_prime(HE_SCALABLE_FIELD_PRIME)
+
+
 def test_protocol_choice_is_not_a_configuration_field():
     """A stored layout must not be able to weaken a run's security."""
 
@@ -335,6 +373,7 @@ def test_every_public_layout_parameter_appears_in_both_security_documents():
         "global_frontier": "`g`",
         "directory_buckets": "`b`",
         "bucket_slots": "`s`",
+        "partition_residual_by_relation": "`rho`",
     }
     fields = {field.name for field in dataclasses.fields(RelationPageParameters)}
     undocumented = fields - set(SYMBOLS)
@@ -443,6 +482,9 @@ def test_status_header_count_matches_the_directory():
         "Thirty": 30, "Thirty-one": 31, "Thirty-two": 32, "Thirty-three": 33,
         "Thirty-four": 34, "Thirty-five": 35, "Thirty-six": 36,
         "Thirty-seven": 37, "Thirty-eight": 38, "Thirty-nine": 39,
+        "Forty": 40, "Forty-one": 41, "Forty-two": 42, "Forty-three": 43,
+        "Forty-four": 44, "Forty-five": 45, "Forty-six": 46,
+        "Forty-seven": 47,
     }
     text = (PACKAGE / "benchmarks" / "STATUS.md").read_text(encoding="utf-8")
     actual = len(list((PACKAGE / "benchmarks").glob("*.json")))
@@ -450,4 +492,87 @@ def test_status_header_count_matches_the_directory():
                    and f"{w} benchmarks" in text), None)
     assert stated == actual, (
         f"STATUS.md header says {stated} benchmarks, directory has {actual}"
+    )
+
+
+# --------------------------------------------------------------------------
+# The new layouts shrink the TABLE, not the asymptotics
+# --------------------------------------------------------------------------
+
+NEW_LAYOUT_SOURCES = (
+    PACKAGE / "compact_directory.py",
+    PACKAGE / "type_blocked_directory.py",
+    PACKAGE / "hybrid_directory.py",
+    PACKAGE / "KG_VS_PLAIN_GRAPH.md",
+)
+
+
+@pytest.mark.parametrize("document", NEW_LAYOUT_SOURCES, ids=lambda p: p.name)
+def test_new_layouts_never_claim_sublinearity(document: Path):
+    """A smaller table is not a better asymptotic.
+
+    The compact, type-blocked and hybrid layouts reduce the directory from
+    O(entity_count * relation_count) to roughly O(keys). Every read still scans
+    the whole table, so all of them are Theta(table). Calling that "sublinear"
+    would be false and would also discard the project's one established
+    differentiator: GORAM gets sublinear access from an ORAM under honest
+    majority, and this design cannot, which is precisely the 261x premium.
+
+    This guard exists because the claim was voiced out loud during development.
+    """
+
+    text = _normalized(document)
+    for pattern, description in FORBIDDEN_CLAIMS:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        assert match is None, f"{document} {description}: {match.group(0)!r}"
+    # Sublinearity may be DENIED, or ATTRIBUTED to a system that has it. What it
+    # may not be is asserted about this design. Same shape as the
+    # servers-learn-nothing guard: find every occurrence and require that its
+    # context disowns it.
+    lowered = text.lower()
+    disowned = (
+        "not ", "never ", "no ", "nothing ", "cannot ", "can not ", "without ",
+        "rather than", "instead of", "would be false", "is not",
+        # Giving it up is also a denial, not a claim.
+        "losing ", "loses ", "lost ", "forgoes ", "gives up ", "closes off",
+    )
+    attributed = ("goram", "oram", "honest majority", "aby3", "dpf", "fss")
+    start = 0
+    while (found := lowered.find("sublinear", start)) != -1:
+        window = lowered[max(0, found - 120):found + 40]
+        assert any(mark in window for mark in disowned + attributed), (
+            f"{document} uses 'sublinear' at offset {found} without denying it "
+            f"or attributing it elsewhere: ...{text[max(0, found-90):found+60]}..."
+        )
+        start = found + len("sublinear")
+    # polylog belongs only to systems that achieve it.
+    start = 0
+    while (found := lowered.find("polylog", start)) != -1:
+        window = lowered[max(0, found - 120):found + 40]
+        assert any(mark in window for mark in disowned + attributed), (
+            f"{document} claims polylogarithmic access"
+        )
+        start = found + len("polylog")
+
+
+def test_kg_document_states_the_asymptotics_and_the_goram_direction():
+    """The comparison must not be left for a reader to guess the wrong way round.
+
+    GORAM is an ORAM on an honest-majority backend, so it has the better
+    asymptotics; this design's claim is the stronger corruption threshold. A
+    document that omits that ordering invites exactly the inversion this guard
+    was written after.
+    """
+
+    text = _normalized(PACKAGE / "KG_VS_PLAIN_GRAPH.md")
+    assert "honest majority" in text.lower()
+    assert "ABY3" in text
+    # It must say, somewhere, that this design's reads are linear.
+    assert re.search(r"linear", text, flags=re.IGNORECASE), (
+        "the document must state that every read is a full linear scan"
+    )
+    # And it must not present the layout work as closing the asymptotic gap.
+    assert "261" in text, (
+        "the threat-model premium is the differentiator and must travel with "
+        "the comparison"
     )

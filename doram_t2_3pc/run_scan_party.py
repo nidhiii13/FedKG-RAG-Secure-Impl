@@ -7,6 +7,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .compiler_options import CompilerOptions
 from .config import PublicConfig
 from .scan_program import program_name, write_program
 from .sharing import SERVER_COUNT
@@ -75,16 +76,14 @@ def run_party(
     shutil.copyfile(private_input, destination)
     os.chmod(destination, 0o600)
 
+    compiler = CompilerOptions.from_environment()
     subprocess.run(
-        [
-            str(home / "compile.py"),
-            "-F",
-            str(config.field_usable_bits),
-            "-P",
-            str(config.field_prime),
-            "--preserve-mem-order",
-            name,
-        ],
+        compiler.command(
+            home,
+            field_bits=config.field_usable_bits,
+            field_prime=config.field_prime,
+            program_name=name,
+        ),
         cwd=home,
         check=True,
         timeout=compile_timeout,

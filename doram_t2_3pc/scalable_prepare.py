@@ -3,15 +3,15 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .config import EDGE_FIELDS, PublicConfig, SCALABLE_FIELD_PRIME
+from .config import EDGE_FIELDS, PublicConfig, SCALABLE_FIELD_PRIMES
 from .io import read_json, write_private_lines
 from .prepare import _validate_shard
 from .sharing import SERVER_COUNT
 
 
 def _require_scalable_config(config: PublicConfig) -> None:
-    if config.field_prime != SCALABLE_FIELD_PRIME:
-        raise ValueError("scalable preparation requires field_prime=2^127-1")
+    if config.field_prime not in SCALABLE_FIELD_PRIMES:
+        raise ValueError("scalable preparation requires an audited scalable field")
 
 
 def assemble_setup_input(

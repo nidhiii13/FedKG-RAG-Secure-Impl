@@ -12,6 +12,9 @@ Security documents, in the order worth reading them:
 | [`IDEAL_FUNCTIONALITY.md`](IDEAL_FUNCTIONALITY.md) | the functionality, the leakage function `L`, a proof **sketch**, and what is not proven |
 | [`LEAKAGE_ABUSE.md`](LEAKAGE_ABUSE.md) | what an adversary can actually do with `L` — written against our own design |
 | [`protocols.py`](protocols.py) | the protocols a run may use, and which ones weaken the threat model |
+| [`FINAL_ARCHITECTURE.md`](FINAL_ARCHITECTURE.md) | the selected implementation/claim boundary and the alternatives rejected |
+| [`READONLY_ORAM_RESEARCH.md`](READONLY_ORAM_RESEARCH.md) | executable sublinear-access research backend and its exact remaining proof/integration boundary |
+| [`KG_ORAM_ARCHITECTURE.md`](KG_ORAM_ARCHITECTURE.md) | end-to-end dependent two-hop ORAM composition, epoch lifecycle, and current claim boundary |
 
 The design supports any public number of data owners. Each owner locally pads
 every public source-entity bucket to `fanout_per_owner`, creates a 3-out-of-3
@@ -120,11 +123,52 @@ sublinear and it does not implement persistent read/write ORAM state. It is a
 reliable six-figure baseline, not the final asymptotic construction for a
 paper.
 
+## Recursive read-only ORAM research backend
+
+`oram_layout.py`, `oram_access.py`, and `oram_access_program.py` now implement
+and execute a separate owner-built recursive read-only ORAM milestone. The
+owner constructs the randomized data tree and recursive position map locally,
+then sends one additive share to each server. Inside MPC, a secret address is
+resolved through the position-map recursion. One uniformly distributed path is
+opened per level; repeat accesses are served from a secret per-level stash
+while a fresh dummy path is opened.
+
+A real three-party Temi smoke execution returned four exact records, including
+a repeated address. This establishes an executable secret-address primitive;
+the standalone default placement bound remains a proof obligation. See
+`READONLY_ORAM_RESEARCH.md` and
+`benchmarks/readonly_recursive_oram_temi_smoke.json`.
+
+`kg_oram.py`, `kg_oram_shares.py`, `oram_epoch.py`, and
+`kg_oram_program.py` now extend that standalone primitive into an executable
+end-to-end research backend. A controlled two-owner Temi run kept the hop-one
+target secret while using it as owner B's hop-two ORAM address, then returned
+the exact client-only ranked path. The row-major/vectorized version subsequently
+compiled and ran the 160,000-edge/100,000-entity fixture exactly: 78.27 s and
+1.918 GB of global MPC traffic, versus 8.77 s and 2.608 GB for relation-paged
+Temi. It also required 6.08 GB of fresh external epoch shares. See
+`KG_ORAM_ARCHITECTURE.md`, `benchmarks/kg_readonly_oram_e2e_temi_smoke.json`,
+and `benchmarks/kg_readonly_oram_160k_temi_v2.json`. This closes functional and
+six-figure execution evidence; it does not make total epoch cost sublinear,
+persistent, maliciously secure, or practically faster than the baseline.
+
 Packed configurations must set:
 
 ```json
 "field_prime": 170141183460469231731687303715884105727
 ```
+
+The OT-based `Semi` runner uses that Mersenne prime. HE-backed `Hemi` and
+`Temi` preserve the same passive dishonest-majority/two-collusion model but
+require fresh shares under the audited NTT-compatible field:
+
+```json
+"field_prime": 170141183460469231731687303715885907969
+```
+
+Never reuse shares across those fields. `protocols.py` and every paged runner
+fail before launch if Hemi/Temi is selected with an incompatible prime. `Semi`
+remains the default so old configurations and benchmark claims do not change.
 
 ## Opt-in relation-aware frontier compaction
 
@@ -253,6 +297,101 @@ beyond the supported backend's bounds, and exactly this much: `page_size`,
 bound rather than a realized count, but it upper-bounds an owner's distinct
 `(source, relation)` population and must be declared before shares exist.
 
+An opt-in `type_block_layout` adds a public primary type for every entity and a
+public domain for every relation. Primary-type keys occupy a smaller affine
+directory; valid multi-domain exceptions occupy the hashed compact residual.
+The circuit reads and adds both descriptors on every hop, so table choice is
+not observable. The public entity numbering must keep each primary type
+contiguous, and preparation rejects a configuration that does not. See
+`examples/ten_query/config_relation_pages_hybrid.json` and
+`benchmarks/hybrid_directory_execution.json`. This is a small executed proof,
+not a large-scale result; the lookup remains linear in both public tables.
+Residual tags are hashed in one vector batch, and each requested tag is
+decomposed once before its secret bits are broadcast across the public bucket
+width. On the residual-dependent one-query A/B this reduces bit triples 9.41%
+and communication 2.55%, without a measured latency improvement. The optimized
+ten-query fixture completes and matches all 160 oracle fields, but its roughly
+4.2-million-line compilation remains a warning against extrapolating. For
+batches larger than one, candidate formation and top-k are candidate-major
+MP-SPDZ vectors: each vector lane is one query, including independent winner
+state, strict-score tie breaking, and optional terminal suppression. Against
+the preceding scalar-query version on the same ten queries, this reduced
+compiler-estimated VM rounds from 28,082 to 8,948 and single-host runtime
+including preprocessing from 17.0084 s to 14.6926 s. Global communication was
+unchanged (4,550.5 versus 4,550.6 MB), and compilation still exceeded 4.1
+million expanded lines. It is therefore a round/latency optimization, not a
+reduction in asymptotic work or a solution to compiler scale. The one-query
+renderer deliberately retains the scalar path as an executable reference.
+
+The hybrid hop-two primary lookup is also relation-folded. All frontier entries
+in one query share `relation_2`, so the circuit selects that relation's public
+ontology block once, pads it to the public maximum type-block width, and reads
+each secret frontier entity by a secret relative offset. The hashed residual is
+still evaluated for every address; which half contains a descriptor is never
+opened. A controlled unfolded ablation returns identical outputs. Combined with
+query-lane SIMD on the ten-query fixture, folding reduces VM rounds from 8,948
+to 5,449, global communication from 4,550.6 to 4,525.21 MB, and single-host
+runtime from 14.6926 to 13.9797 s. Compilation still reaches approximately 4.0
+million expanded lines, so this does not establish large-dataset compiler
+scalability; residual verification and page processing remain dominant.
+
+Program version 7 batches descriptor and page-edge unpacking across every
+address belonging to one owner. Instead of emitting one secret bit
+decomposition per descriptor and per fetched edge, it decomposes one descriptor
+vector and one page-window vector, then reconstructs the fields lane-wise. On
+the same ten-query fixture, compiler progress fell from about 4.0 million to
+about 0.7 million expanded lines and aggregate bytecode fell from 96.69 MB to
+53.66 MB. All 160 output fields still match both program version 6 and the
+independent oracle, including a separate two-page-per-key overflow test. This
+is primarily a compiler-scale optimization: end-to-end runtime was effectively
+unchanged (13.9797 to 14.0260 s), communication changed by less than 0.04%, and
+VM rounds increased 1.65%. It does not change the linear table scans or prove
+large-dataset scalability.
+
+Program version 8 additionally batches descriptor extraction and fixed-window
+page reads across owners. A packed directory element shared by several owners
+is decomposed once, and page selectors are evaluated in owner-major batches
+whose public width is capped to avoid recreating the compiler-width failure.
+The prior per-owner path is retained behind `--ablate-owner-batching`. On an
+identical one-query controlled A/B, owner batching reduced runtime 17.84%,
+global communication 13.43%, and VM rounds 17.76%. On the ten-query fixture it
+reduced runtime from 14.0260 to 12.5004 s, communication from 4,523.44 to
+3,888.45 MB, and VM rounds from 5,539 to 4,891; all 160 output fields matched
+the independent oracle. A two-owner, two-page-per-key overflow execution was
+also exact. The trade-off is material: aggregate ten-query bytecode increased
+62.34% because fewer instructions carry wider vectors. This remains a
+small-fixture online optimization, not an asymptotic improvement.
+
+Program version 10 adds an optional relation-partitioned residual for the
+hybrid type-block layout. Every relation receives the same public number of
+hash buckets and owner slots. A residual slot is tagged only by entity; inside
+MPC the secret relation and secret bucket form one secret row address over the
+uniformly padded relation-major table. Thus neither relation nor intermediate
+entity is opened, and the access trace is fixed by public dimensions. Owner
+preparation fails closed if any per-relation bucket exceeds `bucket_slots`.
+
+On this fixture, partitioning permits `directory_buckets=1` and
+`bucket_slots=1`, reducing the residual from 48 to 12 field elements after
+power-of-two row padding. Against version 8 on the same ten queries, runtime
+falls from 12.5004 to 10.5438 s, global communication from 3,888.45 to 3,506.89
+MB, and hop-two time from 7.9863 to 6.4111 s; all 160 fields match the oracle.
+VM rounds rise 0.82%. This is not automatically beneficial: a layout needing
+many relations times many buckets can be larger than the combined-key table,
+so both alternatives require capacity planning on the target dataset.
+
+Program version 12 folds that relation-partitioned residual once per query and
+vectorizes the fold and tag verification across the query batch. For hop two,
+the residual fetch changes from `Q * frontier * residual_rows * bucket_width`
+to `Q * (relations * buckets * bucket_width + frontier * buckets *
+bucket_width)`. The generic per-address read remains available as the
+`--ablate-folded-residual` counterfactual. On the identical ten-query shares,
+the optimized circuit and ablation matched all 160 output fields. Folding
+reduced hop-two time 11.34%, total time 5.28%, global communication 1.26%, bit
+triples 4.38%, and VM rounds 1.03%. The full batch still sent 3.46 GB, so this
+is a measured constant-factor improvement, not evidence of practical or
+sublinear scalability. See
+`benchmarks/relation_folded_residual_execution.json`.
+
 Two bounds are declared and both are enforced at preparation.
 `page_size * pages_per_key` is the **storage** bound for one key;
 `frontier_per_owner` is the **dependent-read** bound, i.e. how many first-hop
@@ -322,8 +461,28 @@ python3 -m doram_t2_3pc.run_pages_mpspdz --config <layout>.json \
 # Same circuit, malicious protocol, same corruption threshold.
 python3 -m doram_t2_3pc.run_pages_mpspdz --config <layout>.json \
   --instance-dir instance --query-count 1 --mpspdz-home external/MP-SPDZ \
-  --log-label mascot --protocol-script mascot.sh --party-binary mascot-party.x
+  --log-label mascot --protocol mascot
 ```
+
+For the optimized passive backend, regenerate the configuration and every
+owner/client share under the NTT-compatible field above, then select Temi:
+
+```bash
+python3 -m doram_t2_3pc.run_pages_mpspdz --config <he-layout>.json \
+  --instance-dir he-instance --query-count 1 --mpspdz-home external/MP-SPDZ \
+  --log-label temi --protocol temi
+```
+
+On the degree-one 100,000-entity/160,000-edge fixture, v12/Temi completed one
+full two-hop query in **8.768 s** with **2,608 MB global communication**, versus
+26.759 s/44,693 MB for v12/Semi and 43.072 s/95,186 MB for packed/Semi. All 16
+output fields matched the independent oracle. The `global_frontier=1` promise
+was separately verified in MPC on the fresh HE-field shares; that one-time gate
+cost 32.167 s/1,932 MB. Compilation still expanded more than 9.8 million lines
+and took about twelve minutes. These are localhost, preprocessing-included,
+single-query numbers on a favorable synthetic fixture. The lookup remains
+linear and is not an ORAM or a general MetaQA/WebQSP scalability result. See
+`benchmarks/relation_paged_160k_temi_v13.json`.
 
 `--ablate-compaction` is refused unless `frontier_per_owner` already equals
 `page_size * pages_per_key`, because below that width the ablated circuit would
@@ -531,6 +690,29 @@ python3 -m doram_t2_3pc.run_scan_mpspdz \
   --mpspdz-home external/MP-SPDZ --log-label experiment-01
 ```
 
+Both local and distributed runners use the bounded MP-SPDZ compiler settings
+ported from the optimized PureMPSPDZ runner. By default they compile with
+`-b 100000` and allow the compiler to reorder memory instructions, avoiding the
+unbounded schedule and forced memory-order barrier that inflate compiler state
+on large generated programs. Override these settings only for a controlled A/B:
+
+```bash
+MP_SPDZ_BUDGET=25000 python3 -m doram_t2_3pc.run_pages_mpspdz ...
+MP_SPDZ_PRESERVE_MEM_ORDER=1 python3 -m doram_t2_3pc.run_pages_mpspdz ...
+```
+
+The compiler warns that disabling memory-order preservation can expose bugs in
+programs with untracked memory dependencies. The generated circuits therefore
+still require an output-equivalence check against the preserved-order build
+before performance numbers from this setting are used in a paper. The setting
+controls compiler/schedule space; it does not reduce the circuit's arithmetic
+operation count or communication.
+
+Paged private-input assembly is streamed in bounded chunks. It no longer builds
+both a full assembled integer list and a full serialized string in memory. The
+owner shard documents themselves are still loaded, so this reduces peak assembly
+memory but does not change the layout's on-disk or MPC table complexity.
+
 Use `run_scan_party` instead on three separately administered hosts. Decode
 the three returned logs with `python3 -m doram_t2_3pc.decode_batch`.
 
@@ -545,3 +727,15 @@ communication: 95,185.5 MB globally. Treat this as historical large-fixture
 evidence for the packed scan path; the current v2 frontier-compaction circuit
 still needs its own large-fixture and WAN measurements before it can support a
 paper-scale scalability claim.
+
+The v12 relation-paged backend has now also executed that fixture using a
+lossless, plaintext-verified public `global_frontier=1`. The synthetic fixture
+has no external ontology, so this is the dense relation-paged layout with the
+hop-two relation fold, not an edge-derived type-block claim. One query completed
+in 26.7591 seconds including preprocessing and sent 44,693.1 MB globally; all
+16 output fields matched the independent paged oracle. Against the packed scan
+this is 37.87% less time and 53.05% less communication, primarily because the
+global degree bound reduces six owner-major dependent reads to one. Compilation
+still processed over 9.8 million lines and produced 413 bytecode files, and
+44.7 GB/query remains impractical. See
+`benchmarks/relation_paged_160k_v12.json`.

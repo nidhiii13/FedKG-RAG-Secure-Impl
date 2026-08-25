@@ -14,9 +14,10 @@ Why it is cheap
 The retrieval circuit is expensive because it must hide *which* key it reads, so
 every access is a full oblivious scan. This check has no such requirement: it
 verifies **every** key, so the row index is public at every step. There is no
-demux, no one-hot selector, and no oblivious indexing anywhere -- just one linear
-pass with a comparison per row. Cost is ``directory_rows`` comparisons, paid once
-at preparation, not per query.
+demux, no one-hot selector, and no oblivious indexing anywhere. On the bounded
+honest-input domain, a public interpolation polynomial evaluates the overflow
+predicate exactly using a small fixed number of SIMD field multiplications per
+row and no bit decomposition. It is paid once at preparation, not per query.
 
 Every owner writes its per-key count at the same bit position, so the servers'
 additive reconstruction of the shares is already the federation-wide count. The
@@ -40,16 +41,53 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from .config import SCALABLE_FIELD_PRIME
+from .config import SCALABLE_FIELD_PRIMES
 from .relation_pages import RelationPageConfig
 
 
-BOUND_CHECK_VERSION = 1
+BOUND_CHECK_VERSION = 3
+
+
+def overflow_polynomial(bound: int, maximum: int, prime: int) -> tuple[int, ...]:
+    """Interpolate ``1[x > bound]`` on the promised count domain.
+
+    Owner preparation guarantees that the reconstructed occupancy is in
+    ``0..maximum`` in the passive-input model.  Evaluating this public
+    polynomial therefore gives exactly the same bit as an integer comparison,
+    while avoiding a full-width bit decomposition for every directory row.
+    Coefficients are returned in ascending degree order modulo ``prime``.
+    """
+
+    if not 0 <= bound < maximum < prime:
+        raise ValueError("invalid overflow-polynomial domain")
+    result = [0] * (maximum + 1)
+    for point in range(bound + 1, maximum + 1):
+        basis = [1]
+        denominator = 1
+        for other in range(maximum + 1):
+            if other == point:
+                continue
+            product = [0] * (len(basis) + 1)
+            for degree, coefficient in enumerate(basis):
+                product[degree] = (
+                    product[degree] - other * coefficient
+                ) % prime
+                product[degree + 1] = (
+                    product[degree + 1] + coefficient
+                ) % prime
+            basis = product
+            denominator = denominator * (point - other) % prime
+        scale = pow(denominator, -1, prime)
+        for degree, coefficient in enumerate(basis):
+            result[degree] = (
+                result[degree] + coefficient * scale
+            ) % prime
+    return tuple(result)
 
 
 def _validate(config: RelationPageConfig) -> None:
-    if config.base.field_prime != SCALABLE_FIELD_PRIME:
-        raise ValueError("the bound check requires field_prime=2^127-1")
+    if config.base.field_prime not in SCALABLE_FIELD_PRIMES:
+        raise ValueError("the bound check requires an audited scalable field")
     if not config.pages.uses_global_frontier:
         raise ValueError(
             "layout does not declare global_frontier, so there is nothing to "
@@ -72,7 +110,15 @@ def render_program(config: RelationPageConfig) -> str:
     # comparison never has to consider wider values.
     max_possible = len(config.base.owners) * config.pages.slots_per_key
     count_bits = max(1, max_possible.bit_length())
+    coefficients = overflow_polynomial(
+        bound, max_possible, config.base.field_prime
+    )
 
+    rows = (
+        config.dense_directory_rows
+        if config.uses_hybrid_directory
+        else config.directory_rows
+    )
     return f'''# Generated one-time federation-wide bound check (EXPERIMENTAL).
 # Verifies: no (source, relation) key holds more than GLOBAL_FRONTIER edges
 # summed over every owner. Opens exactly one aggregate value.
@@ -83,10 +129,11 @@ program.use_edabit(True)
 program.timeout = None
 
 SERVER_COUNT = 3
-DIRECTORY_ROWS = {config.directory_rows}
+DIRECTORY_ROWS = {rows}
 OWNER_COUNT = {len(config.base.owners)}
 GLOBAL_FRONTIER = {bound}
 COUNT_BITS = {count_bits}
+OVERFLOW_COEFFICIENTS = {coefficients!r}
 
 
 def shared_vector(length):
@@ -108,10 +155,15 @@ occupancy = shared_vector(DIRECTORY_ROWS)
 stop_timer(1)
 
 start_timer(2)
-violations = sint(0)
-for row in range(DIRECTORY_ROWS):
-    # A count above the bound would make the second hop drop matches silently.
-    violations = violations + (occupancy[row] > GLOBAL_FRONTIER)
+# Honest owner preparation promises occupancy in 0..OWNER_COUNT*SLOTS_PER_KEY.
+# OVERFLOW_COEFFICIENTS interpolate the exact predicate 1[x>GLOBAL_FRONTIER]
+# on that complete public domain. Horner evaluation is SIMD across all rows:
+# no per-row compiler loop and no 125-bit comparison/bit decomposition.
+counts = occupancy[:]
+overflow = sint(OVERFLOW_COEFFICIENTS[-1], size=DIRECTORY_ROWS)
+for coefficient in reversed(OVERFLOW_COEFFICIENTS[:-1]):
+    overflow = overflow * counts + coefficient
+violations = overflow.sum()
 stop_timer(2)
 
 # The single opened value. It says whether the declared bound holds, which
@@ -133,14 +185,31 @@ def write_program(config: RelationPageConfig, output_dir: str | Path) -> Path:
 def bound_check_cost_estimate(config: RelationPageConfig) -> dict[str, int | str]:
     _validate(config)
     return {
-        "directory_rows": config.directory_rows,
-        "comparisons": config.directory_rows,
+        "directory_rows": (
+            config.dense_directory_rows
+            if config.uses_hybrid_directory
+            else config.directory_rows
+        ),
+        "comparisons": 0,
+        "field_multiplications": (
+            (config.dense_directory_rows
+             if config.uses_hybrid_directory
+             else config.directory_rows)
+            * len(config.base.owners)
+            * config.pages.slots_per_key
+        ),
         "oblivious_reads": 0,
         "opened_values": 1,
-        "private_input_values_per_server": config.directory_rows,
+        "private_input_values_per_server": (
+            config.dense_directory_rows
+            if config.uses_hybrid_directory
+            else config.directory_rows
+        ),
         "note": (
             "Every index is public because the check covers all keys, so this "
-            "is a linear pass with no demux. Paid once at preparation, never "
-            "per query."
+            "is a SIMD Horner evaluation of the bounded-domain overflow "
+            "polynomial with no demux or bit decomposition. It assumes the "
+            "honest-input range promised by owner preparation. Paid once at "
+            "preparation, never per query."
         ),
     }

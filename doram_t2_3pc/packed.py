@@ -4,7 +4,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from .config import FORMAT_VERSION, PublicConfig, SCALABLE_FIELD_PRIME
+from .config import FORMAT_VERSION, PublicConfig, SCALABLE_FIELD_PRIMES
 from .io import read_json, write_private_json, write_private_lines
 from .sharing import SERVER_COUNT, share_vector
 
@@ -24,8 +24,8 @@ def packed_edge_bits(config: PublicConfig) -> int:
 
 
 def _require_packed_config(config: PublicConfig) -> None:
-    if config.field_prime != SCALABLE_FIELD_PRIME:
-        raise ValueError("packed private lookup requires field_prime=2^127-1")
+    if config.field_prime not in SCALABLE_FIELD_PRIMES:
+        raise ValueError("packed private lookup requires an audited scalable field")
     if packed_edge_bits(config) > config.field_usable_bits:
         raise ValueError(
             f"packed edge needs {packed_edge_bits(config)} bits but the field "
@@ -323,15 +323,16 @@ def assemble_packed_batch_input(
     if set(by_index) != set(range(len(config.owners))):
         raise ValueError("packed owner shard set is incomplete")
 
-    combined = list(query_values)
-    for entity in range(config.entity_count):
-        start = entity * config.fanout_per_owner
-        for owner_index in range(len(config.owners)):
-            combined.extend(
-                by_index[owner_index][start : start + config.fanout_per_owner]
-            )
+    def input_values():
+        yield from query_values
+        for entity in range(config.entity_count):
+            start = entity * config.fanout_per_owner
+            stop = start + config.fanout_per_owner
+            for owner_index in range(len(config.owners)):
+                yield from by_index[owner_index][start:stop]
+
     destination = Path(output_path)
-    write_private_lines(destination, combined)
+    write_private_lines(destination, input_values())
     return destination
 
 

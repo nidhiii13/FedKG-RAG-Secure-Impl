@@ -1,0 +1,49 @@
+{
+ "name": "metaqa_eval_scale_execution",
+ "date": "2026-08-17",
+ "scope_warning": "One query on the 400-question MetaQA evaluation fixture, three local Semi parties on a single host. A single host does not instantiate the non-collusion assumption. One query is not an evaluation: retrieval quality over all 400 questions is measured with the oracle in rag_quality_at_scale.json, and this run verifies the circuit agrees with that oracle on one query at this scale.",
+ "headline_finding": "First MPC execution at real evaluation scale. The 400-question MetaQA fixture -- 6,573 entities x 18 relations = 118,314 directory rows -- ran in 11.9 seconds for 18.0 GB, with every output field matching the cleartext oracle exactly. Two turns earlier this fixture was recorded as probably UNRUNNABLE.",
+
+ "what_unblocked_it": {
+  "problem": "The relation fold emitted one map_sum output per ENTITY, and MP-SPDZ program size tracks map_sum output width. At 6,573 entities that width was comparable to the 1,425-wide stage that defeated four compact-circuit attempts, so relation_folded_directory.json carried a caveat that its evaluation-fixture projections were probably unrunnable.",
+  "fix": "Chunk the fold's entity range into 256-wide pieces. Identical work -- (entity_count / 256) passes of relation_count iterations over 256 entities is entity_count * relation_count products either way -- with every map_sum narrow.",
+  "verified_as_a_no_op": "On the webqsp n=20 fixture the chunked circuit sent 12,278.6 MB against the unchunked 12,278.6 MB, byte for byte, and compare_mpc_outputs.py reported IDENTICAL on all 16 outputs."
+ },
+
+ "measured": {
+  "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
+  "fixture": {"entities": 6573, "relations": 18, "directory_rows": 118314,
+              "owners": 3, "page_budget": 10052, "global_frontier": 3},
+  "query": {"source": "Mike Barker", "relation_1": "directed_by_inverse",
+            "relation_2": "written_by"},
+  "global_data_sent_mb": 18426.8,
+  "wall_clock_seconds": 11.9,
+  "peak_memory_gb_of_251": 10
+ },
+
+ "correctness": {
+  "method": "All 16 output values reconstructed from all three party logs (3-of-3 additive shares summed mod 2^127-1) and compared field by field against evaluate_paged_cleartext on the same fixture and query.",
+  "result": "EXACT MATCH on every field of every rank: valid, left_evidence, right_evidence and score, including the two padding ranks which are correctly all-zero.",
+  "why_it_matters": "The oracle is what every quality number in this project is scored with. This is the first check that the circuit and the oracle agree at evaluation scale rather than on a small fixture."
+ },
+
+ "the_projection_was_15_percent_low": {
+  "fitted_line": "364 MB + 0.1297 MB per directory row, from three points spanning 456 to 2,968 rows",
+  "projected_mb": 15707,
+  "measured_mb": 18426.8,
+  "error": "-14.8%, i.e. the fit UNDER-predicted",
+  "extrapolation_reach": "40x beyond the largest fitted point",
+  "reading": "A 15% error at 40x extrapolation is better than this project's track record for projections -- the cost model's MetaQA inputs were once wrong by 261x. The line is real but slightly optimistic, and the implied rate at scale is 0.1557 MB/row against the fitted 0.1297.",
+  "consequence_for_the_other_projection": "relation_folded_directory.json also projects 191 GB for the WebQSP evaluation fixture from the same style of fit. If that is similarly optimistic the true figure is nearer 220 GB. It remains UNRUN."
+ },
+
+ "memory_was_never_the_constraint": "Peak usage held at 10 GB of 251 available throughout. The gigabytes in these measurements are COMMUNICATION -- Beaver triples streaming through for the multiplications -- not resident data. The shared arrays themselves are about 3 MB per party. Every limit hit in this project has been the compiler's program size or a 1800s compile timeout, never the machine.",
+
+ "what_this_does_NOT_establish": [
+  "NOT a 400-question MPC evaluation. One query was executed; the other 399 are scored with the oracle, which this run gives one more reason to trust at this scale.",
+  "NOT a WebQSP-scale result. That fixture is 1,706,776 rows, 14x larger, and remains unrun.",
+  "NOT a distributed measurement. Three parties on one host share memory bandwidth and have no network latency, so 11.9 seconds is a lower bound on wall clock, not a WAN figure.",
+  "NOT a claim that 18 GB per query is practical. It is not. It is one query against a 6,573-entity graph.",
+  "NOT a validation of the cost model in general -- one point at 40x reach, found 15% optimistic."
+ ]
+}

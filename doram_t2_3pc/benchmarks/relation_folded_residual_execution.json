@@ -1,0 +1,117 @@
+{
+  "name": "relation_folded_residual_execution",
+  "date": "2026-08-21",
+  "status": "native MP-SPDZ execution with exact output reconstruction",
+  "scope_warning": "All three Semi parties ran on one host and preprocessing is included. This is not a WAN, multi-host, malicious-security, full-MetaQA, or sublinear-ORAM result.",
+  "optimization": {
+    "description": "For a relation-partitioned hybrid residual, select the shared secret hop-two relation once for the whole query batch, then resolve only secret entity buckets. Relation selection and residual tag verification are vectorized across queries.",
+    "unfolded_fetch_products": "Q * frontier_slots * residual_rows * bucket_width",
+    "folded_fetch_products": "Q * (relation_count * directory_buckets * bucket_width + frontier_slots * directory_buckets * bucket_width)",
+    "leakage_change": "none; all loops and table dimensions remain public and the selected relation, entity buckets, descriptors, and tags are never opened",
+    "program_version": 12
+  },
+  "controlled_ten_query_ablation": {
+    "fixture": "doram_t2_3pc/examples/ten_query/config_relation_pages_hybrid_partitioned.json",
+    "queries": 10,
+    "distinct_queries": 10,
+    "owners": 3,
+    "top_k": 4,
+    "same_prepared_input_shares": true,
+    "protocol": "MP-SPDZ Semi, exactly three local parties, passive dishonest majority",
+    "optimized": {
+      "program": "paged_kg_3pc_f2bdbd9d86a20e9b",
+      "wall_seconds_including_preprocessing": 10.603,
+      "hop_two_seconds": 6.07991,
+      "global_data_mb": 3462.83,
+      "party_0_data_mb": 1158.69,
+      "party_0_reported_rounds": 31338,
+      "virtual_machine_rounds": 4880,
+      "strict_edabits_127": 4380,
+      "bit_triples": 1751920,
+      "integer_triples": 33400,
+      "integer_simple_multiplications": 33160,
+      "aggregate_bytecode_bytes": 77485292
+    },
+    "unfolded_residual_ablation": {
+      "program": "paged_kg_3pc_1f4d80cae1526eb4",
+      "flag": "--ablate-folded-residual",
+      "wall_seconds_including_preprocessing": 11.1943,
+      "hop_two_seconds": 6.85774,
+      "global_data_mb": 3506.89,
+      "party_0_data_mb": 1173.45,
+      "party_0_reported_rounds": 31622,
+      "virtual_machine_rounds": 4931,
+      "strict_edabits_127": 4530,
+      "bit_triples": 1832120,
+      "integer_triples": 34360,
+      "integer_simple_multiplications": 33520,
+      "aggregate_bytecode_bytes": 77548672
+    },
+    "optimized_reduction_percent": {
+      "wall_seconds": 5.282,
+      "hop_two_seconds": 11.342,
+      "global_data_mb": 1.256,
+      "virtual_machine_rounds": 1.034,
+      "bit_triples": 4.377,
+      "aggregate_bytecode_bytes": 0.082
+    },
+    "correctness": {
+      "optimized_equals_ablation": true,
+      "optimized_equals_independent_paged_oracle": true,
+      "fields_compared": 160,
+      "mismatches": 0
+    },
+    "static_residual_fetch_products": {
+      "unfolded": 720,
+      "folded": 270,
+      "ratio": 2.6666666667
+    }
+  },
+  "initial_scalability_points": [
+    {
+      "kind": "real MetaQA subset smoke",
+      "entities": 201,
+      "relations": 8,
+      "owners": 3,
+      "real_edges": 364,
+      "frontier_slots": 6,
+      "queries_executed": 1,
+      "wall_seconds_including_preprocessing": 1.67197,
+      "hop_two_seconds": 0.60178,
+      "global_data_mb": 646.454,
+      "all_output_fields_match_oracle": true,
+      "fields_compared": 16,
+      "note": "Dense relation-paged layout; this point validates current v12 code on real data but does not exercise residual folding."
+    },
+    {
+      "kind": "synthetic entity-scale point",
+      "entities": 401,
+      "relations": 8,
+      "owners": 2,
+      "real_edges": 512,
+      "frontier_slots": 4,
+      "queries_executed": 1,
+      "wall_seconds_including_preprocessing": 1.19693,
+      "hop_two_seconds": 0.492342,
+      "global_data_mb": 566.215,
+      "all_output_fields_match_oracle": true,
+      "fields_compared": 16,
+      "note": "Fresh owner and client shares were prepared with the current setup path before execution."
+    },
+    {
+      "kind": "existing real MetaQA evaluation-scale boundary",
+      "source": "doram_t2_3pc/benchmarks/metaqa_eval_scale_execution.json",
+      "entities": 6573,
+      "relations": 18,
+      "owners": 3,
+      "frontier_slots": 3,
+      "queries_executed": 1,
+      "wall_seconds_including_preprocessing": 11.9,
+      "global_data_mb": 18426.8,
+      "all_output_fields_match_oracle": true,
+      "fields_compared": 16,
+      "note": "Historical current-architecture boundary, not rerun under v12 and not a residual-folded layout."
+    }
+  ],
+  "verdict": "Residual folding is retained because the controlled executable ablation improves hop-two latency, total latency, communication, rounds, triples, and bytecode while preserving every output. The system is still communication-heavy and only linearly scalable in its public table dimensions. The evidence does not support a practical-scalability claim."
+}

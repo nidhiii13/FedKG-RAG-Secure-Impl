@@ -56,10 +56,11 @@ Status
 ------
 Layout, capacity planning and cost model. A circuit exists in ``page_program``
 and its assembly is cleartext-verified against the dense layout, but **it has
-never executed**: MP-SPDZ compilation exceeded 1800s on every fixture tried, and
-the leading suspect is the per-slot tag equality being compiled at the full field
-width instead of the tag width. See
-``benchmarks/compact_directory_planning.json``.
+never executed**: MP-SPDZ compilation exceeded 1800s on every fixture tried, over
+three attempts. Bounding the tag comparison to the tag width did not fix it, so
+the binding constraint is the *output width* of the bucket-fetch ``map_sum``
+rather than the comparison. See ``benchmarks/compact_directory_planning.json``
+for the revised diagnosis and the proposed restructuring.
 
 Prefer the type-blocked directory (``KG_VS_PLAIN_GRAPH.md``) where an ontology is
 available: it models ~2.5x cheaper on the same graph and has no tag comparison,

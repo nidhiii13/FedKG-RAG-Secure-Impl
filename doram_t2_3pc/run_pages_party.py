@@ -20,6 +20,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .compiler_options import CompilerOptions
 from .page_program import program_name, write_program
 from .paged_shares import validate_private_input
 from .protocols import DEFAULT_PROTOCOL, PROTOCOLS, resolve
@@ -52,6 +53,7 @@ def run_party(
         )
     party_binary = chosen.binary
     config = RelationPageConfig.load(config_path)
+    chosen.validate_field_prime(config.base.field_prime)
     # Fail before contacting peers if this host was handed the wrong shard.
     validate_private_input(config, query_count, private_input)
 
@@ -80,16 +82,14 @@ def run_party(
     shutil.copyfile(private_input, destination)
     os.chmod(destination, 0o600)
 
+    compiler = CompilerOptions.from_environment()
     subprocess.run(
-        [
-            str(home / "compile.py"),
-            "-F",
-            str(config.base.field_usable_bits),
-            "-P",
-            str(config.base.field_prime),
-            "--preserve-mem-order",
-            name,
-        ],
+        compiler.command(
+            home,
+            field_bits=config.base.field_usable_bits,
+            field_prime=config.base.field_prime,
+            program_name=name,
+        ),
         cwd=home,
         check=True,
         timeout=compile_timeout,
@@ -127,7 +127,7 @@ def run_party(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run one distributed relation-paged Semi party"
+        description="Run one distributed relation-paged MPC party"
     )
     parser.add_argument("--server-id", type=int, required=True)
     parser.add_argument("--config", required=True)

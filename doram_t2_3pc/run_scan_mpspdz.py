@@ -9,6 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .compiler_options import CompilerOptions
 from .config import PublicConfig
 from .run_mpspdz import PROTOCOL_SCRIPT
 from .scan_program import program_name, write_program
@@ -26,6 +27,7 @@ def _compile_if_needed(
     config: PublicConfig,
     timeout: int,
 ) -> None:
+    compiler = CompilerOptions.from_environment()
     source = home / "Programs" / "Source" / generated.name
     shutil.copyfile(generated, source)
     source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -34,7 +36,7 @@ def _compile_if_needed(
         "source_sha256": source_hash,
         "field_bits": config.field_usable_bits,
         "field_prime": config.field_prime,
-        "preserve_memory_order": True,
+        **compiler.stamp_fields(),
     }
     schedule = home / "Programs" / "Schedules" / f"{name}.sch"
     if stamp_path.is_file() and schedule.is_file():
@@ -45,15 +47,12 @@ def _compile_if_needed(
             pass
 
     subprocess.run(
-        [
-            str(home / "compile.py"),
-            "-F",
-            str(config.field_usable_bits),
-            "-P",
-            str(config.field_prime),
-            "--preserve-mem-order",
-            name,
-        ],
+        compiler.command(
+            home,
+            field_bits=config.field_usable_bits,
+            field_prime=config.field_prime,
+            program_name=name,
+        ),
         cwd=home,
         check=True,
         timeout=timeout,

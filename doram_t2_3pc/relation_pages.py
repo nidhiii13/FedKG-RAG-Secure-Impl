@@ -58,6 +58,7 @@ from typing import Any
 
 from .config import PublicConfig, canonical_json
 from .packed import pack_edge, packing_widths
+from .type_blocked_directory import TypeBlockedLayout
 
 
 LAYOUT_VERSION = 1
@@ -116,6 +117,11 @@ class RelationPageParameters:
     # becoming the default.
     directory_buckets: int | None = None
     bucket_slots: int | None = None
+    # Hybrid-only optimization. Residual keys are stored in uniformly sized,
+    # relation-major compact tables and tagged by entity rather than by the
+    # combined (entity, relation) address. The relation remains a secret part
+    # of the MPC lookup address; this changes layout, not leakage.
+    partition_residual_by_relation: bool = False
 
     def validate(self) -> None:
         for name, value in (
@@ -172,14 +178,23 @@ class RelationPageParameters:
                 raise ValueError("global_frontier must be an integer")
             if self.global_frontier < 1:
                 raise ValueError("global_frontier must be positive")
+        if not isinstance(self.partition_residual_by_relation, bool):
+            raise ValueError("partition_residual_by_relation must be boolean")
+        if self.partition_residual_by_relation and not self.uses_compact_directory:
+            raise ValueError(
+                "partition_residual_by_relation requires directory_buckets "
+                "and bucket_slots"
+            )
 
     @classmethod
     def from_dict(cls, raw: Any) -> "RelationPageParameters":
         if not isinstance(raw, dict):
             raise ValueError("relation_page_layout must be a JSON object")
         required = {"page_size", "pages_per_key", "page_budget"}
-        optional = {"frontier_per_owner", "global_frontier",
-                    "directory_buckets", "bucket_slots"}
+        optional = {
+            "frontier_per_owner", "global_frontier", "directory_buckets",
+            "bucket_slots", "partition_residual_by_relation",
+        }
         missing = required - set(raw)
         unknown = set(raw) - required - optional
         if missing or unknown:
@@ -196,6 +211,9 @@ class RelationPageParameters:
             global_frontier=raw.get("global_frontier"),
             directory_buckets=raw.get("directory_buckets"),
             bucket_slots=raw.get("bucket_slots"),
+            partition_residual_by_relation=raw.get(
+                "partition_residual_by_relation", False
+            ),
         )
         result.validate()
         return result
@@ -214,6 +232,8 @@ class RelationPageParameters:
         if self.directory_buckets is not None:
             result["directory_buckets"] = self.directory_buckets
             result["bucket_slots"] = self.bucket_slots
+        if self.partition_residual_by_relation:
+            result["partition_residual_by_relation"] = True
         return result
 
     @property
@@ -284,6 +304,9 @@ class RelationPageConfig:
 
     base: PublicConfig
     pages: RelationPageParameters
+    type_blocks: TypeBlockedLayout | None = None
+    entity_types: dict[str, str] | None = None
+    relation_domains: dict[str, str] | None = None
 
     @classmethod
     def load(cls, path: str | Path) -> "RelationPageConfig":
@@ -296,14 +319,47 @@ class RelationPageConfig:
             raise ValueError(
                 "relation-page configuration requires a relation_page_layout object"
             )
+        type_raw = raw.get("type_block_layout")
         remainder = {
             key: value
             for key, value in raw.items()
-            if key != "relation_page_layout"
+            if key not in {"relation_page_layout", "type_block_layout"}
         }
+        base = PublicConfig.from_dict(remainder)
+        pages = RelationPageParameters.from_dict(raw["relation_page_layout"])
+        if pages.partition_residual_by_relation and type_raw is None:
+            raise ValueError(
+                "partition_residual_by_relation is only valid with "
+                "type_block_layout"
+            )
+        if type_raw is None:
+            return cls(base=base, pages=pages)
+        if not isinstance(type_raw, dict) or set(type_raw) != {
+            "entity_types", "relation_domains"
+        }:
+            raise ValueError(
+                "type_block_layout requires exactly entity_types and relation_domains"
+            )
+        entity_types = type_raw["entity_types"]
+        relation_domains = type_raw["relation_domains"]
+        if not isinstance(entity_types, dict) or not isinstance(relation_domains, dict):
+            raise ValueError("type-block ontology maps must be JSON objects")
+        if not pages.uses_compact_directory:
+            raise ValueError(
+                "type_block_layout requires directory_buckets and bucket_slots: "
+                "the hashed residual is what preserves valid multi-domain keys"
+            )
+        from .type_blocked_directory import build_layout_from_public_ids
+
+        layout = build_layout_from_public_ids(
+            base.entities, base.relations, entity_types, relation_domains
+        )
         return cls(
-            base=PublicConfig.from_dict(remainder),
-            pages=RelationPageParameters.from_dict(raw["relation_page_layout"]),
+            base=base,
+            pages=pages,
+            type_blocks=layout,
+            entity_types={str(k): str(v) for k, v in entity_types.items()},
+            relation_domains={str(k): str(v) for k, v in relation_domains.items()},
         )
 
     @property
@@ -312,9 +368,42 @@ class RelationPageConfig:
 
     @property
     def directory_rows(self) -> int:
-        """Dense (source, relation) directory height, including dummy source."""
+        """Secret-shared affine-directory height, including dummy row zero."""
 
+        if self.type_blocks is not None:
+            return self.type_blocks.total_rows
+        return self.dense_directory_rows
+
+    @property
+    def dense_directory_rows(self) -> int:
         return self.base.entity_count * self.relation_count
+
+    @property
+    def uses_hybrid_directory(self) -> bool:
+        return self.type_blocks is not None
+
+    @property
+    def residual_directory_rows(self) -> int:
+        """Rows in the compact residual table consumed by the circuit."""
+
+        buckets = self.pages.directory_buckets or 0
+        if self.pages.partition_residual_by_relation:
+            logical_rows = self.relation_count * buckets
+            # demux_matrix materializes a power-of-two selector. Padding here
+            # keeps its matrix height identical to the shared table height.
+            return 1 << max(0, (logical_rows - 1).bit_length())
+        return buckets
+
+    @property
+    def residual_tag_bits(self) -> int:
+        """Exact public bit width of the residual slot tag."""
+
+        if self.pages.partition_residual_by_relation:
+            # Entity zero is never stored; +1 reserves tag zero for an empty
+            # slot, so the largest possible tag is entity_count.
+            return max(1, self.base.entity_count.bit_length())
+        # Combined dense address + 1 reserves tag zero.
+        return max(1, self.dense_directory_rows.bit_length())
 
     @property
     def owners_per_directory_element(self) -> int:
@@ -364,7 +453,36 @@ class RelationPageConfig:
             raise ValueError("source slot out of range")
         if not 1 <= relation_id <= self.relation_count:
             raise ValueError("relation id out of range")
+        if self.type_blocks is None:
+            return source_slot * self.relation_count + (relation_id - 1)
+        if source_slot == 0:
+            return 0
+        entity = next(
+            name for name, slot in self.base.entities.items() if slot == source_slot
+        )
+        relation = next(
+            name for name, value in self.base.relations.items() if value == relation_id
+        )
+        address = self.type_blocks.address(entity, relation)
+        if address is None:
+            raise ValueError("key belongs in the hybrid hashed residual")
+        return address
+
+    def dense_directory_index(self, source_slot: int, relation_id: int) -> int:
+        if not 0 <= source_slot < self.base.entity_count:
+            raise ValueError("source slot out of range")
+        if not 1 <= relation_id <= self.relation_count:
+            raise ValueError("relation id out of range")
         return source_slot * self.relation_count + (relation_id - 1)
+
+    def blocked_directory_index(self, source_slot: int, relation_id: int) -> int | None:
+        if self.type_blocks is None:
+            return self.dense_directory_index(source_slot, relation_id)
+        if source_slot == 0:
+            return 0
+        entity = next(name for name, slot in self.base.entities.items() if slot == source_slot)
+        relation = next(name for name, value in self.base.relations.items() if value == relation_id)
+        return self.type_blocks.address(entity, relation)
 
     def pack_descriptor(self, page_base: int, page_count: int) -> int:
         if not 0 <= page_base < self.pages.page_budget:
@@ -386,6 +504,11 @@ class RelationPageConfig:
             "base": self.base.public_dict(),
             "relation_page_layout": self.pages.public_dict(),
         }
+        if self.type_blocks is not None:
+            payload["type_block_layout"] = {
+                "entity_types": self.entity_types,
+                "relation_domains": self.relation_domains,
+            }
         return hashlib.sha256(canonical_json(payload)).hexdigest()
 
 
@@ -397,6 +520,7 @@ class OwnerPageLayout:
     directory: list[int]
     pages: list[list[int]]
     realized_page_count: int
+    residual_descriptors: dict[int, int] | None = None
 
     def descriptor(self, index: int) -> int:
         return self.directory[index]
@@ -463,6 +587,7 @@ def build_owner_page_layout(
     grouped = _grouped_edges(config, owner, edges)
 
     directory = [EMPTY_DESCRIPTOR] * config.directory_rows
+    residual_descriptors: dict[int, int] = {}
     # Page 0 is the reserved dummy page every absent key resolves to.
     pool: list[list[int]] = [[0] * params.page_size]
 
@@ -504,9 +629,14 @@ def build_owner_page_layout(
             ]
             page.extend([0] * (params.page_size - len(page)))
             pool.append(page)
-        directory[config.directory_index(source, relation)] = config.pack_descriptor(
-            page_base, required_pages
-        )
+        descriptor = config.pack_descriptor(page_base, required_pages)
+        blocked = config.blocked_directory_index(source, relation)
+        if config.uses_hybrid_directory and blocked is None:
+            residual_descriptors[
+                config.dense_directory_index(source, relation) + 1
+            ] = descriptor
+        else:
+            directory[blocked] = descriptor
 
     realized = len(pool)
     # Pad to the public budget so the shared table shape reveals only the
@@ -519,6 +649,7 @@ def build_owner_page_layout(
         directory=directory,
         pages=pool,
         realized_page_count=realized,
+        residual_descriptors=residual_descriptors,
     )
 
 
@@ -537,9 +668,16 @@ def owner_occupancy_vector(
     """
 
     grouped = _grouped_edges(config, owner, edges)
-    occupancy = [0] * config.directory_rows
+    occupancy = [0] * (
+        config.dense_directory_rows
+        if config.uses_hybrid_directory
+        else config.directory_rows
+    )
     for (source_slot, relation_id), records in grouped.items():
-        occupancy[config.directory_index(source_slot, relation_id)] = len(records)
+        # The global bound is over every key, including hybrid residual keys, so
+        # it always uses the full dense public keyspace.
+        index = config.dense_directory_index(source_slot, relation_id)
+        occupancy[index] = len(records)
     return occupancy
 
 
@@ -603,7 +741,16 @@ def check_global_frontier(
 def owner_layout_report(layout: OwnerPageLayout, config: RelationPageConfig) -> dict[str, Any]:
     """Private occupancy report for one built owner layout."""
 
-    occupied = sum(1 for value in layout.directory if value != EMPTY_DESCRIPTOR)
+    blocked_occupied = sum(
+        1 for value in layout.directory if value != EMPTY_DESCRIPTOR
+    )
+    residual_occupied = len(layout.residual_descriptors or {})
+    occupied = blocked_occupied + residual_occupied
+    directory_capacity = config.directory_rows
+    if config.uses_hybrid_directory:
+        directory_capacity += (
+            config.pages.directory_buckets * config.pages.bucket_slots
+        )
     stored_edges = sum(
         1
         for page in layout.pages
@@ -614,9 +761,12 @@ def owner_layout_report(layout: OwnerPageLayout, config: RelationPageConfig) -> 
         "audit_scope": "supplied_file_only",
         "owner": layout.owner,
         "directory_rows": config.directory_rows,
+        "directory_capacity_slots_per_owner": directory_capacity,
         "occupied_directory_rows": occupied,
+        "occupied_type_block_rows": blocked_occupied,
+        "occupied_hashed_residual_keys": residual_occupied,
         "directory_occupancy": (
-            occupied / config.directory_rows if config.directory_rows else 0.0
+            occupied / directory_capacity if directory_capacity else 0.0
         ),
         "realized_page_count": layout.realized_page_count,
         "page_budget": config.pages.page_budget,
@@ -691,9 +841,14 @@ def evaluate_paged_cleartext(
             if entity == 0:
                 descriptor = EMPTY_DESCRIPTOR
             else:
-                descriptor = layout.descriptor(
-                    config.directory_index(entity, relation)
-                )
+                blocked = config.blocked_directory_index(entity, relation)
+                if config.uses_hybrid_directory and blocked is None:
+                    descriptor = (layout.residual_descriptors or {}).get(
+                        config.dense_directory_index(entity, relation) + 1,
+                        EMPTY_DESCRIPTOR,
+                    )
+                else:
+                    descriptor = layout.descriptor(blocked)
             page_base, page_count = config.unpack_descriptor(descriptor)
             slots: list[tuple[int, int, int, int]] = []
             for page_number in range(params.pages_per_key):
@@ -821,7 +976,20 @@ def paged_cost_estimate(
     owner_count = len(base.owners)
 
     # One directory read yields all owners' descriptors for a key.
-    directory_products = config.directory_rows * owner_count
+    if config.uses_hybrid_directory:
+        blocked_products = config.directory_rows * config.directory_columns
+        compact_width = owner_count * params.bucket_slots
+        compact_products = (
+            config.residual_directory_rows * compact_width
+            + compact_width * config.residual_tag_bits
+        )
+        directory_products = blocked_products + compact_products
+    else:
+        blocked_products = None
+        compact_products = None
+        # Descriptors for several owners are bit-packed into a field element.
+        # The circuit scans packed columns, not one independent value per owner.
+        directory_products = config.directory_rows * config.directory_columns
     # One demux per owner serves the whole consecutive page window, so the
     # window costs one shifted pass over the budget per public offset.
     page_products = (
@@ -829,13 +997,18 @@ def paged_cost_estimate(
     )
     per_address = directory_products + page_products
 
-    frontier_slots = owner_count * params.slots_per_key
-    declared_reads = owner_count * params.effective_frontier_per_owner
+    # The executable circuit uses the global bound when one is declared.  Keep
+    # the second-hop output width separate: every dependent key still yields
+    # every owner's fixed page window even when only one federation-wide
+    # frontier entity is dereferenced.
+    second_width = owner_count * params.slots_per_key
+    frontier_slots = params.frontier_slots(owner_count)
+    declared_reads = frontier_slots
     if compacted_frontier_slots is not None:
-        if not 1 <= compacted_frontier_slots <= frontier_slots:
+        if not 1 <= compacted_frontier_slots <= second_width:
             raise ValueError(
                 "compacted_frontier_slots must be in "
-                f"[1, {frontier_slots}]"
+                f"[1, {second_width}]"
             )
         dependent_reads = compacted_frontier_slots
     else:
@@ -860,8 +1033,10 @@ def paged_cost_estimate(
         "frontier_slots": frontier_slots,
         "declared_dependent_reads_per_query": declared_reads,
         "dependent_reads_per_query": dependent_reads,
-        "candidate_count_per_query": dependent_reads * frontier_slots,
+        "candidate_count_per_query": dependent_reads * second_width,
         "per_address_directory_products": directory_products,
+        "per_address_type_block_products": blocked_products,
+        "per_address_hashed_residual_products": compact_products,
         "per_address_page_products": page_products,
         "first_hop_products": first_hop,
         "second_hop_products": second_hop,

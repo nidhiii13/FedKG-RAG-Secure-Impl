@@ -123,6 +123,35 @@
    "diagnosis": "UNCONFIRMED but the leading suspect is the vectorised equality `stored_tags == wanted`, which is compiled at the default 124-bit length rather than at the ~18-bit tag width, so every slot pays a full-field zero test.",
    "known_fix_not_yet_applied": "match on the bit decomposition already computed -- an AND tree over XORs of TAG_BITS bits -- instead of a field equality. That is TAG_BITS operations per slot rather than the field width."
   },
-  "why_this_matters_beyond_this_layout": "The per-slot tag comparison is both the modelled cost driver AND the compile-scalability problem. The type-blocked directory (KG_VS_PLAIN_GRAPH.md) has no tag comparison at all, models ~2.5x cheaper on the same graph, and therefore does not have this failure mode. That is now an argument for type-blocking on engineering grounds and not only on product counts."
+  "why_this_matters_beyond_this_layout": "The per-slot tag comparison is both the modelled cost driver AND the compile-scalability problem. The type-blocked directory (KG_VS_PLAIN_GRAPH.md) has no tag comparison at all, models ~2.5x cheaper on the same graph, and therefore does not have this failure mode. That is now an argument for type-blocking on engineering grounds and not only on product counts.",
+  "third_attempt_bounded_comparison": {
+   "change": "Replaced the field equality `stored_tags == wanted`, which the compiler emits at the default 124-bit length, with a bitwise XNOR over the TAG_BITS (18 here) tag bits already produced by the slot decomposition, reduced by a balanced AND tree.",
+   "result": "STILL TIMED OUT at 1800s, having reached 2.8 million lines. The hypothesis that the comparison width was the binding constraint is therefore REJECTED.",
+   "revised_diagnosis": "The dense read does map_sum over DIRECTORY_ROWS -- many iterations, a narrow output tuple -- and compiles fine on the same fixture. The compact read does map_sum over DIRECTORY_BUCKETS -- few iterations, an output tuple of address_count * BUCKET_WIDTH (1,425 here) -- because fetching a bucket materialises every slot in it. Program size tracks the OUTPUT WIDTH of the map_sum, not the row count, and bucket fetching makes that width inherently large.",
+   "proposed_fix_NOT_implemented": "Fold the tag match INTO the scan instead of after it: for every slot of every bucket contribute selector[bucket] * match(tag, wanted) * descriptor to one accumulator per (address, owner). The output width falls from address_count * BUCKET_WIDTH to address_count * OWNER_COUNT -- 19x narrower here -- at the cost of running the match on all buckets * width slots rather than only the width fetched, which is 16x more match work. Products may go either way; program size, which is the binding constraint, should fall sharply.",
+   "status": "The compact layout remains MODELLING ONLY after three implementation attempts. No byte count exists for it.",
+   "CORRECTION_the_proposed_fix_was_wrong": {
+    "what_was_proposed": "Fold the tag match into the scan so the map_sum output narrows from address_count * BUCKET_WIDTH to address_count * OWNER_COUNT.",
+    "why_it_is_wrong": "It narrows the program but multiplies the WORK. The match currently runs on the BUCKET_WIDTH slots actually fetched (95 here); folding it into the scan runs it on every slot of every bucket (16 * 95 = 1,520), because a slot's match depends on the querying address. Arithmetic: 1,520 + 95*36 = 4,940 products per address now, against 1,520*38 = 57,760 proposed -- 11.7x worse. The compact layout's 51x would collapse to roughly 4x, which is worse than doing nothing.",
+    "the_actual_fix": "Emit the bucket fetch as a MATRIX MULTIPLICATION. fetched[address][column] = sum over buckets of selector[bucket][address] * compact[bucket][column] is exactly an (addresses x buckets) by (buckets x width) matrix product. MP-SPDZ can emit that as a compact matmul instead of address_count * BUCKET_WIDTH unrolled scalar expressions. Product count is UNCHANGED -- only the program text collapses, which is the binding constraint. This is a code-generation change, not an algorithmic one.",
+    "why_more_buckets_does_not_help": "Program size falls with narrower buckets, but total slots = buckets * owner_count * slots, and slots has a floor near 1, so many small buckets means mostly-empty ones. Measured: b=16, s=19 gives slack 1.51 on the 1,004-key fixture; b=1024 would give slack ~35. Slack and program width pull in opposite directions, which is why no bucket count fixes this and the fix has to be in how it is emitted."
+   }
+  },
+  "fourth_attempt_matrix_multiply": {
+   "change": "Emitted the bucket fetch as selectors.trans_mul(compact) -- one matmul instruction over a runtime loop of address_count iterations -- instead of a map_sum whose output tuple was address_count * BUCKET_WIDTH wide.",
+   "result": "TIMED OUT at 1800s having reached 2,800,000 lines: the SAME peak as the previous attempt, to three significant figures.",
+   "what_the_identical_line_count_proves": "The bucket fetch was never the dominant contributor. Replacing it with a single VM instruction changed the program size not at all, which eliminates the map_sum output width hypothesis for THIS circuit even though that hypothesis is correct in general (compile_shape_report still predicts a real constraint, and the dense fold's width remains a genuine risk at evaluation-fixture scale).",
+   "hypotheses_eliminated_so_far": [
+    "scalar per-slot unrolling of the tag match (attempt 1)",
+    "field-width equality instead of tag-width (attempt 2)",
+    "map_sum output width of the bucket fetch (attempts 3 and 4)"
+   ],
+   "remaining_suspects_UNTESTED": [
+    "the 16 scalar bit_decompose(HASH_PRODUCT_BITS=82) calls in compact_bucket, one per address, which are not vectorised",
+    "the 1,425 scalar Array stores filling `wanted` and the 1,425 scalar loads in the accumulator, under --preserve-mem-order",
+    "something common to both configurations that the compact CONFIG triggers rather than the compact CODE"
+   ],
+   "status": "STOPPING. Four attempts, four wrong diagnoses. Continuing to guess is not engineering. This needs a profiling pass against MP-SPDZ instruction counts to find where the 2.8M lines actually come from, not another speculative edit. The compact layout remains MODELLING ONLY and no byte count exists for it."
+  }
  }
 }

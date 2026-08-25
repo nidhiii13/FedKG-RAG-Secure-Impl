@@ -36,9 +36,16 @@ measured maximum, for the reason recorded in ``LEAKAGE_ABUSE.md`` §8.
 
 Status
 ------
-Layout, split and cost model. No circuit. The two halves' circuits exist
-separately (the hashed one in ``page_program``); running them together is the
-remaining work.
+The hybrid is now an opt-in executable path in ``page_program`` and
+``paged_shares``. Owners route primary-type keys to the affine table and every
+residual key to the hashed table without coordinating. The circuit reads both
+halves and adds their descriptors, so the trace never reveals which half held
+the key. A one-query MP-SPDZ Semi execution is recorded in
+``benchmarks/hybrid_directory_execution.json``. Batched residual-tag
+decomposition subsequently allowed all ten distinct fixture queries to compile,
+run, and match the oracle on every field. This is still not a scale result: the
+compiler processed roughly 4.2 million lines, so whole-batch compiler expansion
+remains material.
 """
 
 from __future__ import annotations

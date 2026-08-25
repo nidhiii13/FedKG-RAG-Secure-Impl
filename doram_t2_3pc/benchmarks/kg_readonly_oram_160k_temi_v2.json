@@ -1,0 +1,85 @@
+{
+  "name": "kg_readonly_oram_160k_temi_v2",
+  "date": "2026-08-21",
+  "status": "completed end-to-end MP-SPDZ Temi execution with exact reconstruction",
+  "scope_warning": "One favorable degree-one synthetic query, three parties on one localhost, preprocessing and 6.08 GB of externally prepared epoch shares. The read path is sublinear in logical records, but loading a fresh read-only epoch remains linear. This is not a persistent/update ORAM, LAN/WAN result, full MetaQA/WebQSP evaluation, malicious-security result, or production-scalability claim.",
+  "protocol": {
+    "name": "owner-built recursive read-only tree ORAM composed with MP-SPDZ Temi",
+    "program_version": 2,
+    "program": "kg_readonly_oram_3pc_fd48a6e434548d20",
+    "security": "static semi-honest adversary corrupting up to two of exactly three computation servers, conditional on the MP-SPDZ Temi backend claim",
+    "field_prime": "170141183460469231731687303715885907969",
+    "epoch_rule": "fresh independently randomized owner trees and fresh 3-of-3 shares; each server atomically consumes the epoch once"
+  },
+  "dataset": {
+    "real_entities": 100000,
+    "entity_slots_including_dummy": 100001,
+    "real_edges": 160000,
+    "relations": 3,
+    "owners": 3,
+    "owner_edge_counts": [53334, 53333, 53333],
+    "global_frontier": 1,
+    "top_k": 4
+  },
+  "oram_shape_per_owner": {
+    "logical_records": 300003,
+    "levels": [
+      {"logical_entries": 300003, "bucket_size": 88, "depth": 14, "slots": 2883584, "fields": 5},
+      {"logical_entries": 1172, "bucket_size": 83, "depth": 6, "slots": 10624, "fields": 259},
+      {"logical_entries": 5, "bucket_size": 6, "depth": 1, "slots": 24, "fields": 259}
+    ],
+    "recursive_base_entries": 5,
+    "position_map_packing_factor": 256,
+    "accesses_per_owner": 2,
+    "path_entries_per_logical_access": 1918,
+    "entry_touch_reduction_versus_dense_scan": 156.41,
+    "placement_conditioning_bound": "at most 2^-80 across a stack by binary-KL Chernoff and union bounds"
+  },
+  "compiler": {
+    "completed": true,
+    "wall_seconds_approx": 102,
+    "reported_expansion": "approximately 1.5 million lines",
+    "previous_field_major_attempt": "interrupted after more than 12.7 million lines",
+    "minimum_expansion_reduction_percent": 88.19,
+    "aggregate_bytecode_mb_rounded": 26,
+    "virtual_machine_rounds": 10949,
+    "bit_triples": 10924053,
+    "integer_triples": 960937
+  },
+  "offline_epoch_preparation": {
+    "total_seconds": 151.587153,
+    "tree_build_seconds_per_owner": [2.060149, 2.051184, 2.099585],
+    "uniform_share_write_seconds_per_owner": [46.520174, 46.146873, 46.412744],
+    "private_field_values_per_server": 51527274,
+    "input_bytes_per_server": [2027436411, 2027435928, 2027437491],
+    "total_external_owner_to_server_share_bytes": 6082309830,
+    "centralized_fixture_warning": "The benchmark preparer reads all plaintext owners on one host. Deployment uses the independent per-owner shard writer; the centralized utility is not evidence of owner separation."
+  },
+  "execution": {
+    "seconds_including_preprocessing_and_input": 78.2724,
+    "global_mpc_data_mb": 1917.69,
+    "party0_data_mb": 836.516,
+    "party0_reported_rounds": 40494,
+    "input_ingestion_not_separately_timed": true
+  },
+  "correctness": {
+    "oracle_fields_compared": 16,
+    "mismatches": 0,
+    "decoded_result": [
+      {"valid": 1, "left_evidence": 1, "right_evidence": 100002, "score": 4},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0},
+      {"valid": 0, "left_evidence": 0, "right_evidence": 0, "score": 0}
+    ]
+  },
+  "controlled_comparison_to_relation_paged_temi": {
+    "same_fixture_and_query": true,
+    "relation_paged_seconds": 8.76819,
+    "relation_paged_global_mpc_data_mb": 2608.22,
+    "oram_runtime_slowdown": 8.93,
+    "oram_mpc_communication_reduction_percent": 26.48,
+    "private_input_value_increase": 83.11,
+    "interpretation": "ORAM reduces cryptographic multiplication/communication but loses badly on latency because full fresh-state input and high-round recursive access dominate. It is not currently the best practical backend."
+  },
+  "claim_boundary": "Executable sublinear secret-dependent lookup inside a bounded fresh read-only epoch, composed with contribution-hiding two-hop KG retrieval and client-only top-k. End-to-end epoch setup remains linear and the system is semi-honest only."
+}

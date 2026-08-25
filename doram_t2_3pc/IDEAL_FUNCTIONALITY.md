@@ -41,11 +41,27 @@ g                    global_frontier      OPTIONAL: first-hop matches carried
 b                    directory_buckets    OPTIONAL: buckets in the compact
                                           directory (power of two)
 s                    bucket_slots         OPTIONAL: slots per owner per bucket
+rho                  partition_residual_by_relation
+                                          OPTIONAL public layout bit; when 1,
+                                          residual rows are relation-major
 Q                    queries in the batch
+chi                  OPTIONAL ORAM position-map packing factor
+lambda               OPTIONAL ORAM placement statistical-security parameter
+A                    OPTIONAL maximum accesses per owner in one read-only epoch
+ORAMShape             OPTIONAL public recursion depths, bucket capacities,
+                      record widths, and base size
 ```
 
 `b` and `s` appear only under the compact directory (`compact_directory.py`),
 which sizes the index to the number of keys rather than to `E * R`.
+
+`rho` reveals which residual representation was deployed. When `rho = 1`, the
+public residual height is the next power of two above `R * b`; every relation
+has the same `b` buckets and every owner the same `s` slots, so the shape does
+not reveal a realized per-relation population. The secret query relation selects
+one of these rows inside MPC and is not itself leaked. As with the unpartitioned
+compact directory, choosing `s` from a measured per-relation maximum rather than
+from a public capacity bound leaks clustering information through `s`.
 
 `b` is a free public choice. **`s` is only leakage-free if it is derived from the
 public bound** (`public_capacity_bound`), which is a function of `b` and the
@@ -102,12 +118,20 @@ For a static passive adversary corrupting **any two** of the three servers, plus
 any subset of owners, the claim is that its entire view is simulatable from:
 
 ```
-L = ( n, E, R, k, p, m, B_1..B_n, f, g, Q )
+L = ( n, E, R, k, p, m, B_1..B_n, f, g, Q,
+      [chi, lambda, A, ORAMShape] )
 ```
 
 That is: **the leakage is exactly the public parameters and the batch size.** `L`
 is a function of the declared configuration alone — it does not depend on `G`, on
 `q`, or on which entities matched.
+
+For the read-only-ORAM backend, the bracketed values are present and every
+opened path label is simulator-generated public transcript randomness, not an
+additional input-dependent leakage item. This statement is statistical: for
+`n` owner stacks constructed with parameter `lambda`, the real trace is within
+at most `n * 2^-lambda` of independently uniform simulated labels, before the
+computational distance inherited from the MPC backend.
 
 In particular the following are claimed *not* to leak to two colluding servers:
 
@@ -220,16 +244,42 @@ argument. It is not a proof.
    See `LEAKAGE_ABUSE.md`.
 4. **`f`, `p`, `m` publish upper bounds on the degree distribution.** Same status:
    in `L`, deliberately, and analyzed separately.
-5. **`g` is not enforceable owner-locally, and is currently trusted.**
-   `f` is checked by each owner against its own data, fail-closed, before any
-   share is produced. `g` bounds a cross-owner sum that no owner can see.
-   `check_global_frontier` verifies it offline against the plaintext union,
-   which exists for fixtures and simulation but **not in a deployment**. The
-   deployment-grade equivalent is a one-time preparation-phase MPC pass over
-   the directory; it is **not implemented**. Until it is, a layout declaring
-   `g` rests on an unverified assumption, and if `g` is understated the second
-   hop silently drops matches rather than failing closed. This is the weakest
-   link in the current design.
+5. **`g` is not enforceable owner-locally, and is verified by a preparation-phase
+   MPC pass.** `f` is checked by each owner against its own data, fail-closed,
+   before any share is produced. `g` bounds a cross-owner sum that no owner can
+   see, so preparation cannot enforce it the same way.
+
+   **CORRECTED 2026-08-17.** This item previously called `g` "currently trusted"
+   and said the deployment-grade check was "not implemented", describing it as
+   the weakest link in the design. That was stale: `bound_check_program.py` and
+   `run_bound_check.py` implement exactly that check, and
+   `benchmarks/global_frontier_bound_check.json` records it executing under
+   MP-SPDZ `Semi` on a four-owner fixture, accepting a sound bound and rejecting
+   an understated one. The documentation was understating the system's own
+   security, which is the rarer direction of drift and just as much a defect.
+
+   The check is cheap for a structural reason worth stating: retrieval is
+   expensive because it must hide *which* key it reads, so every access is a full
+   oblivious scan. Verification has no such requirement — it inspects **every**
+   key, so the row index is public at every step. No demux, no one-hot selector,
+   no oblivious indexing. The current verifier evaluates the exact overflow
+   predicate as a public bounded-domain polynomial in SIMD and sums the secret
+   bits, paid once at preparation rather than per query. This relies on the
+   honest-input occupancy range already assumed by the functionality.
+
+   It opens exactly one value: the number of keys exceeding the bound. That is
+   the fact declaring `g` already asserts publicly. No per-key count, no owner's
+   contribution and no key identity is revealed — deliberately not even *which*
+   keys overflowed, since that would leak the degree distribution `g` exists to
+   summarize.
+
+   **What remains assumed.** The check has been executed on a synthetic
+   four-owner fixture on a single host, which does not instantiate the
+   non-collusion assumption, and it has not been run as a gate in front of a real
+   deployment. So `g` is verifiable and verified-in-principle rather than
+   verified-by-construction on every layout, and a layout that skips the check
+   still rests on an assertion.
+
 6. **The honest-majority variant is a different claim entirely.** Under
    `--protocol atlas` the assumption is at most *one* corrupted server, and the
    two-server statements in §4 are simply false. See `protocols.py`.

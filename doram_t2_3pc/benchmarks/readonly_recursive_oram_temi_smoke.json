@@ -1,0 +1,57 @@
+{
+  "benchmark_kind": "standalone recursive read-only ORAM MPC execution",
+  "date_utc": "2026-08-21",
+  "status": "executed correctness milestone",
+  "scope_warning": "Tiny standalone correctness execution only. It is not integrated with KG traversal, does not establish large-scale performance, and requires fresh owner randomization after the bounded read-only epoch.",
+  "protocol": {
+    "name": "MP-SPDZ Temi",
+    "parties": 3,
+    "passive_corruption_threshold": 2,
+    "field_prime": "170141183460469231731687303715885907969"
+  },
+  "fixture": {
+    "logical_records": 32,
+    "value_fields": 2,
+    "chi": 4,
+    "base_threshold": 4,
+    "tree_levels": 3,
+    "accesses": [7, 19, 7, 31],
+    "purpose_of_repeat": "exercise the secret per-level stash and dummy-path branch"
+  },
+  "result": {
+    "exact_client_reconstruction": true,
+    "records": [[1007, 2007], [1019, 2019], [1007, 2007], [1031, 2031]],
+    "wall_seconds_including_preprocessing": 0.566014,
+    "party0_data_mb": 12.3107,
+    "global_data_mb": 32.3779,
+    "reported_rounds_party0": 3708
+  },
+  "compiler": {
+    "field_usable_bits": 124,
+    "strict_edabits_127": 460,
+    "integer_dabits": 476,
+    "integer_randoms": 24,
+    "integer_opens": 508,
+    "bit_triples": 338264,
+    "integer_triples": 1912,
+    "vm_rounds": 612
+  },
+  "scale_model_not_execution": {
+    "logical_records": 389115,
+    "chi": 256,
+    "tree_levels": 2,
+    "secret_base_entries": 6,
+    "tree_entries_touched_per_access": 1412,
+    "linear_scan_entries": 389115,
+    "entry_touch_reduction_factor": 275.58,
+    "warning": "analytic entry count only; no large-scale circuit was compiled or executed"
+  },
+  "claim_boundary": [
+    "This demonstrates a real recursive secret-address access and repeat-safe read-only stash inside Temi.",
+    "It is not integrated with dependent two-hop KG retrieval.",
+    "It does not establish large-scale performance or end-to-end sublinear complexity because state ingestion remains linear.",
+    "The state must be freshly randomized and re-shared after the bounded access epoch.",
+    "The owner-placement conditioning requires a statistical-distance proof before a formal ORAM theorem is claimed.",
+    "This is passive, not malicious, security."
+  ]
+}

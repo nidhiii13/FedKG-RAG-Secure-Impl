@@ -7,6 +7,7 @@ import pytest
 from doram_t2_3pc.config import (
     EDGE_FIELDS,
     FIELD_PRIME,
+    HE_SCALABLE_FIELD_PRIME,
     SCALABLE_FIELD_PRIME,
     PublicConfig,
 )
@@ -237,6 +238,20 @@ def test_packed_edge_round_trip_and_field_headroom(scalable_config: PublicConfig
     assert packed.bit_length() <= scalable_config.field_usable_bits
 
 
+def test_he_scalable_field_preserves_the_audited_packing_envelope(
+    scalable_config: PublicConfig,
+):
+    raw = scalable_config.public_dict()
+    raw.pop("version")
+    raw["field_prime"] = HE_SCALABLE_FIELD_PRIME
+    he_config = PublicConfig.from_dict(raw)
+    assert he_config.field_usable_bits == scalable_config.field_usable_bits == 124
+    fields = (10, 3, (1 << 50) - 1, (1 << 20) - 1, 1)
+    packed = pack_edge(he_config, *fields)
+    assert unpack_edge(he_config, packed) == fields
+    assert he_config.digest != scalable_config.digest
+
+
 def test_packed_batch_assembly_reconstructs_queries_and_graph(
     tmp_path: Path, scalable_config: PublicConfig
 ):
@@ -314,6 +329,16 @@ def test_scan_program_has_two_constant_trace_batch_reads_and_no_address_open(
     assert "second_addresses[flat] = valid.if_else(target, sint(0))" in source
     assert ".reveal()" not in source
     assert "reveal_to(0)" in source
+
+
+def test_scan_topk_suppresses_winner_without_secret_index_equality(
+    scalable_config: PublicConfig,
+):
+    source = render_scan_program(scalable_config, 2)
+    assert "became_best[candidate] = better" in source
+    assert "candidate = CANDIDATE_COUNT - 1 - reverse_offset" in source
+    assert "winner = became_best[candidate] * (sint(1) - later_winner)" in source
+    assert "best_index" not in source
 
 
 def test_relation_frontier_bound_fails_closed_without_truncation(

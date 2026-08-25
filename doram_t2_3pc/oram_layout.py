@@ -21,15 +21,15 @@ two, 3-of-3 additive sharing, no dealer, no trusted setup, no FSS.
 
 What this module covers, and what it does not
 ---------------------------------------------
-It builds **one tree level**: the bucket array ``TreeORAM`` keeps in
-``self.ram``. That is the part carrying full-size entries and therefore
-essentially all of the data volume.
+``build_owner_oram_tree`` builds one tree level. ``build_owner_oram_stack``
+recursively builds the position map down to a small, linearly scanned secret
+base. ``oram_access_program.py`` now executes that recursion in MP-SPDZ and has
+passed a real Temi run, including a repeated logical address.
 
-It does **not** build the recursive position map (``TreeORAM.index``). MP-SPDZ
-stores that as a further ORAM, recursively, so a complete replacement needs this
-same construction applied at each of the ``log N`` levels. That is mechanical
-once one level is verified, but it is not done here, and until it is this module
-cannot replace ``batch_init`` in a running system. See ``REMAINING``.
+The remaining boundary is integration: the standalone access circuit has not
+yet replaced the relation-paged first and second scans, and the read-only state
+must be freshly randomized and re-shared after its declared access epoch. See
+``REMAINING``.
 
 Layout being reproduced
 -----------------------
@@ -54,9 +54,9 @@ from dataclasses import dataclass
 
 
 REMAINING = (
-    "integration with the relation-paged backend; the construction and its "
-    "access model are standalone, and the recursive access has been verified in "
-    "cleartext but not yet executed as a circuit"
+    "integration with the relation-paged KG backend and measured large-scale "
+    "execution; the recursive read-only access circuit is executable, but its "
+    "state must be freshly randomized and re-shared after every bounded epoch"
 )
 
 # Packing factor for the position map. Each level stores CHI leaf labels per
@@ -85,6 +85,57 @@ def tree_shape(size: int, delta: int = 3) -> tuple[int, int]:
     k = (math.log(size * size * math.log2(size) * 100, 2) + 21) / (1 + delta)
     bucket_size = min(int(math.ceil((1 + delta) * k)), size + 1)
     depth = int(math.log2(max(size / k, 2)))
+    return bucket_size, depth
+
+
+def leaf_overflow_log2_bound(size: int, bucket_size: int, depth: int) -> float:
+    """Chernoff/union upper bound for any leaf exceeding ``bucket_size``.
+
+    Leaf labels are independent uniform values before the builder conditions on
+    successful placement.  Conditioning changes their joint distribution by at
+    most the rejected-event probability.  The binary KL Chernoff bound below,
+    unioned over all leaves, gives a conservative auditable bound without
+    relying on floating-point binomial-tail summation.
+    """
+
+    leaves = 2 ** depth
+    threshold = bucket_size + 1
+    if threshold > size:
+        return float("-inf")
+    probability = 1.0 / leaves
+    fraction = threshold / size
+    if fraction <= probability:
+        return 0.0
+    divergence = (
+        fraction * math.log(fraction / probability)
+        + (1 - fraction) * math.log((1 - fraction) / (1 - probability))
+    )
+    return (math.log(leaves) - size * divergence) / math.log(2)
+
+
+def secure_tree_shape(
+    size: int,
+    *,
+    statistical_security_bits: int = 80,
+    maximum_stack_levels: int = 64,
+) -> tuple[int, int]:
+    """Increase the MP-SPDZ bucket until placement conditioning is negligible.
+
+    Each recursive level is allocated ``epsilon / maximum_stack_levels`` so a
+    union bound across the complete stack remains below ``2^-security_bits``.
+    The depth remains MP-SPDZ-compatible; only the public bucket capacity grows.
+    """
+
+    if statistical_security_bits < 40:
+        raise ValueError("statistical_security_bits must be at least 40")
+    if maximum_stack_levels < 1:
+        raise ValueError("maximum_stack_levels must be positive")
+    bucket_size, depth = tree_shape(size)
+    target = -statistical_security_bits - math.log2(maximum_stack_levels)
+    while leaf_overflow_log2_bound(size, bucket_size, depth) > target:
+        bucket_size += 1
+        if bucket_size >= size:
+            return size + 1, depth
     return bucket_size, depth
 
 
@@ -132,6 +183,7 @@ def build_owner_oram_tree(
     *,
     max_attempts: int = 64,
     rng: secrets.SystemRandom | None = None,
+    statistical_security_bits: int | None = None,
 ) -> OwnerOramTree:
     """Build the post-``batch_init`` tree state in plaintext.
 
@@ -153,7 +205,11 @@ def build_owner_oram_tree(
     if any(len(value) != width for value in values):
         raise ValueError("every entry must have the same value length")
 
-    bucket_size, depth = tree_shape(size)
+    bucket_size, depth = (
+        secure_tree_shape(size, statistical_security_bits=statistical_security_bits)
+        if statistical_security_bits is not None
+        else tree_shape(size)
+    )
     leaves = 2 ** depth
     generator = rng or secrets.SystemRandom()
 
@@ -290,6 +346,7 @@ def build_owner_oram_stack(
     chi: int = DEFAULT_CHI,
     base_threshold: int = DEFAULT_BASE_THRESHOLD,
     rng: secrets.SystemRandom | None = None,
+    statistical_security_bits: int | None = None,
 ) -> OwnerOramStack:
     """Build the data tree and its recursive position map, all in plaintext."""
 
@@ -301,10 +358,19 @@ def build_owner_oram_stack(
     levels: list[OwnerOramTree] = []
     current_values = values
     while True:
-        tree = build_owner_oram_tree(current_values, rng=rng)
+        tree = build_owner_oram_tree(
+            current_values,
+            rng=rng,
+            statistical_security_bits=statistical_security_bits,
+        )
         levels.append(tree)
         labels = tree.position_map
-        if len(labels) <= base_threshold:
+        # If packing would create a single-record position-map ORAM, that tree
+        # has no private address to hide and build_owner_oram_tree correctly
+        # rejects its size. Keep the current labels as the secret scanned base
+        # instead. This can make the base larger than base_threshold but avoids
+        # a pointless/invalid one-record recursive level.
+        if len(labels) <= base_threshold or len(labels) <= chi:
             return OwnerOramStack(levels=levels, base=labels, chi=chi)
         # The next level stores these labels, chi per entry, zero-padded.
         packed: list[list[int]] = []

@@ -19,17 +19,68 @@
   "protocol": "MP-SPDZ Semi, three local parties. Threat model unchanged: any two of three servers may collude.",
   "note": "MB figures are global data sent, all parties, one query.",
   "runs": [
-   {"dataset": "webqsp", "fixture_questions": 5, "directory_rows": 17776, "unfolded_mb": 17143.1, "folded_mb": 5116.39, "ratio": 3.35, "unfolded_seconds": 15.75, "folded_seconds": 10.63},
-   {"dataset": "webqsp", "fixture_questions": 10, "directory_rows": 38916, "unfolded_mb": 36181.7, "folded_mb": 7721.02, "ratio": 4.69, "unfolded_seconds": 25.36, "folded_seconds": 12.38},
-   {"dataset": "webqsp", "fixture_questions": 20, "directory_rows": 80840, "unfolded_mb": 69766.5, "folded_mb": 12278.6, "ratio": 5.68, "unfolded_seconds": 40.32, "folded_seconds": 15.33},
-   {"dataset": "metaqa", "fixture_questions": 10, "directory_rows": 1064, "unfolded_mb": 644.014, "folded_mb": 501.921, "ratio": 1.28, "unfolded_seconds": 2.06, "folded_seconds": 2.08},
-   {"dataset": "metaqa", "fixture_questions": 20, "directory_rows": 2968, "unfolded_mb": 1059.51, "folded_mb": 748.809, "ratio": 1.42, "unfolded_seconds": 2.19, "folded_seconds": 2.09}
+   {
+    "dataset": "webqsp",
+    "fixture_questions": 5,
+    "directory_rows": 17776,
+    "unfolded_mb": 17143.1,
+    "folded_mb": 5116.39,
+    "ratio": 3.35,
+    "unfolded_seconds": 15.75,
+    "folded_seconds": 10.63
+   },
+   {
+    "dataset": "webqsp",
+    "fixture_questions": 10,
+    "directory_rows": 38916,
+    "unfolded_mb": 36181.7,
+    "folded_mb": 7721.02,
+    "ratio": 4.69,
+    "unfolded_seconds": 25.36,
+    "folded_seconds": 12.38
+   },
+   {
+    "dataset": "webqsp",
+    "fixture_questions": 20,
+    "directory_rows": 80840,
+    "unfolded_mb": 69766.5,
+    "folded_mb": 12278.6,
+    "ratio": 5.68,
+    "unfolded_seconds": 40.32,
+    "folded_seconds": 15.33
+   },
+   {
+    "dataset": "metaqa",
+    "fixture_questions": 10,
+    "directory_rows": 1064,
+    "unfolded_mb": 644.014,
+    "folded_mb": 501.921,
+    "ratio": 1.28,
+    "unfolded_seconds": 2.06,
+    "folded_seconds": 2.08
+   },
+   {
+    "dataset": "metaqa",
+    "fixture_questions": 20,
+    "directory_rows": 2968,
+    "unfolded_mb": 1059.51,
+    "folded_mb": 748.809,
+    "ratio": 1.42,
+    "unfolded_seconds": 2.19,
+    "folded_seconds": 2.09
+   }
   ],
   "the_ratio_grows_with_size": "3.35x -> 4.69x -> 5.68x across the three WebQSP fixtures, because a fixed ~3 GB floor dilutes the headline at small sizes. The fitted per-row term is the honest measure of the change."
  },
  "correctness": {
   "method": "All output values reconstructed from all three party logs (3-of-3 additive shares summed mod 2^127-1) under both circuits and compared.",
-  "arms_checked": ["webqsp n=5", "webqsp n=10", "webqsp n=20", "metaqa n=10", "metaqa n=20"],
+  "arms_checked": [
+   "webqsp n=5",
+   "webqsp n=10",
+   "webqsp n=20",
+   "metaqa n=10",
+   "metaqa n=20"
+  ],
   "result": "IDENTICAL on every arm, 16 values each.",
   "why_this_matters": "The claim is that folding is semantically a no-op. That is checked against the preserved unfolded circuit, not asserted from the algebra."
  },
@@ -43,8 +94,16 @@
   "consistency_check": "After folding, the per-row slopes of the two datasets converge (0.113 vs 0.130) where before they differed 3.4x. That is the expected signature: what remains per row is the dataset-independent hop-one scan plus the fold, while the removed term carried the frontier-width factor, which is 15 on WebQSP and 9 on MetaQA."
  },
  "projections_NOT_runs": {
-  "webqsp_66_question_eval_fixture": {"rows": 1706776, "unfolded_gb": 1386, "folded_gb": 191},
-  "metaqa_400_question_eval_fixture": {"rows": 118296, "unfolded_gb": 28, "folded_gb": 15},
+  "webqsp_66_question_eval_fixture": {
+   "rows": 1706776,
+   "unfolded_gb": 1386,
+   "folded_gb": 191
+  },
+  "metaqa_400_question_eval_fixture": {
+   "rows": 118296,
+   "unfolded_gb": 28,
+   "folded_gb": 15
+  },
   "caveat": "Both are extrapolations from the fitted line. The largest fixture actually executed was 80,840 rows, so the WebQSP figure is a 21x reach and should be treated as an order-of-magnitude statement."
  },
  "what_this_does_NOT_establish": [
@@ -55,5 +114,15 @@
   "NOT applicable to hop one, which is unchanged and still pays a full dense scan per query.",
   "NOT a malicious-security or sublinear-access result."
  ],
- "what_is_still_on_the_table": "The dense entity x relation directory is 2.20% occupied on the WebQSP eval fixture and 0.154% at full scale. A compact table sized to the actual key count would attack the dense-keyspace term itself rather than a factor of it. Not implemented and not measured; the ratios above say nothing about whether it would work."
+ "what_is_still_on_the_table": "The dense entity x relation directory is 2.20% occupied on the WebQSP eval fixture and 0.154% at full scale. A compact table sized to the actual key count would attack the dense-keyspace term itself rather than a factor of it. Not implemented and not measured; the ratios above say nothing about whether it would work.",
+ "CAVEAT_the_projections_may_be_unrunnable": {
+  "date_utc": "2026-08-17",
+  "found_by": "diagnosing three compact-circuit compile failures, which established that MP-SPDZ program size tracks the OUTPUT WIDTH of a map_sum rather than its iteration count",
+  "what_it_means_here": "The relation fold this benchmark measures emits one entry per ENTITY, so its map_sum width is entity_count. Every fixture measured here has a fold width at or below 216 and compiles in seconds. The two evaluation fixtures the projections extrapolate to have entity counts of 1,529 (WebQSP) and 6,573 (MetaQA) -- comparable to or larger than the 1,425-wide stage that failed to compile three times.",
+  "consequence": "The projected 191 GB (WebQSP eval) and 15 GB (MetaQA eval) figures are not merely unrun; in the current emission they are probably UNRUNNABLE. They remain valid statements about the fitted cost line and must not be read as achievable configurations.",
+  "the_measured_5_68x_is_unaffected": "Every arm of the A/B compiled and ran, and the byte-identical output check covered all five. Only the extrapolations are in question.",
+  "known_fix": "The fold is also a matrix product -- T[entity] = sum over relations of selector[relation] * directory[entity][relation] -- so storing the directory relation-major would let it be emitted as one matmul, exactly as the compact bucket fetch now is. That changes the address formula and the assembly order, so it is a real refactor rather than a local edit. NOT implemented.",
+  "predictor": "doram_t2_3pc.page_program.compile_shape_report",
+  "RESOLVED_2026_08_17": "Chunking the fold's entity range to 256-wide map_sum pieces removed the width problem without changing products (verified byte-identical on the webqsp n=20 fixture). The MetaQA evaluation fixture then RAN: 18.0 GB in 11.9s, output exact against the oracle -- see metaqa_eval_scale_execution.json. Its projection was 15.3 GB, so the fit UNDER-predicted by 14.8% at 40x extrapolation. The WebQSP evaluation fixture is now presumably runnable too but has NOT been run, and by the same optimism its 191 GB projection is probably nearer 220 GB."
+ }
 }

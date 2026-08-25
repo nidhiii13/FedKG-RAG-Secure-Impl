@@ -42,6 +42,7 @@ from doram_t2_3pc.paged_shares import (  # noqa: E402
     assemble_paged_batch_from_paths,
     create_paged_owner_shards,
 )
+from doram_t2_3pc.protocols import DEFAULT_PROTOCOL, PROTOCOLS  # noqa: E402
 from doram_t2_3pc.reference import evaluate_cleartext  # noqa: E402
 from doram_t2_3pc.relation_pages import (  # noqa: E402
     RelationPageConfig,
@@ -162,6 +163,24 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--mpspdz-home", type=Path, default=DEFAULT_MPSPDZ)
     parser.add_argument(
+        "--protocol",
+        default=DEFAULT_PROTOCOL,
+        choices=sorted(PROTOCOLS),
+        help=(
+            "MP-SPDZ protocol for relation-paged runs. The packed-scan runner "
+            "currently supports only semi. Use the same protocol for A/B results."
+        ),
+    )
+    parser.add_argument(
+        "--diverse-config",
+        type=Path,
+        help=(
+            "Override the ten-query public config. This is required for a "
+            "field-matched Temi/Hemi comparison because old shares use a "
+            "non-HE-compatible prime."
+        ),
+    )
+    parser.add_argument(
         "--metaqa-fixture-dir", type=Path, default=DEFAULT_METAQA_FIXTURE
     )
     parser.add_argument("--compile-timeout", type=int, default=1800)
@@ -244,9 +263,14 @@ def diverse_spec(
     backend: Backend,
     *,
     resume: bool = False,
+    config_override: Path | None = None,
 ) -> dict[str, Any]:
     fixture = ROOT / "doram_t2_3pc" / "examples" / "ten_query"
-    config_path = fixture / backend.config_basename
+    config_path = (
+        config_override.resolve()
+        if config_override is not None
+        else fixture / backend.config_basename
+    )
     config = backend.load_config(config_path)
     owners = backend.base_config(config).owners
     base_queries = load_json_list(fixture / "queries.json", "diverse queries")
@@ -416,7 +440,13 @@ def run_dataset(
             "fixture; the MetaQA fixture ships packed shards only"
         )
     spec = (
-        diverse_spec(dataset_dir, args.query_count, backend, resume=args.resume)
+        diverse_spec(
+            dataset_dir,
+            args.query_count,
+            backend,
+            resume=args.resume,
+            config_override=args.diverse_config,
+        )
         if name == "diverse"
         else metaqa_spec(dataset_dir, args.metaqa_fixture_dir, args.query_count)
     )
@@ -447,6 +477,8 @@ def run_dataset(
         "dataset": name,
         "backend": backend.key,
         "backend_status": backend.status,
+        "protocol": args.protocol,
+        "protocol_security": PROTOCOLS[args.protocol].describe(),
         "scope": spec["scope"],
         "reference_kind": spec["reference_kind"],
         "run_token": run_token,
@@ -478,6 +510,7 @@ def run_dataset(
             for key in (
                 "dataset",
                 "backend",
+                "protocol",
                 "query_count",
                 "batch_size",
                 "config_digest",
@@ -592,6 +625,7 @@ def run_dataset(
                 log_label=label,
                 compile_timeout=args.compile_timeout,
                 runtime_timeout=args.runtime_timeout,
+                **({"protocol": args.protocol} if backend.paged else {}),
             )
             logs_dir.mkdir(parents=True, exist_ok=True)
             local_logs = []
@@ -644,6 +678,10 @@ def main() -> int:
         raise SystemExit(
             "--backend relation-paged supports only --dataset diverse"
         )
+    if args.backend == "packed-scan" and args.protocol != DEFAULT_PROTOCOL:
+        raise SystemExit(
+            "--backend packed-scan currently supports only --protocol semi"
+        )
 
     timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     output_dir = (
@@ -667,6 +705,8 @@ def main() -> int:
                 "cannot resume a run recorded with a different backend: "
                 f"{recorded} != {args.backend}"
             )
+        if root_manifest.get("protocol", DEFAULT_PROTOCOL) != args.protocol:
+            raise SystemExit("cannot resume a run recorded with a different protocol")
         run_token = str(root_manifest["run_token"])
     else:
         run_token = uuid.uuid4().hex[:8]
@@ -676,6 +716,7 @@ def main() -> int:
                 "version": 2,
                 "dataset_selection": args.dataset,
                 "backend": args.backend,
+                "protocol": args.protocol,
                 "run_token": run_token,
                 "created_utc": timestamp,
                 "query_count_per_dataset": args.query_count,

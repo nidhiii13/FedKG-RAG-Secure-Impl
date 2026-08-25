@@ -43,6 +43,34 @@ def _owner_edges() -> dict[str, list[dict]]:
     }
 
 
+def _hybrid_config() -> RelationPageConfig:
+    return RelationPageConfig.load(FIXTURE / "config_relation_pages_hybrid.json")
+
+
+def _partitioned_hybrid_config() -> RelationPageConfig:
+    return RelationPageConfig.load(
+        FIXTURE / "config_relation_pages_hybrid_partitioned.json"
+    )
+
+
+def test_partitioned_residual_has_power_of_two_rows_and_entity_tags():
+    config = _partitioned_hybrid_config()
+    assert config.pages.partition_residual_by_relation is True
+    assert config.residual_directory_rows == 4  # 3 logical rows plus dummy row
+    assert config.residual_tag_bits == config.base.entity_count.bit_length()
+
+
+def test_partitioned_residual_requires_hybrid_type_blocks(tmp_path: Path):
+    raw = json.loads((FIXTURE / "config_relation_pages.json").read_text())
+    raw["relation_page_layout"]["directory_buckets"] = 1
+    raw["relation_page_layout"]["bucket_slots"] = 1
+    raw["relation_page_layout"]["partition_residual_by_relation"] = True
+    path = tmp_path / "invalid-partition.json"
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError, match="only valid with type_block_layout"):
+        RelationPageConfig.load(path)
+
+
 def _paged_config(tmp_path: Path, **layout) -> RelationPageConfig:
     raw = json.loads((FIXTURE / "config_scalable.json").read_text())
     raw["relation_page_layout"] = {
@@ -376,7 +404,7 @@ def test_cost_estimate_exposes_the_dependent_read_tuning_knob(tmp_path: Path):
     assert compacted["second_hop_products"] < full["second_hop_products"]
     assert compacted["total_lookup_products"] < full["total_lookup_products"]
     assert full["per_address_directory_products"] == (
-        config.directory_rows * len(config.base.owners)
+        config.directory_rows * config.directory_columns
     )
 
 
@@ -593,6 +621,23 @@ def test_global_frontier_is_independent_of_federation_size(tmp_path):
     assert len(widths) == 1, "global frontier must not grow with the federation"
 
 
+def test_cost_estimate_prices_the_declared_global_frontier(tmp_path):
+    """The public estimator must describe the circuit it claims to estimate."""
+
+    _, glob, _ = _disjoint_fixture(tmp_path, 4)
+    estimate = paged_cost_estimate(glob, 1)
+    assert estimate["frontier_slots"] == glob.pages.global_frontier
+    assert estimate["declared_dependent_reads_per_query"] == (
+        glob.pages.global_frontier
+    )
+    assert estimate["dependent_reads_per_query"] == glob.pages.global_frontier
+    assert estimate["candidate_count_per_query"] == (
+        glob.pages.global_frontier
+        * len(glob.base.owners)
+        * glob.pages.slots_per_key
+    )
+
+
 def test_per_owner_frontier_does_grow_with_federation_size(tmp_path):
     """The behaviour the global bound exists to fix."""
 
@@ -639,3 +684,36 @@ def test_global_frontier_records_that_deployment_enforcement_is_missing(tmp_path
 
     _, glob, edges = _disjoint_fixture(tmp_path, 3)
     assert "not implemented" in check_global_frontier(glob, edges)["enforcement"]
+def test_hybrid_type_block_and_hashed_residual_is_lossless():
+    """Public primary types narrow storage without dropping multi-domain keys."""
+
+    hybrid = _hybrid_config()
+    dense = RelationPageConfig.load(FIXTURE / "config_relation_pages.json")
+    assert hybrid.uses_hybrid_directory
+    assert hybrid.directory_rows == 15  # dummy + 6 person + 6 person + 2 disease
+    assert dense.directory_rows == 33
+
+    layouts = {
+        owner: build_owner_page_layout(hybrid, owner, edges)
+        for owner, edges in _owner_edges().items()
+    }
+    # bob/eve/dave -> treated_with are valid KG keys outside their primary
+    # relation domain. They must be retained in the residual rather than lost.
+    assert all(layout.residual_descriptors for layout in layouts.values())
+
+    queries = json.loads((FIXTURE / "queries.json").read_text())
+    for query in queries:
+        assert evaluate_paged_cleartext(hybrid, _owner_edges(), query) == (
+            evaluate_paged_cleartext(dense, _owner_edges(), query)
+        )
+
+
+def test_hybrid_requires_contiguous_public_primary_type_ids(tmp_path: Path):
+    raw = json.loads(
+        (FIXTURE / "config_relation_pages_hybrid.json").read_text()
+    )
+    raw["type_block_layout"]["entity_types"]["bob"] = "disease"
+    path = tmp_path / "non-contiguous.json"
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError, match="not contiguous"):
+        RelationPageConfig.load(path)

@@ -101,11 +101,15 @@ class TypeBlockedLayout:
 
     @property
     def total_rows(self) -> int:
-        """Directory height. Replaces entity_count * relation_count."""
+        """Directory height, including reserved all-zero row zero."""
 
-        return sum(
-            self.type_size[self.relation_domain[relation]]
-            for relation in self.relation_order
+        return max(
+            (
+                self.block_start[relation]
+                + self.type_size[self.relation_domain[relation]]
+                for relation in self.relation_order
+            ),
+            default=1,
         )
 
     @property
@@ -211,7 +215,9 @@ def build_layout(
 
     relation_order = tuple(sorted(relation_domains))
     block_start: dict[str, int] = {}
-    offset = 0
+    # Row zero is an all-zero dummy. Secret addresses that fail a public-
+    # ontology range check are clamped there by the MPC circuit.
+    offset = 1
     for relation in relation_order:
         domain = relation_domains[relation]
         block_start[relation] = offset
@@ -227,6 +233,86 @@ def build_layout(
             relation_domains[r]: type_size.get(relation_domains[r], 0)
             for r in relation_order
         }},
+        relation_order=relation_order,
+        block_start=block_start,
+        relation_domain=dict(relation_domains),
+    )
+
+
+def build_layout_from_public_ids(
+    entity_ids: Mapping[str, int],
+    relation_ids: Mapping[str, int],
+    entity_types: Mapping[str, str],
+    relation_domains: Mapping[str, str],
+) -> TypeBlockedLayout:
+    """Build an affine layout without silently renumbering public identifiers.
+
+    Existing query and edge shares already contain the identifiers in
+    ``entity_ids`` and ``relation_ids``.  A deployable type-blocked layout must
+    therefore validate that each primary-type class is contiguous in that
+    public numbering; silently choosing a new order would make every prepared
+    share address the wrong entity.
+    """
+
+    if set(entity_types) != set(entity_ids):
+        missing = sorted(set(entity_ids) - set(entity_types))
+        extra = sorted(set(entity_types) - set(entity_ids))
+        raise ValueError(
+            "entity_types must cover every configured entity exactly once "
+            f"(missing={missing}, extra={extra})"
+        )
+    if set(relation_domains) != set(relation_ids):
+        missing = sorted(set(relation_ids) - set(relation_domains))
+        extra = sorted(set(relation_domains) - set(relation_ids))
+        raise ValueError(
+            "relation_domains must cover every configured relation exactly once "
+            f"(missing={missing}, extra={extra})"
+        )
+    if any(not isinstance(value, str) or not value for value in entity_types.values()):
+        raise ValueError("every entity type must be a non-empty string")
+    if any(not isinstance(value, str) or not value for value in relation_domains.values()):
+        raise ValueError("every relation domain must be a non-empty string")
+
+    by_type: dict[str, list[int]] = {}
+    for entity, entity_type in entity_types.items():
+        by_type.setdefault(entity_type, []).append(entity_ids[entity])
+    type_start: dict[str, int] = {DUMMY_TYPE: 0}
+    type_size: dict[str, int] = {DUMMY_TYPE: 1}
+    for entity_type, slots in by_type.items():
+        ordered = sorted(slots)
+        expected = list(range(ordered[0], ordered[0] + len(ordered)))
+        if ordered != expected:
+            raise ValueError(
+                f"entities of primary type {entity_type!r} are not contiguous "
+                "in the public entity numbering"
+            )
+        type_start[entity_type] = ordered[0]
+        type_size[entity_type] = len(ordered)
+
+    unknown_domains = sorted(set(relation_domains.values()) - set(by_type))
+    if unknown_domains:
+        raise ValueError(
+            "relation domains have no entities in the public primary-type map: "
+            + ", ".join(unknown_domains)
+        )
+
+    relation_order = tuple(
+        name for name, _ in sorted(relation_ids.items(), key=lambda item: item[1])
+    )
+    block_start: dict[str, int] = {}
+    cursor = 1
+    for relation in relation_order:
+        block_start[relation] = cursor
+        cursor += type_size[relation_domains[relation]]
+
+    entity_order = tuple(
+        name for name, _ in sorted(entity_ids.items(), key=lambda item: item[1])
+    )
+    return TypeBlockedLayout(
+        entity_order=entity_order,
+        entity_index=dict(entity_ids),
+        type_start=type_start,
+        type_size=type_size,
         relation_order=relation_order,
         block_start=block_start,
         relation_domain=dict(relation_domains),
@@ -284,10 +370,12 @@ def cost_model(
 ) -> int:
     """Modelled products, comparable with ``compact_directory.dense_products``.
 
-    ``folded=False`` is what the circuit does today: every address reads the whole
-    table. ``folded=True`` is the planned refinement -- extract the queried
-    relation's block once, then read it per address at ``max_block`` width -- and
-    is reported separately because it is not implemented.
+    ``folded=False`` models the circuit ablation in which every address reads the
+    whole primary table. ``folded=True`` models the implemented hybrid path:
+    extract the queried relation's block once, pad it to ``max_block``, then read
+    that fixed-width table for every dependent address. The hashed residual and
+    page-pool costs are separate and are not represented by this primary-index
+    model.
     """
 
     if folded:

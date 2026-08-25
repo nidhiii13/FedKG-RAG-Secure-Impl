@@ -16,6 +16,7 @@ import pytest
 
 from doram_t2_3pc.bound_check_program import (
     bound_check_cost_estimate,
+    overflow_polynomial,
     program_name,
     render_program,
 )
@@ -100,7 +101,10 @@ def test_check_opens_exactly_one_aggregate_value(tmp_path: Path):
     assert source.count("reveal_to(") == 1
     # The opened value is the violation count, nothing per-key.
     assert "PAGED_BOUND_VIOLATIONS" in source
-    assert "violations = violations + (occupancy[row] > GLOBAL_FRONTIER)" in source
+    assert "violations = overflow.sum()" in source
+    assert "overflow = overflow * counts + coefficient" in source
+    assert "occupancy[:] > GLOBAL_FRONTIER" not in source
+    assert "for row in range(DIRECTORY_ROWS)" not in source
 
 
 def test_check_uses_no_oblivious_indexing(tmp_path: Path):
@@ -115,8 +119,31 @@ def test_check_uses_no_oblivious_indexing(tmp_path: Path):
         )
     estimate = bound_check_cost_estimate(config)
     assert estimate["oblivious_reads"] == 0
-    assert estimate["comparisons"] == config.directory_rows
+    assert estimate["comparisons"] == 0
+    assert estimate["field_multiplications"] == (
+        config.directory_rows
+        * len(config.base.owners)
+        * config.pages.slots_per_key
+    )
     assert estimate["opened_values"] == 1
+
+
+@pytest.mark.parametrize("bound", range(6))
+def test_overflow_polynomial_is_exact_on_the_promised_domain(bound: int):
+    from doram_t2_3pc.config import (
+        HE_SCALABLE_FIELD_PRIME,
+        SCALABLE_FIELD_PRIME,
+    )
+
+    maximum = 6
+    for prime in (SCALABLE_FIELD_PRIME, HE_SCALABLE_FIELD_PRIME):
+        coefficients = overflow_polynomial(bound, maximum, prime)
+        for count in range(maximum + 1):
+            value = sum(
+                coefficient * pow(count, degree, prime)
+                for degree, coefficient in enumerate(coefficients)
+            ) % prime
+            assert value == int(count > bound)
 
 
 def test_shards_carry_occupancy_only_when_the_bound_is_declared(tmp_path: Path):
