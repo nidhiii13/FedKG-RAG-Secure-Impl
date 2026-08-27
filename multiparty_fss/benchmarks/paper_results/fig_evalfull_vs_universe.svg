@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="440" viewBox="0 0 640 440" font-family="Helvetica,Arial,sans-serif">
+<rect width="640" height="440" fill="white"/>
+<text x="320.0" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">Full-universe evaluation time vs universe size (Python, 1 core)</text>
+<line x1="78.0" y1="42" x2="78.0" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="78.0" y="402" text-anchor="middle" font-size="11" fill="#444">1000</text>
+<line x1="213.5" y1="42" x2="213.5" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="213.5" y="402" text-anchor="middle" font-size="11" fill="#444">10000</text>
+<line x1="349.0" y1="42" x2="349.0" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="349.0" y="402" text-anchor="middle" font-size="11" fill="#444">100000</text>
+<line x1="484.5" y1="42" x2="484.5" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="484.5" y="402" text-anchor="middle" font-size="11" fill="#444">1e6</text>
+<line x1="620.0" y1="42" x2="620.0" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="620.0" y="402" text-anchor="middle" font-size="11" fill="#444">1e7</text>
+<line x1="78" y1="384.0" x2="620" y2="384.0" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="388.0" text-anchor="end" font-size="11" fill="#444">0.001</text>
+<line x1="78" y1="335.1" x2="620" y2="335.1" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="339.1" text-anchor="end" font-size="11" fill="#444">0.01</text>
+<line x1="78" y1="286.3" x2="620" y2="286.3" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="290.3" text-anchor="end" font-size="11" fill="#444">0.1</text>
+<line x1="78" y1="237.4" x2="620" y2="237.4" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="241.4" text-anchor="end" font-size="11" fill="#444">1</text>
+<line x1="78" y1="188.6" x2="620" y2="188.6" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="192.6" text-anchor="end" font-size="11" fill="#444">10</text>
+<line x1="78" y1="139.7" x2="620" y2="139.7" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="143.7" text-anchor="end" font-size="11" fill="#444">100</text>
+<line x1="78" y1="90.9" x2="620" y2="90.9" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="94.9" text-anchor="end" font-size="11" fill="#444">1000</text>
+<line x1="78" y1="42.0" x2="620" y2="42.0" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="46.0" text-anchor="end" font-size="11" fill="#444">10000</text>
+<rect x="78" y="42" width="542" height="342" fill="none" stroke="#666" stroke-width="1.2"/>
+<text x="349.0" y="426" text-anchor="middle" font-size="13" fill="#222">universe size (points)</text>
+<text x="20" y="213.0" text-anchor="middle" font-size="13" fill="#222" transform="rotate(-90 20 213.0)">full-universe eval (ms)</text>
+<polyline points="79.4,248.8 161.0,232.2 242.6,214.7 324.1,192.6 405.7,169.7 487.3,146.2" fill="none" stroke="#1b6ca8" stroke-width="2"/>
+<circle cx="79.4" cy="248.8" r="3.2" fill="#1b6ca8"/>
+<circle cx="161.0" cy="232.2" r="3.2" fill="#1b6ca8"/>
+<circle cx="242.6" cy="214.7" r="3.2" fill="#1b6ca8"/>
+<circle cx="324.1" cy="192.6" r="3.2" fill="#1b6ca8"/>
+<circle cx="405.7" cy="169.7" r="3.2" fill="#1b6ca8"/>
+<circle cx="487.3" cy="146.2" r="3.2" fill="#1b6ca8"/>
+<polyline points="79.4,235.1 161.0,216.5 242.6,192.6 324.1,173.1 405.7,148.5 487.3,122.5" fill="none" stroke="#c0392b" stroke-width="2"/>
+<circle cx="79.4" cy="235.1" r="3.2" fill="#c0392b"/>
+<circle cx="161.0" cy="216.5" r="3.2" fill="#c0392b"/>
+<circle cx="242.6" cy="192.6" r="3.2" fill="#c0392b"/>
+<circle cx="324.1" cy="173.1" r="3.2" fill="#c0392b"/>
+<circle cx="405.7" cy="148.5" r="3.2" fill="#c0392b"/>
+<circle cx="487.3" cy="122.5" r="3.2" fill="#c0392b"/>
+<polyline points="79.4,216.5 161.0,196.4 242.6,174.7 324.1,149.6 405.7,122.9 487.3,95.0" fill="none" stroke="#1e8449" stroke-width="2"/>
+<circle cx="79.4" cy="216.5" r="3.2" fill="#1e8449"/>
+<circle cx="161.0" cy="196.4" r="3.2" fill="#1e8449"/>
+<circle cx="242.6" cy="174.7" r="3.2" fill="#1e8449"/>
+<circle cx="324.1" cy="149.6" r="3.2" fill="#1e8449"/>
+<circle cx="405.7" cy="122.9" r="3.2" fill="#1e8449"/>
+<circle cx="487.3" cy="95.0" r="3.2" fill="#1e8449"/>
+<polyline points="79.4,201.4 161.0,172.4 242.6,142.3 324.1,112.9 405.7,83.6" fill="none" stroke="#8e44ad" stroke-width="2"/>
+<circle cx="79.4" cy="201.4" r="3.2" fill="#8e44ad"/>
+<circle cx="161.0" cy="172.4" r="3.2" fill="#8e44ad"/>
+<circle cx="242.6" cy="142.3" r="3.2" fill="#8e44ad"/>
+<circle cx="324.1" cy="112.9" r="3.2" fill="#8e44ad"/>
+<circle cx="405.7" cy="83.6" r="3.2" fill="#8e44ad"/>
+<polyline points="79.4,366.5 161.0,362.1 242.6,348.1 324.1,313.2 405.7,259.1 487.3,228.7" fill="none" stroke="#d68910" stroke-width="2"/>
+<circle cx="79.4" cy="366.5" r="3.2" fill="#d68910"/>
+<circle cx="161.0" cy="362.1" r="3.2" fill="#d68910"/>
+<circle cx="242.6" cy="348.1" r="3.2" fill="#d68910"/>
+<circle cx="324.1" cy="313.2" r="3.2" fill="#d68910"/>
+<circle cx="405.7" cy="259.1" r="3.2" fill="#d68910"/>
+<circle cx="487.3" cy="228.7" r="3.2" fill="#d68910"/>
+<line x1="90" y1="54" x2="112" y2="54" stroke="#1b6ca8" stroke-width="2.5"/>
+<text x="118" y="58" font-size="12" fill="#222">mpdpf-N3</text>
+<line x1="90" y1="72" x2="112" y2="72" stroke="#c0392b" stroke-width="2.5"/>
+<text x="118" y="76" font-size="12" fill="#222">mpdpf-N5</text>
+<line x1="90" y1="90" x2="112" y2="90" stroke="#1e8449" stroke-width="2.5"/>
+<text x="118" y="94" font-size="12" fill="#222">mpdpf-N7</text>
+<line x1="90" y1="108" x2="112" y2="108" stroke="#8e44ad" stroke-width="2.5"/>
+<text x="118" y="112" font-size="12" fill="#222">tree-dpf-2party</text>
+<line x1="90" y1="126" x2="112" y2="126" stroke="#d68910" stroke-width="2.5"/>
+<text x="118" y="130" font-size="12" fill="#222">naive-xor-N3</text>
+</svg>

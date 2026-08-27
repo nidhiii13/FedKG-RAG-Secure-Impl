@@ -5,3 +5,7 @@ __pycache__/
 build/
 results/
 examples/
+data/kqa_pro/
+data/cwq/raw/
+data/cwq/mpc_fixture/
+report/

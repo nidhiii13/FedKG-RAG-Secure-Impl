@@ -1,0 +1,51 @@
+{
+  "scope": "full deduplicated union of ALL 7,050 held-out RoG-CWQ subgraphs (capacity analysis only; evaluation uses the 1,267-question fixed union)",
+  "entities": 1055994,
+  "unique_forward_edges": 3447420,
+  "relations": 5689,
+  "distinct_source_relation_keys": 2019811,
+  "max_key_fanout": 429,
+  "p99_key_fanout": 14,
+  "top_relations": [
+    [
+      "common.topic.notable_types",
+      164724
+    ],
+    [
+      "freebase.valuenotation.is_reviewed",
+      98174
+    ],
+    [
+      "film.film.starring",
+      69006
+    ],
+    [
+      "film.performance.film",
+      68895
+    ],
+    [
+      "people.person.profession",
+      67266
+    ],
+    [
+      "freebase.valuenotation.has_value",
+      66561
+    ],
+    [
+      "location.location.containedby",
+      65077
+    ],
+    [
+      "media_common.netflix_title.netflix_genres",
+      65019
+    ],
+    [
+      "common.topic.notable_for",
+      62464
+    ],
+    [
+      "people.person.gender",
+      61538
+    ]
+  ]
+}

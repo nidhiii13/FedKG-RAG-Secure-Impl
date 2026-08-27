@@ -1,6 +1,6 @@
 # What each recorded benchmark still claims
 
-Forty-seven benchmarks accumulated here, and some **contradict each other** —
+Forty-eight benchmarks accumulated here, and some **contradict each other** —
 because later measurements corrected earlier ones. Read cold, this directory
 would let someone quote a number that has since been invalidated. That is the
 failure mode this file exists to prevent.
@@ -80,6 +80,7 @@ with it).
 | `metaqa_narrowing_fixes.json` | Hub filtering does **not** restore narrowing at any threshold. Forward-only gives 1.97 at a semantic cost. |
 | `metaqa_real_lossiness.json` | The supported scan discards **56.8%** of MetaQA at fanout 2. Real, unsolved. |
 | `relation_paged_regression.json` | 10/10 distinct queries, both backends agreeing against independent oracles. |
+| `relation_paged_oram_q10_matched_temi.json` | **Matched-protocol A/B/C ten-query Temi comparison** on a controlled 10-entity/16-edge fixture, all 160 fields exact in every arm. Linear relation paging wins (3.44 s/315.5 MB); wide-record read-only KG-ORAM costs 13.62× runtime/3.77× communication over it, and the dual relation-paged ORAM 23.93×/6.08×. The dual ORAM also executes at MetaQA storage scale (χ=32: 222.46 s/4.23 GB, one query) — a feasibility backend, not the selected scalable backend. Localhost, preprocessing included; ratios must not be extrapolated to WAN or larger fixtures. |
 | `relation_paged_overflow_validation.json` | Multi-page overflow executed losslessly. |
 | `candidate_level_ranking_probe.json` | Candidate-level ranking is graph-size-independent — but requires revealing the query to owners. |
 

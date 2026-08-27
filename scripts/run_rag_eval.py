@@ -229,7 +229,7 @@ def recorded_split(edge_owner: dict, owner_count: int):
 
 
 def build_fixture(questions, adjacency, out: Path, bound: int, cap: int, seed: int,
-                  split):
+                  split, top_k: int = 4):
     """Cover each question's two-hop neighbourhood and split it across owners."""
 
     keep = set()
@@ -306,7 +306,7 @@ def build_fixture(questions, adjacency, out: Path, bound: int, cap: int, seed: i
         "entities": {e: i + 1 for i, e in enumerate(nodes)},
         "relations": {r: i + 1 for i, r in enumerate(relations)},
         "fanout_per_owner": bound,
-        "top_k": 4,
+        "top_k": top_k,
         "field_prime": 170141183460469231731687303715884105727,
         "relation_page_layout": {
             "page_size": bound, "pages_per_key": 1,

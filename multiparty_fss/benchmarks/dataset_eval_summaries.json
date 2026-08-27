@@ -1,0 +1,418 @@
+[
+  {
+    "workload": "metaqa",
+    "party_count": 3,
+    "threshold": 1,
+    "queries": 50,
+    "term_lookups": 100,
+    "lookups_present": 100,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 8.158,
+        "p50": 15.747,
+        "p95": 16.31
+      },
+      "eval_critical": {
+        "mean": 16.716,
+        "p50": 29.151,
+        "p95": 30.075
+      },
+      "combine": {
+        "mean": 5.724,
+        "p50": 11.266,
+        "p95": 11.536
+      },
+      "total_parallel_model": {
+        "mean": 30.598,
+        "p50": 56.381,
+        "p95": 57.779
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 50,
+      "exact_match_rate": 1.0,
+      "mean_coverage": 1.0
+    },
+    "setup": {
+      "snapshot_build_s": 7.242,
+      "replicate_s": 13.196,
+      "store_load_s": 10.642,
+      "store_bytes_total": 267247704,
+      "partitions": 2,
+      "entity_universe": 40151,
+      "entity_domain_bits": 16,
+      "relation_universe": 9,
+      "relation_domain_bits": 4
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 33210,
+        "response_json_bytes": 859748
+      },
+      "relation": {
+        "key_share_json_bytes": 953,
+        "response_json_bytes": 777
+      }
+    },
+    "query_phase_wall_s": 6.931
+  },
+  {
+    "workload": "lcquad2",
+    "party_count": 3,
+    "threshold": 1,
+    "queries": 50,
+    "term_lookups": 157,
+    "lookups_present": 156,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 1.638,
+        "p50": 0.984,
+        "p95": 2.453
+      },
+      "eval_critical": {
+        "mean": 2.66,
+        "p50": 1.339,
+        "p95": 3.866
+      },
+      "combine": {
+        "mean": 0.821,
+        "p50": 0.394,
+        "p95": 1.338
+      },
+      "total_parallel_model": {
+        "mean": 5.119,
+        "p50": 2.721,
+        "p95": 7.655
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 0,
+      "exact_match_rate": null,
+      "mean_coverage": null
+    },
+    "setup": {
+      "snapshot_build_s": 0.159,
+      "replicate_s": 0.477,
+      "store_load_s": 0.373,
+      "store_bytes_total": 10827327,
+      "partitions": 3,
+      "entity_universe": 4622,
+      "entity_domain_bits": 13,
+      "relation_universe": 1325,
+      "relation_domain_bits": 11
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 12134,
+        "response_json_bytes": 99494
+      },
+      "relation": {
+        "key_share_json_bytes": 6286,
+        "response_json_bytes": 28964
+      }
+    },
+    "query_phase_wall_s": 1.746
+  },
+  {
+    "workload": "kqapro",
+    "party_count": 3,
+    "threshold": 1,
+    "queries": 50,
+    "term_lookups": 150,
+    "lookups_present": 150,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 3.563,
+        "p50": 1.171,
+        "p95": 12.482
+      },
+      "eval_critical": {
+        "mean": 6.788,
+        "p50": 1.572,
+        "p95": 22.222
+      },
+      "combine": {
+        "mean": 2.204,
+        "p50": 0.348,
+        "p95": 8.639
+      },
+      "total_parallel_model": {
+        "mean": 12.555,
+        "p50": 3.133,
+        "p95": 43.335
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 50,
+      "exact_match_rate": 1.0,
+      "mean_coverage": 1.0
+    },
+    "setup": {
+      "snapshot_build_s": 6.575,
+      "replicate_s": 12.743,
+      "store_load_s": 13.033,
+      "store_bytes_total": 319208277,
+      "partitions": 3,
+      "entity_universe": 17067,
+      "entity_domain_bits": 15,
+      "relation_universe": 714,
+      "relation_domain_bits": 10
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 23694,
+        "response_json_bytes": 365783
+      },
+      "relation": {
+        "key_share_json_bytes": 4538,
+        "response_json_bytes": 15852
+      }
+    },
+    "query_phase_wall_s": 3.988
+  },
+  {
+    "workload": "cwq-closure",
+    "party_count": 3,
+    "threshold": 1,
+    "queries": 25,
+    "term_lookups": 75,
+    "lookups_present": 73,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 0.692,
+        "p50": 0.695,
+        "p95": 0.716
+      },
+      "eval_critical": {
+        "mean": 1.028,
+        "p50": 0.951,
+        "p95": 0.97
+      },
+      "combine": {
+        "mean": 0.269,
+        "p50": 0.269,
+        "p95": 0.277
+      },
+      "total_parallel_model": {
+        "mean": 1.989,
+        "p50": 1.907,
+        "p95": 1.949
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 25,
+      "exact_match_rate": 0.8,
+      "mean_coverage": 0.8517
+    },
+    "setup": {
+      "snapshot_build_s": 0.075,
+      "replicate_s": 0.218,
+      "store_load_s": 0.183,
+      "store_bytes_total": 5750163,
+      "partitions": 3,
+      "entity_universe": 820,
+      "entity_domain_bits": 10,
+      "relation_universe": 836,
+      "relation_domain_bits": 10
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 4538,
+        "response_json_bytes": 18127
+      },
+      "relation": {
+        "key_share_json_bytes": 4538,
+        "response_json_bytes": 18516
+      }
+    },
+    "query_phase_wall_s": 0.343
+  },
+  {
+    "workload": "cwq-rog",
+    "party_count": 3,
+    "threshold": 1,
+    "queries": 25,
+    "term_lookups": 44,
+    "lookups_present": 44,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 10.335,
+        "p50": 10.258,
+        "p95": 10.523
+      },
+      "eval_critical": {
+        "mean": 20.535,
+        "p50": 17.281,
+        "p95": 23.421
+      },
+      "combine": {
+        "mean": 7.7,
+        "p50": 7.279,
+        "p95": 9.343
+      },
+      "total_parallel_model": {
+        "mean": 38.57,
+        "p50": 35.056,
+        "p95": 45.005
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 25,
+      "exact_match_rate": null,
+      "mean_coverage": 0.848
+    },
+    "setup": {
+      "snapshot_build_s": 1.678,
+      "replicate_s": 6.215,
+      "store_load_s": 4.611,
+      "store_bytes_total": 94963587,
+      "partitions": 3,
+      "entity_universe": 25581,
+      "entity_domain_bits": 15,
+      "relation_universe": 1700,
+      "relation_domain_bits": 11
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 23694,
+        "response_json_bytes": 547976
+      }
+    },
+    "query_phase_wall_s": 3.815
+  },
+  {
+    "workload": "metaqa-n5",
+    "party_count": 5,
+    "threshold": 2,
+    "queries": 20,
+    "term_lookups": 40,
+    "lookups_present": 40,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 9.407,
+        "p50": 18.301,
+        "p95": 18.656
+      },
+      "eval_critical": {
+        "mean": 21.038,
+        "p50": 32.234,
+        "p95": 34.388
+      },
+      "combine": {
+        "mean": 9.635,
+        "p50": 18.924,
+        "p95": 19.476
+      },
+      "total_parallel_model": {
+        "mean": 40.08,
+        "p50": 69.551,
+        "p95": 72.573
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 20,
+      "exact_match_rate": 1.0,
+      "mean_coverage": 1.0
+    },
+    "setup": {
+      "snapshot_build_s": 6.065,
+      "replicate_s": 22.325,
+      "store_load_s": 19.756,
+      "store_bytes_total": 445413000,
+      "partitions": 2,
+      "entity_universe": 40151,
+      "entity_domain_bits": 16,
+      "relation_universe": 9,
+      "relation_domain_bits": 4
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 197050,
+        "response_json_bytes": 859893
+      },
+      "relation": {
+        "key_share_json_bytes": 3513,
+        "response_json_bytes": 780
+      }
+    },
+    "query_phase_wall_s": 5.833
+  },
+  {
+    "workload": "metaqa-n7",
+    "party_count": 7,
+    "threshold": 3,
+    "queries": 20,
+    "term_lookups": 40,
+    "lookups_present": 40,
+    "retrieval_correct_rate": 1.0,
+    "present_hit_rate": 1.0,
+    "negative_controls_pass": true,
+    "latency_ms": {
+      "keygen": {
+        "mean": 16.074,
+        "p50": 29.539,
+        "p95": 33.367
+      },
+      "eval_critical": {
+        "mean": 35.613,
+        "p50": 57.291,
+        "p95": 69.948
+      },
+      "combine": {
+        "mean": 14.189,
+        "p50": 26.664,
+        "p95": 30.084
+      },
+      "total_parallel_model": {
+        "mean": 65.877,
+        "p50": 114.258,
+        "p95": 131.693
+      }
+    },
+    "answer_metrics": {
+      "queries_with_answer_stage": 20,
+      "exact_match_rate": 1.0,
+      "mean_coverage": 1.0
+    },
+    "setup": {
+      "snapshot_build_s": 5.865,
+      "replicate_s": 30.813,
+      "store_load_s": 24.427,
+      "store_bytes_total": 623578424,
+      "partitions": 2,
+      "entity_universe": 40151,
+      "entity_domain_bits": 16,
+      "relation_universe": 9,
+      "relation_domain_bits": 4
+    },
+    "sizes_by_domain": {
+      "entity": {
+        "key_share_json_bytes": 1442234,
+        "response_json_bytes": 859677
+      },
+      "relation": {
+        "key_share_json_bytes": 23653,
+        "response_json_bytes": 782
+      }
+    },
+    "query_phase_wall_s": 13.125
+  }
+]

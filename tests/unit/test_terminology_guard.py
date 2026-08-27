@@ -484,7 +484,7 @@ def test_status_header_count_matches_the_directory():
         "Thirty-seven": 37, "Thirty-eight": 38, "Thirty-nine": 39,
         "Forty": 40, "Forty-one": 41, "Forty-two": 42, "Forty-three": 43,
         "Forty-four": 44, "Forty-five": 45, "Forty-six": 46,
-        "Forty-seven": 47,
+        "Forty-seven": 47, "Forty-eight": 48,
     }
     text = (PACKAGE / "benchmarks" / "STATUS.md").read_text(encoding="utf-8")
     actual = len(list((PACKAGE / "benchmarks").glob("*.json")))

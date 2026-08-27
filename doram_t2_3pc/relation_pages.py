@@ -785,6 +785,8 @@ def evaluate_paged_cleartext(
     config: RelationPageConfig,
     owner_edges: dict[str, list[dict[str, Any]]],
     query: dict[str, str],
+    *,
+    prepared_layouts: dict[str, OwnerPageLayout] | None = None,
 ) -> list[dict[str, int]]:
     """Independent cleartext oracle for the relation-paged semantics.
 
@@ -814,10 +816,16 @@ def evaluate_paged_cleartext(
     except (KeyError, TypeError) as exc:
         raise ValueError("query uses an unknown ontology item") from exc
 
-    layouts = {
-        owner: build_owner_page_layout(config, owner, owner_edges[owner])
-        for owner in base.owners
-    }
+    layouts = prepared_layouts
+    if layouts is None:
+        layouts = {
+            owner: build_owner_page_layout(config, owner, owner_edges[owner])
+            for owner in base.owners
+        }
+    elif set(layouts) != set(base.owners):
+        raise ValueError(
+            "prepared layouts must contain every configured owner exactly once"
+        )
     from .packed import unpack_edge
 
     def read_key(

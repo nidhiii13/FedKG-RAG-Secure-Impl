@@ -1,0 +1,88 @@
+{
+  "workload": "metaqa",
+  "party_count": 3,
+  "threshold": 1,
+  "transport": "inprocess",
+  "repeats": 3,
+  "queries": 50,
+  "term_lookups": 100,
+  "lookups_present": 100,
+  "retrieval_correct_rate": 1.0,
+  "present_hit_rate": 1.0,
+  "negative_controls_pass": true,
+  "latency_ms_by_domain": {
+    "entity": {
+      "lookups": 50,
+      "keygen": {
+        "mean": 2.323,
+        "p50": 2.314,
+        "p95": 2.427
+      },
+      "eval_critical": {
+        "mean": 28.716,
+        "p50": 28.691,
+        "p95": 28.984
+      },
+      "combine": {
+        "mean": 11.066,
+        "p50": 11.052,
+        "p95": 11.248
+      },
+      "total_parallel_model": {
+        "mean": 42.24,
+        "p50": 42.091,
+        "p95": 42.802
+      }
+    },
+    "relation": {
+      "lookups": 50,
+      "keygen": {
+        "mean": 0.121,
+        "p50": 0.118,
+        "p95": 0.131
+      },
+      "eval_critical": {
+        "mean": 0.101,
+        "p50": 0.097,
+        "p95": 0.113
+      },
+      "combine": {
+        "mean": 0.02,
+        "p50": 0.019,
+        "p95": 0.025
+      },
+      "total_parallel_model": {
+        "mean": 0.241,
+        "p50": 0.237,
+        "p95": 0.257
+      }
+    }
+  },
+  "answer_metrics": {
+    "queries_with_answer_stage": 50,
+    "exact_match_rate": 1.0,
+    "mean_coverage": 1.0
+  },
+  "setup": {
+    "snapshot_build_s": 5.695,
+    "replicate_s": 12.46,
+    "store_load_s": 9.597,
+    "store_bytes_total": 267247704,
+    "partitions": 2,
+    "entity_universe": 40151,
+    "entity_domain_bits": 16,
+    "relation_universe": 9,
+    "relation_domain_bits": 4
+  },
+  "sizes_by_domain": {
+    "entity": {
+      "key_share_json_bytes": 33210,
+      "response_json_bytes": 859700
+    },
+    "relation": {
+      "key_share_json_bytes": 953,
+      "response_json_bytes": 782
+    }
+  },
+  "query_phase_wall_s": 16.861
+}

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="440" viewBox="0 0 640 440" font-family="Helvetica,Arial,sans-serif">
+<rect width="640" height="440" fill="white"/>
+<text x="320.0" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">Per-evaluator key size vs universe size</text>
+<line x1="78.0" y1="42" x2="78.0" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="78.0" y="402" text-anchor="middle" font-size="11" fill="#444">1000</text>
+<line x1="213.5" y1="42" x2="213.5" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="213.5" y="402" text-anchor="middle" font-size="11" fill="#444">10000</text>
+<line x1="349.0" y1="42" x2="349.0" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="349.0" y="402" text-anchor="middle" font-size="11" fill="#444">100000</text>
+<line x1="484.5" y1="42" x2="484.5" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="484.5" y="402" text-anchor="middle" font-size="11" fill="#444">1e6</text>
+<line x1="620.0" y1="42" x2="620.0" y2="384" stroke="#e3e3e3" stroke-width="1"/>
+<text x="620.0" y="402" text-anchor="middle" font-size="11" fill="#444">1e7</text>
+<line x1="78" y1="384.0" x2="620" y2="384.0" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="388.0" text-anchor="end" font-size="11" fill="#444">100</text>
+<line x1="78" y1="315.6" x2="620" y2="315.6" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="319.6" text-anchor="end" font-size="11" fill="#444">1000</text>
+<line x1="78" y1="247.2" x2="620" y2="247.2" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="251.2" text-anchor="end" font-size="11" fill="#444">10000</text>
+<line x1="78" y1="178.8" x2="620" y2="178.8" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="182.8" text-anchor="end" font-size="11" fill="#444">100000</text>
+<line x1="78" y1="110.4" x2="620" y2="110.4" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="114.4" text-anchor="end" font-size="11" fill="#444">1e6</text>
+<line x1="78" y1="42.0" x2="620" y2="42.0" stroke="#e3e3e3" stroke-width="1"/>
+<text x="70" y="46.0" text-anchor="end" font-size="11" fill="#444">1e7</text>
+<rect x="78" y="42" width="542" height="342" fill="none" stroke="#666" stroke-width="1.2"/>
+<text x="349.0" y="426" text-anchor="middle" font-size="13" fill="#222">universe size (points)</text>
+<text x="20" y="213.0" text-anchor="middle" font-size="13" fill="#222" transform="rotate(-90 20 213.0)">key bytes / evaluator</text>
+<polyline points="79.4,282.3 161.0,261.7 242.6,241.1 324.1,220.5 405.7,199.9 487.3,179.3" fill="none" stroke="#1b6ca8" stroke-width="2"/>
+<circle cx="79.4" cy="282.3" r="3.2" fill="#1b6ca8"/>
+<circle cx="161.0" cy="261.7" r="3.2" fill="#1b6ca8"/>
+<circle cx="242.6" cy="241.1" r="3.2" fill="#1b6ca8"/>
+<circle cx="324.1" cy="220.5" r="3.2" fill="#1b6ca8"/>
+<circle cx="405.7" cy="199.9" r="3.2" fill="#1b6ca8"/>
+<circle cx="487.3" cy="179.3" r="3.2" fill="#1b6ca8"/>
+<polyline points="79.4,229.0 161.0,208.4 242.6,187.9 324.1,167.3 405.7,146.7 487.3,126.1" fill="none" stroke="#c0392b" stroke-width="2"/>
+<circle cx="79.4" cy="229.0" r="3.2" fill="#c0392b"/>
+<circle cx="161.0" cy="208.4" r="3.2" fill="#c0392b"/>
+<circle cx="242.6" cy="187.9" r="3.2" fill="#c0392b"/>
+<circle cx="324.1" cy="167.3" r="3.2" fill="#c0392b"/>
+<circle cx="405.7" cy="146.7" r="3.2" fill="#c0392b"/>
+<circle cx="487.3" cy="126.1" r="3.2" fill="#c0392b"/>
+<polyline points="79.4,169.8 161.0,149.3 242.6,128.7 324.1,108.1 405.7,87.5 487.3,66.9" fill="none" stroke="#1e8449" stroke-width="2"/>
+<circle cx="79.4" cy="169.8" r="3.2" fill="#1e8449"/>
+<circle cx="161.0" cy="149.3" r="3.2" fill="#1e8449"/>
+<circle cx="242.6" cy="128.7" r="3.2" fill="#1e8449"/>
+<circle cx="324.1" cy="108.1" r="3.2" fill="#1e8449"/>
+<circle cx="405.7" cy="87.5" r="3.2" fill="#1e8449"/>
+<circle cx="487.3" cy="66.9" r="3.2" fill="#1e8449"/>
+<polyline points="79.4,364.0 161.0,359.3 242.6,355.2 324.1,351.6 405.7,348.4 487.3,345.5" fill="none" stroke="#8e44ad" stroke-width="2"/>
+<circle cx="79.4" cy="364.0" r="3.2" fill="#8e44ad"/>
+<circle cx="161.0" cy="359.3" r="3.2" fill="#8e44ad"/>
+<circle cx="242.6" cy="355.2" r="3.2" fill="#8e44ad"/>
+<circle cx="324.1" cy="351.6" r="3.2" fill="#8e44ad"/>
+<circle cx="405.7" cy="348.4" r="3.2" fill="#8e44ad"/>
+<circle cx="487.3" cy="345.5" r="3.2" fill="#8e44ad"/>
+<polyline points="79.4,253.1 161.0,211.9 242.6,170.8 324.1,129.6 405.7,88.4 487.3,47.2" fill="none" stroke="#d68910" stroke-width="2"/>
+<circle cx="79.4" cy="253.1" r="3.2" fill="#d68910"/>
+<circle cx="161.0" cy="211.9" r="3.2" fill="#d68910"/>
+<circle cx="242.6" cy="170.8" r="3.2" fill="#d68910"/>
+<circle cx="324.1" cy="129.6" r="3.2" fill="#d68910"/>
+<circle cx="405.7" cy="88.4" r="3.2" fill="#d68910"/>
+<circle cx="487.3" cy="47.2" r="3.2" fill="#d68910"/>
+<line x1="90" y1="54" x2="112" y2="54" stroke="#1b6ca8" stroke-width="2.5"/>
+<text x="118" y="58" font-size="12" fill="#222">mpdpf-N3</text>
+<line x1="90" y1="72" x2="112" y2="72" stroke="#c0392b" stroke-width="2.5"/>
+<text x="118" y="76" font-size="12" fill="#222">mpdpf-N5</text>
+<line x1="90" y1="90" x2="112" y2="90" stroke="#1e8449" stroke-width="2.5"/>
+<text x="118" y="94" font-size="12" fill="#222">mpdpf-N7</text>
+<line x1="90" y1="108" x2="112" y2="108" stroke="#8e44ad" stroke-width="2.5"/>
+<text x="118" y="112" font-size="12" fill="#222">tree-dpf-2party</text>
+<line x1="90" y1="126" x2="112" y2="126" stroke="#d68910" stroke-width="2.5"/>
+<text x="118" y="130" font-size="12" fill="#222">naive-xor-N3</text>
+</svg>

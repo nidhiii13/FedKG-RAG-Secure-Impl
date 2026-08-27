@@ -1,0 +1,69 @@
+{
+  "dataset": "ComplexWebQuestions 1.1 + RoG-CWQ graph snapshot",
+  "path_source": "gold SPARQL parsing; answers never consulted for paths",
+  "held_out_splits_profiled": [
+    "test",
+    "validation"
+  ],
+  "questions_total": 7050,
+  "strict_two_hop_compatible": 1267,
+  "splits": [
+    {
+      "split": "test",
+      "official_file": "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/data/cwq/raw/ComplexWebQuestions_test.json",
+      "rog_file": "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/data/cwq/raw/rog_cwq_test.jsonl",
+      "questions_total": 3531,
+      "unique_ids": 3531,
+      "strict_two_hop_compatible": 664,
+      "categories": {
+        "strict_two_hop": 664,
+        "multi_anchor_join_3_triples": 576,
+        "chain_or_tree_3_triples": 506,
+        "order_limit_or_temporal": 388,
+        "two_triples_not_dependent_chain": 387,
+        "multi_anchor_join_4_triples": 295,
+        "unsupported_filter": 225,
+        "chain_or_tree_4_triples": 183,
+        "multi_anchor_join_5_triples": 160,
+        "unparsed_manual_sparql": 126,
+        "union_optional_minus": 17,
+        "chain_or_tree_5_triples": 2,
+        "multi_anchor_join_6_triples": 2
+      },
+      "anchor_mapping_outcomes": {
+        "unique_topic_entity_with_relation_1": 608,
+        "single_topic_entity_without_relation_1_edge": 52,
+        "anchor_mid_in_graph": 4
+      }
+    },
+    {
+      "split": "validation",
+      "official_file": "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/data/cwq/raw/ComplexWebQuestions_dev.json",
+      "rog_file": "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/data/cwq/raw/rog_cwq_validation.jsonl",
+      "questions_total": 3519,
+      "unique_ids": 3519,
+      "strict_two_hop_compatible": 603,
+      "categories": {
+        "strict_two_hop": 603,
+        "chain_or_tree_3_triples": 555,
+        "multi_anchor_join_3_triples": 520,
+        "order_limit_or_temporal": 454,
+        "two_triples_not_dependent_chain": 418,
+        "multi_anchor_join_4_triples": 376,
+        "unsupported_filter": 194,
+        "multi_anchor_join_5_triples": 165,
+        "chain_or_tree_4_triples": 117,
+        "union_optional_minus": 61,
+        "unparsed_manual_sparql": 49,
+        "multi_anchor_join_7_triples": 6,
+        "multi_anchor_join_6_triples": 1
+      },
+      "anchor_mapping_outcomes": {
+        "unique_topic_entity_with_relation_1": 558,
+        "single_topic_entity_without_relation_1_edge": 39,
+        "anchor_mid_in_graph": 6
+      }
+    }
+  ],
+  "profiling_seconds": 46.34
+}

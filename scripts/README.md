@@ -2,6 +2,104 @@
 
 Command-line entry points for setup, party-local indexing, query execution, and experiments.
 
+## ComplexWebQuestions 1.1 (gold-SPARQL two-hop evaluation)
+
+The CWQ pipeline evaluates the relation-paged backend on held-out
+ComplexWebQuestions test+validation questions whose **gold SPARQL** is a pure
+dependent two-hop chain, over one fixed union of RoG-CWQ subgraphs.  Unlike
+the RoG-WebQSP oracle-path runner, relation paths are never derived from gold
+answers.
+
+```bash
+# 1. profile: parses every held-out SPARQL, writes data/cwq/{compatibility_summary.json,twohop_compatible.jsonl,rejected_examples.jsonl}
+python3 scripts/profile_cwq.py
+
+# 2. cleartext retrieval evaluation (all 1,267 compatible questions)
+python3 scripts/run_cwq_eval.py --questions 0 --bound 8 --topk 32 \
+  --neighbourhood-cap 50 --out results/cwq_cleartext_full1267_...
+
+# 3. ablations (bound / top-k / cap / owners / partition)
+bash scripts/run_cwq_ablations.sh
+
+# 4. Ollama generation over retrieved evidence only
+python3 scripts/run_cwq_answers.py --run <run_dir> --answers 300
+
+# 5. MP-SPDZ Temi validation on a 10-query workload closure
+python3 scripts/build_cwq_mpc_fixture.py --queries 10 --out data/cwq/mpc_fixture/q10_closure
+python3 scripts/run_kqapro_relation_mpc.py --fixture data/cwq/mpc_fixture/q10_closure \
+  --output results/cwq_mpc_temi_q10 --protocol temi
+```
+
+Raw inputs live in `data/cwq/raw/`: official `ComplexWebQuestions_{dev,test}.json`
+(Dropbox release, SPARQL included) and `rog_cwq_{test,validation}.jsonl`
+(HuggingFace `rmanluo/RoG-cwq` parquet converted to JSONL).
+
+## KQA Pro compatibility profiling
+
+`profile_kqapro.py` downloads the frozen KQA Pro KB and question splits from
+the published Hugging Face mirror, records file hashes, and conservatively
+profiles the dataset against the current anchored two-relation retrieval
+functionality:
+
+```bash
+python3 scripts/profile_kqapro.py \
+  --download \
+  --data-dir data/kqa_pro/raw \
+  --out data/kqa_pro/profile
+```
+
+The script does not report full KQA Pro accuracy. It first selects the exact
+KoPL shape `Find -> Relate -> FilterConcept -> Relate -> FilterConcept -> What`,
+then independently evaluates the path and concept constraints against
+`kb.json`. A row is exported only if removing both concept filters preserves
+the intermediate frontier and final entity IDs and the endpoint name equals the
+published answer. This stronger check matters because an otherwise harmless
+extra middle entity could consume a bounded MPC frontier slot.
+
+The generated files are:
+
+* `kqapro_compatibility_summary.json`: coverage, rejection reasons, KB scale,
+  and limitations;
+* `kqapro_twohop_syntactic_candidates.jsonl`: all candidate programs and their
+  audit outcome;
+* `kqapro_twohop_path_equivalent.jsonl`: only rows supported by the current
+  two-hop path functionality;
+* `PROVENANCE.json`: source URLs, byte counts, and SHA-256 hashes.
+
+KQA Pro's public test split contains no programs or answers, so only train and
+validation can be compatibility-profiled locally. Any owner allocation is
+synthetic because the KB has no owner provenance.
+
+Build the full frozen-graph capacity fixture and the separately labelled
+21-query validation-closure correctness fixture:
+
+```bash
+python3 scripts/build_kqapro_relation_fixture.py \
+  --kb data/kqa_pro/raw/kb.json \
+  --compatible data/kqa_pro/profile/kqapro_twohop_path_equivalent.jsonl \
+  --out data/kqa_pro/relation_fixture
+```
+
+`full/capacity_report.json` is the only artifact suitable for whole-graph
+capacity discussion. `validation_closure` contains every path reachable from
+the 21 public validation query anchors and relation pairs, without consulting
+their answers; it is only a controlled correctness fixture.
+
+Execute those 21 queries in the circuit's mandatory 10+10+1 batching and check
+every reconstructed field against the independent cleartext oracle:
+
+```bash
+python3 scripts/run_kqapro_relation_mpc.py \
+  --fixture data/kqa_pro/relation_fixture/validation_closure \
+  --output results/kqapro_relation_mpc_temi_q21 \
+  --mpspdz-home external/MP-SPDZ \
+  --batch-size 10 --protocol temi --resume
+```
+
+This is a localhost semi-honest dishonest-majority Temi measurement. It does
+not instantiate three separately administered hosts, and it must be labelled
+“KQA Pro snapshot-equivalent two-hop validation subset,” not full KQA Pro.
+
 ## Three-party DORAM regression
 
 `run_doram_regression.py` runs the packed MPC-oblivious linear scan over the

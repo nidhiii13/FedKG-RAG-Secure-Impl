@@ -1,0 +1,62 @@
+{
+  "workload": "webqsp",
+  "party_count": 5,
+  "threshold": 2,
+  "transport": "inprocess",
+  "repeats": 3,
+  "queries": 50,
+  "term_lookups": 51,
+  "lookups_present": 36,
+  "retrieval_correct_rate": 1.0,
+  "present_hit_rate": 1.0,
+  "negative_controls_pass": true,
+  "latency_ms_by_domain": {
+    "entity": {
+      "lookups": 51,
+      "keygen": {
+        "mean": 11.218,
+        "p50": 11.013,
+        "p95": 11.664
+      },
+      "eval_critical": {
+        "mean": 162.656,
+        "p50": 155.854,
+        "p95": 181.319
+      },
+      "combine": {
+        "mean": 99.855,
+        "p50": 99.149,
+        "p95": 109.061
+      },
+      "total_parallel_model": {
+        "mean": 273.84,
+        "p50": 266.251,
+        "p95": 298.029
+      }
+    },
+    "relation": null
+  },
+  "answer_metrics": {
+    "queries_with_answer_stage": 50,
+    "exact_match_rate": null,
+    "mean_coverage": 0.5325
+  },
+  "setup": {
+    "snapshot_build_s": 32.154,
+    "replicate_s": 121.446,
+    "store_load_s": 109.202,
+    "store_bytes_total": 2393729425,
+    "partitions": 5,
+    "entity_universe": 202518,
+    "entity_domain_bits": 18,
+    "relation_universe": 3800,
+    "relation_domain_bits": 12
+  },
+  "sizes_by_domain": {
+    "entity": {
+      "key_share_json_bytes": 393658,
+      "response_json_bytes": 4334609
+    }
+  },
+  "query_phase_wall_s": 153.539
+}
