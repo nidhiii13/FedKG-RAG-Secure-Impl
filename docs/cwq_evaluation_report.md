@@ -284,3 +284,16 @@ bash scripts/run_cwq_ablations.sh
 5. Score field: replace the synthetic score with public relation-selectivity
    (measurable, answer-independent), mattering only for k<=8 and LLM context
    ordering.
+
+## U. Controlled network sensitivity (completed extension)
+
+Twelve additional 10-query Temi runs (three repetitions across direct
+localhost, a zero-delay proxy control, 2 ms/1 Gbps, and 20 ms/100 Mbps) all
+matched the oracle. Median MPC time was 1.82, 2.86, 8.52 and 48.95 seconds per
+query respectively; global communication remained 198.60 MB/query. The 2 ms
+profile is 2.98x slower than the zero-delay proxy control and the regional
+profile is 17.10x slower. This establishes network sensitivity but is not a
+real WAN deployment: all parties remain on one host and the unprivileged TCP
+emulator does not model packet loss, kernel queues or separate-host compute.
+See `docs/cwq_wan_evaluation_report.md` and
+`results/cwq_wan_temi_q10_20260827T223000Z/summary.json`.

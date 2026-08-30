@@ -1,0 +1,90 @@
+{
+  "name": "relation_paged_extended_execution_20260828",
+  "date": "2026-08-28",
+  "status": "completed native MP-SPDZ Temi executions with exact reconstruction",
+  "large_distinct_query_sweep": {
+    "dataset": {
+      "kind": "controlled degree-one synthetic federation",
+      "entities": 100000,
+      "edges": 160000,
+      "relations": 3,
+      "owners": 3
+    },
+    "queries": 5,
+    "query_variation": "Five distinct source entities under the same dependent relation pair (r1,r2)",
+    "correctness": {
+      "exact_queries": "5/5",
+      "exact_fields": "80/80",
+      "mismatches": 0
+    },
+    "mpc_seconds_including_preprocessing": {
+      "median": 8.38645,
+      "mean": 8.444912,
+      "minimum": 8.26185,
+      "maximum": 8.78199,
+      "sample_stdev": 0.19945747120626986
+    },
+    "global_data_mb_per_query": 2608.22,
+    "party0_reported_rounds_per_query": 16686,
+    "measurement_boundary": "One already-prepared owner-share epoch and one cached one-query circuit were reused. MPC time includes Temi preprocessing and excludes owner preparation, input assembly, and compilation.",
+    "oracle_note": "The retained clear reconstruction used different public labels and scores from the preserved Temi epoch. For evaluation only, all three owner page shares were combined offline to recover the exact target/relation/score input fields, then the independent cleartext evaluator was run on those reconstructed inputs.",
+    "raw_report": "results/relation_paged_160k_distinct_q5_temi_20260828_v3/report.json"
+  },
+  "owner_count_sweep": {
+    "dataset": {
+      "kind": "controlled fixed-union synthetic federation",
+      "entities": 200,
+      "edges": 256,
+      "relations": 8,
+      "owners_tested": [1, 2, 4, 8]
+    },
+    "repetitions_per_arm": 3,
+    "correctness": "12/12 arms exact against the cleartext oracle; 192/192 output fields",
+    "arms": [
+      {
+        "owners": 1,
+        "median_mpc_seconds_including_preprocessing": 0.675183,
+        "median_global_data_mb": 136.346
+      },
+      {
+        "owners": 2,
+        "median_mpc_seconds_including_preprocessing": 0.679433,
+        "median_global_data_mb": 137.792
+      },
+      {
+        "owners": 4,
+        "median_mpc_seconds_including_preprocessing": 0.87634,
+        "median_global_data_mb": 149.835
+      },
+      {
+        "owners": 8,
+        "median_mpc_seconds_including_preprocessing": 1.13724,
+        "median_global_data_mb": 165.477
+      }
+    ],
+    "one_to_eight_owner_change_percent": {
+      "median_mpc_seconds": 68.43433558013162,
+      "global_data_mb": 21.365496604227484
+    },
+    "controlled_variables": "The union graph, query, entity/relation namespaces, global frontier, top-k, and public per-owner padded capacity are fixed. Only the number of owners and deterministic edge assignment change.",
+    "small_circuit_warning": "Temi reports unused preprocessing batches on these small programs, so the absolute runtimes include a protocol minimum-batch distortion.",
+    "raw_reports": [
+      "results/relation_paged_owner_scaling_temi_20260826_v3/report.json",
+      "results/relation_paged_owner_scaling_temi_20260826_v4/report.json",
+      "results/relation_paged_owner_scaling_temi_20260828_v6/report.json"
+    ]
+  },
+  "prior_matched_160k_optimization": {
+    "temi_vs_relation_paged_semi": {
+      "runtime_reduction_percent": 67.2329,
+      "communication_reduction_percent": 94.1642
+    },
+    "temi_vs_packed_scan_semi": {
+      "runtime_reduction_percent": 79.6428,
+      "communication_reduction_percent": 97.2599
+    },
+    "source": "doram_t2_3pc/benchmarks/relation_paged_160k_temi_v13.json",
+    "comparison_warning": "These percentages are the existing matched single-query comparisons, not recomputed from the new five-query median. Temi and Semi use different compatible fields and preprocessing protocols."
+  },
+  "scope_warning": "All MPC parties ran on one physical host. The 160k fixture is favorable, synthetic, degree one, and uses only one relation pair. The owner sweep is small and synthetic. These experiments strengthen correctness, repeatability, protocol-optimization, and controlled owner-scaling evidence; they do not establish full-CWQ, dense-graph, physical-WAN, or GORAM-level scalability."
+}

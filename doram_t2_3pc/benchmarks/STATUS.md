@@ -1,6 +1,6 @@
 # What each recorded benchmark still claims
 
-Forty-eight benchmarks accumulated here, and some **contradict each other** —
+Forty-nine benchmarks accumulated here, and some **contradict each other** —
 because later measurements corrected earlier ones. Read cold, this directory
 would let someone quote a number that has since been invalidated. That is the
 failure mode this file exists to prevent.
@@ -73,6 +73,7 @@ with it).
 | `relation_folded_residual_execution.json` | **Controlled version-12 residual-fold ablation.** Same ten distinct queries and prepared shares, 160/160 output fields identical: hop two 11.34% faster, total runtime 5.28% lower, communication 1.26% lower, and bit triples 4.38% lower. Also records exact current-code executions on a 201-entity real MetaQA subset and a 401-entity synthetic fixture. The full ten-query batch still sends 3.46 GB; this is not practical-scalability evidence. |
 | `relation_paged_160k_v12.json` | **First v12 relation-paged six-figure execution.** One query over 160,000 edges/100,000 entities completed in 26.76 s for 44.69 GB and matched all 16 oracle fields. This is 37.87% faster and 53.05% less communication than the packed scan on the same favorable degree-one fixture, primarily because a verified `global_frontier=1` replaces six dependent reads. Single host, preprocessing included, approximately twelve-minute compilation, still linear and impractical in bandwidth. |
 | `relation_paged_160k_temi_v13.json` | **HE-backed v12 circuit, same passive two-collusion threshold.** Freshly re-shared NTT-compatible field; Temi completes the same favorable 160k query in **8.77 s/2.61 GB**, exact 16/16. This is 67.23% less time and 94.16% less communication than v12/Semi. The fresh shares passed the MPC global-frontier gate (32.17 s/1.93 GB, one-time). Single host, preprocessing included; >9.8M-line/~12-minute compile; linear lookup, one synthetic query, not general scalability or protocol novelty. |
+| `relation_paged_extended_execution_20260828.json` | **Repeated large-query and owner-count extension.** Five distinct source queries on the favorable 100k-entity/160k-edge Temi epoch match all **80/80** fields, with median **8.386 s/query** (8.262--8.782) and fixed **2,608.22 MB/query**. Three repetitions of a matched 1/2/4/8-owner controlled sweep are exact in all 12 arms; median time rises from 0.675 to 1.137 s and communication from 136.346 to 165.477 MB. Both fixtures are synthetic and localhost; the large graph remains degree one and the small owner sweep is affected by Temi minimum batches. |
 | `efficiency_stack.json` | 2.51× cumulative, threat model untouched. |
 | `pooling_circuit_verification.json` | Pooling executed in MPC; all 8 blocks remap correctly under a secret non-identity permutation. |
 | `sort_join_growth.json` | `n·log₂(n)` law, 4.2% spread. Corrected the remap estimate upward 2.2×. |

@@ -9,12 +9,14 @@ three inputs on three separately administered hosts.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from .compiler_options import CompilerOptions
@@ -22,6 +24,70 @@ from .page_program import program_name, write_program
 from .paged_shares import expected_private_input_values, validate_private_input
 from .protocols import DEFAULT_PROTOCOL, PROTOCOLS, resolve
 from .relation_pages import RelationPageConfig
+from .wan_emulation import ThreePartyProxyNetwork, WanProfile
+
+
+def _run_with_tcp_proxy(
+    home: Path,
+    binary: Path,
+    name: str,
+    prime: int,
+    logs: list[Path],
+    environment: dict[str, str],
+    timeout: int,
+    profile: WanProfile,
+) -> None:
+    """Launch three parties through unprivileged, rate-limited TCP proxies."""
+
+    network_dir = logs[0].parent / f"wan-{logs[0].stem}"
+    processes: list[subprocess.Popen[bytes]] = []
+    log_handles = []
+    started = time.monotonic()
+    try:
+        with ThreePartyProxyNetwork(profile, network_dir) as network:
+            for party in range(3):
+                handle = logs[party].open("wb")
+                log_handles.append(handle)
+                processes.append(
+                    subprocess.Popen(
+                        [
+                            str(binary),
+                            str(party),
+                            name,
+                            "-OF",
+                            ".",
+                            "-P",
+                            str(prime),
+                            "-ip",
+                            str(network.hosts_file(party)),
+                        ],
+                        cwd=home,
+                        env=environment,
+                        stdout=handle,
+                        stderr=subprocess.STDOUT,
+                    )
+                )
+            for process in processes:
+                remaining = timeout - (time.monotonic() - started)
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(process.args, timeout)
+                process.wait(timeout=remaining)
+            failed = [process.returncode for process in processes if process.returncode]
+            if failed:
+                raise subprocess.CalledProcessError(failed[0], processes[0].args)
+    except BaseException:
+        for process in processes:
+            if process.poll() is None:
+                process.terminate()
+        for process in processes:
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                process.wait(timeout=5)
+            if process.poll() is None:
+                process.kill()
+        raise
+    finally:
+        for handle in log_handles:
+            handle.close()
 
 
 def _compile_if_needed(
@@ -81,6 +147,7 @@ def run(
     ablate_owner_batching: bool = False,
     protocol: str = DEFAULT_PROTOCOL,
     allow_weaker_threat_model: bool = False,
+    wan_profile: WanProfile | None = None,
 ) -> list[Path]:
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,48}", log_label):
         raise ValueError("log_label must contain only letters, digits, '_' or '-'")
@@ -167,20 +234,32 @@ def run(
     environment["LOG_PREFIX"] = prefix
     previous_umask = os.umask(0o077)
     try:
-        subprocess.run(
-            [
-                str(home / "Scripts" / chosen.script),
+        if wan_profile is None:
+            subprocess.run(
+                [
+                    str(home / "Scripts" / chosen.script),
+                    name,
+                    "-OF",
+                    ".",
+                    "-P",
+                    str(config.base.field_prime),
+                ],
+                cwd=home,
+                env=environment,
+                check=True,
+                timeout=runtime_timeout,
+            )
+        else:
+            _run_with_tcp_proxy(
+                home,
+                home / chosen.binary,
                 name,
-                "-OF",
-                ".",
-                "-P",
-                str(config.base.field_prime),
-            ],
-            cwd=home,
-            env=environment,
-            check=True,
-            timeout=runtime_timeout,
-        )
+                config.base.field_prime,
+                logs,
+                environment,
+                runtime_timeout,
+                wan_profile,
+            )
     finally:
         os.umask(previous_umask)
 

@@ -31,6 +31,7 @@ from doram_t2_3pc.paged_shares import (  # noqa: E402
 )
 from doram_t2_3pc.relation_pages import RelationPageConfig  # noqa: E402
 from doram_t2_3pc.run_pages_mpspdz import run as run_mpspdz  # noqa: E402
+from doram_t2_3pc.wan_emulation import WanProfile  # noqa: E402
 from scripts.analyze_doram_regression import parse_party_zero_log  # noqa: E402
 
 
@@ -76,6 +77,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if not queries or len(expected_all) != len(queries):
         raise ValueError("fixture queries and cleartext-oracle records must be non-empty and aligned")
     owner_shards = prepare_owner_shards(fixture, output, config)
+    wan_profile = None
+    if args.wan_rtt_ms is not None:
+        wan_profile = WanProfile(
+            name=args.wan_profile_name,
+            rtt_ms=args.wan_rtt_ms,
+            bandwidth_mbps=args.wan_bandwidth_mbps,
+        )
+    network_metadata = wan_profile.as_dict() if wan_profile else {
+        "name": "localhost",
+        "emulator": "none",
+    }
 
     batches = []
     for start in range(0, len(queries), args.batch_size):
@@ -85,7 +97,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         summary_path = batch_dir / "summary.json"
         if args.resume and summary_path.exists():
             existing = read_json(summary_path, dict)
-            if existing.get("status") == "completed" and existing.get("exact_oracle_match"):
+            if (
+                existing.get("status") == "completed"
+                and existing.get("exact_oracle_match")
+                and existing.get("network_profile") == network_metadata
+            ):
                 batches.append(existing)
                 print(f"batch {batch_index}: reusing completed exact result")
                 continue
@@ -115,6 +131,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "stop": stop,
             "query_count": stop - start,
             "protocol": args.protocol,
+            "network_profile": network_metadata,
         }
         write_json(summary_path, pending)
         label = f"kqapro-{batch_index}-{uuid.uuid4().hex[:6]}"
@@ -128,6 +145,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             compile_timeout=args.compile_timeout,
             runtime_timeout=args.runtime_timeout,
             protocol=args.protocol,
+            wan_profile=wan_profile,
         )
         wall = time.perf_counter() - started
         local_logs = []
@@ -187,7 +205,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "runner_wall_seconds_sum_including_compile_if_needed": sum(
             batch["runner_wall_seconds_including_compile_if_needed"] for batch in batches
         ),
-        "measurement_scope": "three MP-SPDZ parties on localhost",
+        "measurement_scope": (
+            "three MP-SPDZ parties on one host connected through a userspace "
+            "TCP WAN emulator"
+            if wan_profile
+            else "three MP-SPDZ parties on localhost"
+        ),
+        "network_profile": network_metadata,
         "timing_note": "MPC seconds include Temi preprocessing but exclude compilation and share preparation.",
         "round_note": "MP-SPDZ reports multithreaded rounds with double-counting; do not interpret them as sequential WAN round trips.",
         "security_note": "Temi is semi-honest dishonest-majority MPC; this localhost harness centralizes shares and is not a three-host deployment.",
@@ -210,9 +234,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--compile-timeout", type=int, default=1800)
     parser.add_argument("--runtime-timeout", type=int, default=3600)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--wan-rtt-ms",
+        type=float,
+        help="Use the unprivileged TCP emulator with this configured RTT",
+    )
+    parser.add_argument(
+        "--wan-bandwidth-mbps",
+        type=float,
+        default=100.0,
+        help="Per-direction TCP payload rate used with --wan-rtt-ms",
+    )
+    parser.add_argument("--wan-profile-name", default="custom_wan")
     args = parser.parse_args()
     if not 1 <= args.batch_size <= 10:
         parser.error("--batch-size must be in [1, 10]")
+    if args.wan_rtt_ms is not None and args.wan_rtt_ms < 0:
+        parser.error("--wan-rtt-ms must be non-negative")
+    if args.wan_bandwidth_mbps <= 0:
+        parser.error("--wan-bandwidth-mbps must be positive")
     return args
 
 

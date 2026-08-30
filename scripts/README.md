@@ -30,6 +30,62 @@ python3 scripts/run_kqapro_relation_mpc.py --fixture data/cwq/mpc_fixture/q10_cl
   --output results/cwq_mpc_temi_q10 --protocol temi
 ```
 
+### Controlled network-sensitivity experiment
+
+`run_cwq_wan_eval.py` repeats the fixed 10-query Temi closure under direct
+localhost and userspace TCP-link profiles:
+
+```bash
+python3 scripts/run_cwq_wan_eval.py \
+  --output results/cwq_wan_temi_q10_<timestamp> \
+  --profiles localhost,proxy_control_0ms_1000mbps,campus_2ms_1000mbps,regional_20ms_100mbps \
+  --repetitions 3 --batch-size 5
+```
+
+This fallback is used when isolated `tc netem` namespaces are unavailable. It
+models propagation delay and TCP payload throughput, not packet loss, kernel
+queues, real geographic routing, separate-host compute, or independent server
+administration. Results must be called **controlled userspace network
+emulation**, never a real WAN deployment. A zero-delay proxy control separates
+the emulator's own cost from configured link delay.
+
+### Controlled graph- and owner-scale execution
+
+`run_relation_paged_large_query_sweep.py` runs distinct one-query trials
+against one prepared owner-share epoch and cached relation-paged circuit. It
+creates fresh query shares, reconstructs every output field, and reports the
+median and variation without treating compilation as query latency:
+
+```bash
+python3 scripts/run_relation_paged_large_query_sweep.py \
+  --config <prepared-config.json> \
+  --owner-shard-dir <owner-0-shards> --owner-shard-dir <owner-1-shards> \
+  --owner-edges <owner-0-clear.json> --owner-edges <owner-1-clear.json> \
+  --source <source-a> --source <source-b> --source <source-c> \
+  --output-dir results/relation_paged_large_query_sweep
+```
+
+If a preserved epoch and clear evaluation fixture use different public labels
+or edge fields, pass `--owner-edge-config` and
+`--recover-edge-fields-from-owner-shards`. The latter is a centralized,
+evaluation-only reconstruction using all three input shares and is never part
+of deployment query processing.
+
+`run_relation_paged_owner_scaling.py` holds one graph, query, namespace,
+frontier, top-k, and per-owner public capacity fixed while redistributing edges
+over 1, 2, 4, and 8 owners:
+
+```bash
+python3 scripts/run_relation_paged_owner_scaling.py \
+  --owners 1 2 4 8 --protocol temi \
+  --output-dir results/relation_paged_owner_scaling
+```
+
+The August 2026 results are consolidated in
+`doram_t2_3pc/benchmarks/relation_paged_extended_execution_20260828.json`.
+Both experiments use synthetic localhost fixtures and must not be presented as
+full-CWQ, physical-WAN, or billion-edge scalability.
+
 Raw inputs live in `data/cwq/raw/`: official `ComplexWebQuestions_{dev,test}.json`
 (Dropbox release, SPARQL included) and `rog_cwq_{test,validation}.jsonl`
 (HuggingFace `rmanluo/RoG-cwq` parquet converted to JSONL).
