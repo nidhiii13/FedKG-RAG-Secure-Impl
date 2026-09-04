@@ -1,0 +1,53 @@
+{
+  "evaluation_label": "MetaQA q500 two-bucket native-MPC suite",
+  "source_fixture": "data/metaqa/relation_fixture/full_domain_q500_b8",
+  "selected_questions": 500,
+  "public_buckets": 2,
+  "public_leakage": "a coarse person/movie-versus-attribute workload class and circuit dimensions; the source entity and exact relation pair remain secret-shared",
+  "parameters": {
+    "owners": 3,
+    "bound": 8,
+    "top_k": 4,
+    "seed": 4242
+  },
+  "buckets": [
+    {
+      "bucket": "attribute_lookup",
+      "questions": 177,
+      "relations": [
+        "directed_by_inverse",
+        "has_genre",
+        "in_language",
+        "release_year",
+        "starred_actors_inverse",
+        "written_by_inverse"
+      ],
+      "entities": 43234,
+      "directed_edges_after_bound": 92553,
+      "directory_rows": 70945,
+      "evidence_hits": 176,
+      "fixture": "data/metaqa/relation_fixture/q500_private_bucket_suite_b8/fixtures/attribute_lookup",
+      "capacity_sha256": "fe90600a593141b46c37953f708c5df243a51db19b1d61d64ed971d4f70cf40f",
+      "cleartext_validation_sha256": "6101e844950312acc9c7e08275404822832740386845e0d4e8539ef0b5511ca6"
+    },
+    {
+      "bucket": "person_movie",
+      "questions": 323,
+      "relations": [
+        "directed_by",
+        "directed_by_inverse",
+        "starred_actors",
+        "starred_actors_inverse",
+        "written_by",
+        "written_by_inverse"
+      ],
+      "entities": 43234,
+      "directed_edges_after_bound": 125668,
+      "directory_rows": 70945,
+      "evidence_hits": 321,
+      "fixture": "data/metaqa/relation_fixture/q500_private_bucket_suite_b8/fixtures/person_movie",
+      "capacity_sha256": "20ea67ebfaecd4bd0a8b9f9b696c76cbc616993153805a089679edad6f78f089",
+      "cleartext_validation_sha256": "458e552ae41659bbe402bbedbbb2b38b18a480565e271bdd44df9e6cc9921978"
+    }
+  ]
+}

@@ -1,0 +1,887 @@
+[
+  {
+    "source": "Tony Montana",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Minna Gombell",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "James Siegel",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Marilynne Robinson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Pasi Kemmo",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Wallace Beery",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Elke Sommer",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Jeff Baena",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Armando De Razza",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Van Heflin",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Angelina Jolie",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Daryl Wein",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "George B. Seitz",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Stevie Wermers",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Johan Renck",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Stephen Furst",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Peter Segal",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Geneviève Bujold",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Katja Riemann",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Ernest Borgnine",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Andrew Currie",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Sean Stone",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "T. Hee",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "James MacArthur",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Debra Granik",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Alexandre Breffort",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Lonne Elder III",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Jack McElhone",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Scott Culver",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Pierre Geller",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Noah Emmerich",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "René Cardona",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Vicente Aranda",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "John Lundberg",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Ben Cotner",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "David Seals",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Kathryn Stockett",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Georgia Engel",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Peter Birro",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Mira Sorvino",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Hiei Kimura",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Trini Alvarado",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Ruby Keeler",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Hugh Quarshie",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Vic Morrow",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Carlos Cuarón",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Richard Christian Matheson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "William Sellers",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "David Duncan",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Christopher Knights",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Laurence Coriat",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Jonathan Taylor Thomas",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Lenny Juliano",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Peppino De Filippo",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Ruth Gordon",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Albert Dupontel",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Fidel Castro",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Dylan McDermott",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Stefania Rocca",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Brown Eyes",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Roger Spottiswoode",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Sakari Kirjavainen",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Otakar Vávra",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Vic Morrow",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Chris Provenzano",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Ernest R. Dickerson",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Ben Falcone",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Jane Hamilton",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Mary Kay Place",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Isaiah Washington",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Ralph Nelson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Chris Young",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "John Carter",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "John Richardson",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Erich Kästner",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Marcos Bernstein",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Chris Morgan",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Edith Kneipple Roberts",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Pete Jones",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Ralph Arlyck",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Charles Gordone",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Karin Fossum",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Joe Ranft",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Bohdan Sláma",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Göran Olsson",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Doris Wishman",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Jeffrey Hunter",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Yannis Smaragdis",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Michelle Reis",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Robert Duvall",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Raya Martin",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Nermina Lukac",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Suzanne Collins",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Yukio Mishima",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Rachel Specter",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Elaine Cassidy",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "James Cameron",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Paul Humfress",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Dylan Walsh",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Eugene O'Neill",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Henrik Norrthon",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Theodoros Angelopoulos",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "George Wendt",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Chuck Norris",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Famke Janssen",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Marilynne Robinson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Susumu Fujita",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Bahram Tavakoli",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Charles David",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Zoe Kazan",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Mitchell Kapner",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Taye Diggs",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Barbara Stanwyck",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Jan Gunnar Røise",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Javier Fesser",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Anna Palk",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Sergio Garrone",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Rita Rudner",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Claes Eriksson",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Hans Rameau",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Erik Skjoldbjærg",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Colin Eggleston",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Bob Rafelson",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Prachya Pinkaew",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Rod Hardy",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Hideo Nakata",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Dian Fossey",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Niall MacCormick",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Jugal Hansraj",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Edward Norton",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Clémence Poésy",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "John Sayles",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Josh Rushing",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Karim Aïnouz",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "George Schaefer",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Jane Wagner",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Jim Lee",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Aaron Russo",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Sunil Shetty",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Milton Moses Ginsberg",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Graham Chapman",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "John Waters",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Robert Gosnell",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Chris Parnell",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Bill Peet",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Antonio Campos",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Richard Ayoade",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Derek Luke",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Zabou Breitman",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Leonardo DiCaprio",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Markus Schleinzer",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "John Qualen",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Rodrigo García",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Matt Dillon",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Pedro Almodóvar",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Robert Bresson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Craig Rosenberg",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Barry Otto",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Danny Denzongpa",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Shane Acker",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Rob Dawber",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Frederick Kohner",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Hiroshi Teshigahara",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Serge Bourguignon",
+    "relation_1": "written_by_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Margot Grahame",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Bille August",
+    "relation_1": "written_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Erich Kästner",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Julian de Laserna",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Brant Sersen",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Sue Kramer",
+    "relation_1": "written_by_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Maria Kulle",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Fanny Brice",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Matt Adler",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "release_year"
+  },
+  {
+    "source": "Madhur Jaffrey",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  },
+  {
+    "source": "Alejandro Rey",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Tom Schulman",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "has_genre"
+  },
+  {
+    "source": "Alexander Knox",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "in_language"
+  }
+]

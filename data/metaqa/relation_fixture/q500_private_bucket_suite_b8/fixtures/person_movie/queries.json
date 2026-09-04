@@ -1,0 +1,1617 @@
+[
+  {
+    "source": "They Came to Cordura",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "I Am a Sex Addict",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "William Prochnau",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Georg Büchner",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Enrico Medioli",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Amy Locane",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Charles George Hildebrandt",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Bright Eyes",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Anatole de Grunwald",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Tess Slesinger",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Vendela Vida",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Scott Cooper",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Henry Kissinger",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Pablo Trapero",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Cadillac Man",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Ken Park",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Jon Cypher",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Forrest Gump",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "The Devil Inside",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Petru Dumitriu",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Willis Hall",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Blondin Miguel",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Bachelor Party Vegas",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "The Brink's Job",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Aces High",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Kenneth Tsang",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Gunnel Lindblom",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Robert Stadlober",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Jacqueline Fernandez",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Michael Downing",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Sam Shepard",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Will Smith",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Mitchell Leisen",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Fran Walsh",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Blue Like Jazz",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Sex Drive",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Spider-Man",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Stewart Raffill",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Mohsen Makhmalbaf",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "The Stepfather",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Turkish Delight",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Patrick Dempsey",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Lost in the Desert",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Proof",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Stan Lee",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Profession of Arms",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Twiggy",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Owen Moore",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Bradley Pierce",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "The Black Watch",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Nikolaj Frobenius",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Dev Patel",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Robert Bresson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Lawrence Krauss",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "The Last Starfighter",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Marina de Tavira",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Penelope Spheeris",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Hours",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Chuck Hogan",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Out of Sight",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Tim Robbins",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Brooklyn Decker",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "James Daly",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "The Brave",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "The Name of the Rose",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Get on the Bus",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Marlene Dietrich",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "William Blinn",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Chicken Little",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Neighbors",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Hesper Anderson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Touching the Void",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Find Me Guilty",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "They Only Kill Their Masters",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Agatha Dominik",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The We and the I",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Happy Campers",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Maria Kulle",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Kristin Griffith",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Susan Isaacs",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Trish Van Devere",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Adolf Burger",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Yes",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Phil Cornwell",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Cherish Lee",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "W.D. Richter",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Clark Gregg",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Batman Forever",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Rob Stewart",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Bruce Jay Friedman",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Robert Evans",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Dolores Dorn",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Rob Schneider",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Ethan Hawke",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Melanie Papalia",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Woody Allen",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "All the Little Animals",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Peter Dickinson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Egidio Coccimiglio",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Leningrad Cowboys Meet Moses",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Stealth",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Robert Powell",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "The Squeeze",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Butterflies Are Free",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Sam Miller",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Karl Malden",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Nicolas Roeg",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Bad News Bears",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Delphine Gleize",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Marshall Herskovitz",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Love Bites",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Joel Coen",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Christine Noonan",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Judd Nelson",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Manhattan Project",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Adrián Caetano",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Bob Merrill",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Oliver Drake",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Marleen Gorris",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "James Stewart",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "The Method",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Marjorie Kinnan Rawlings",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Carl Gottlieb",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Crazy/Beautiful",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Sharon Leal",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Mihály Kormos",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Emily Hagins",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Richard Eyre",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Secret Admirer",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Bjørn Lomborg",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Marjorie Lawrence",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Randolph Scott",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Max Dugan Returns",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Gianni Romoli",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Robert Stone",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Marc Price",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "American Buffalo",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Man of Iron",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Douglas Kenney",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Mauricio Katz",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Jon Connolly",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Raise the Titanic",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Dolls",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Little Murders",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Anne Michaels",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Barbarian Invasions",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "The World of Henry Orient",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Apostle Peter and the Last Supper",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Springfield Rifle",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "David Kajganich",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Ken Hughes",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Steven Silver",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Wendell Mayes",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Beverly Adams",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Bianco, rosso e Verdone",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Anatomy of Hell",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Gabriele Muccino",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Raoul Ruiz",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "All Is Lost",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Flight of the Intruder",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Rhys Wakefield",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Edward Bernds",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "R. Lance Hill",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Kevin Hood",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Robert F. Hill",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "India Song",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Righteous Kill",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Jack Cunningham",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Son frère",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "The Game",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Coraline",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "David Bradley",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Leslie H. Whitten",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Sidney Toler",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Jeremy Sisto",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Kurt Eichenwald",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "John P. Marquand",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Johnny Sands",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "No Looking Back",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Danièle Gégauff",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Robert Bresson",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Charlie Chan's Chance",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Jon Lovitz",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Ernest Rides Again",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Stéphane Audran",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Shahrukh Husain",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Tom Selleck",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Edgar Kennedy",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Red Squirrel",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Will Fetters",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Rex Harrison",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Peter Fonda",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Jennifer Garner",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Rudy Ramos",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Matthew Perniciaro",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Carl Schenkel",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Rafael Yglesias",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Lawrence Gough",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Disco Dancer",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Mel Gibson",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Lydia Leonard",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Red Badge of Courage",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "All These Women",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Katharine Ross",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Crimson Rivers",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Steve Marshall",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Reginald Denny",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Oja Kodar",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Jeffrey Kluger",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "G.B.F.",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Dennis Christopher",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Alan Brown",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Ted Tally",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Esther Freud",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Cameron Richardson",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Jacqueline Pearce",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Gavin O'Connor",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Chris Miller",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Anna Gavalda",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "John Erman",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Halloweentown High",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Maria Pitillo",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Eiko Kadono",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Charlie Cox",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Playing God",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "What's the Worst That Could Happen?",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Ethan Coen",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "James Mangold",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Cherrie Ying",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Tim Ryan",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Jim Hutton",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Daniel Taplitz",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Ate de Jong",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "They Died with Their Boots On",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Rudolph Lothar",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Alexandre Bustillo",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Mona Achache",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Ken Burns",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Cecilia Dopazo",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Pin",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "William Hope",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Ossie Davis",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Bert I. Gordon",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "25 Watts",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Béla Balázs",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Paper Lion",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Luc Besson",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Fred Wolf",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Passion of Love",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Madame Sin",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Sarah Wright",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Kinky Boots",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Robert N. Lee",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Alexander the Great",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Eugenia Yuan",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Gandahar",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Elliott Lester",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Jerry Barone",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Glenn Tryon",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Eric Roth",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Pradeep Sarkar",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Kadosh",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "One Sunday Afternoon",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Walker Hamilton",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Peter Miles",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Wolf Man",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Jim Marrs",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Harry Carey Jr.",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Barry Foster",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Class Action",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Natasha Sparkes",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "The V.I.P.s",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Big Eyes",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Lillian Roth",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Felipe Lacerda",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Gordon Scott",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Rich Christiano",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "10 Things I Hate About You",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Susan Burke",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Abel Ferrara",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Deric Washburn",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Andrew Shue",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "The Gay Divorcee",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Courtney Love",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Overnight Delivery",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "My Wife's Relations",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Sanjeev Kumar",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Nat Perrin",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Jacob Tierney",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Peter Sattler",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "The Ambushers",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "The Reluctant Fundamentalist",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  },
+  {
+    "source": "Robin Weigert",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Wisdom",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Lisa Azuelos",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Marathon Man",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Bill Irwin",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Eric Wareheim",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Fly Away Home",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Harry Elfont",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Sissy Spacek",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Phantom of the Opera",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Flawless",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Hans Székely",
+    "relation_1": "written_by_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "Kill List",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "No Way to Treat a Lady",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Jean Gillie",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "A Prophet",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Rolan Bykov",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Going Down in LA-LA Land",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Stefania Casini",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Nicholas Thomas",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Charles S. Dutton",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Mary Kay Place",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Shoot First, Die Later",
+    "relation_1": "written_by",
+    "relation_2": "written_by_inverse"
+  },
+  {
+    "source": "Dennis Weaver",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Sruthi Hariharan",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Harry A. Earnshaw",
+    "relation_1": "written_by_inverse",
+    "relation_2": "written_by"
+  },
+  {
+    "source": "Sandra Fierlinger",
+    "relation_1": "written_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Max Ophüls",
+    "relation_1": "directed_by_inverse",
+    "relation_2": "starred_actors"
+  },
+  {
+    "source": "Robin Harris",
+    "relation_1": "starred_actors_inverse",
+    "relation_2": "directed_by"
+  },
+  {
+    "source": "The Snow Walker",
+    "relation_1": "directed_by",
+    "relation_2": "directed_by_inverse"
+  },
+  {
+    "source": "Mohabbatein",
+    "relation_1": "starred_actors",
+    "relation_2": "starred_actors_inverse"
+  }
+]

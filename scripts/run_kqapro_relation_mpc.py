@@ -10,6 +10,7 @@ generated independent cleartext oracle.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
 import os
 import shutil
@@ -33,6 +34,21 @@ from doram_t2_3pc.relation_pages import RelationPageConfig  # noqa: E402
 from doram_t2_3pc.run_pages_mpspdz import run as run_mpspdz  # noqa: E402
 from doram_t2_3pc.wan_emulation import WanProfile  # noqa: E402
 from scripts.analyze_doram_regression import parse_party_zero_log  # noqa: E402
+
+
+def acquire_execution_lock(directory: Path, filename: str):
+    """Prevent two runners from reusing an output or MP-SPDZ namespace."""
+    directory.mkdir(parents=True, exist_ok=True)
+    lock_path = directory / filename
+    handle = lock_path.open("w", encoding="utf-8")
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as exc:
+        handle.close()
+        raise RuntimeError(f"another MPC runner is already using {directory}") from exc
+    handle.write(f"pid={os.getpid()}\n")
+    handle.flush()
+    return handle
 
 
 def read_json(path: Path, expected: type) -> Any:
@@ -69,6 +85,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     fixture = args.fixture.resolve()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    # Keep the descriptor open for the lifetime of the run. The operating
+    # system releases the lock automatically after a clean exit or a crash.
+    execution_locks = [
+        acquire_execution_lock(output, ".execution.lock"),
+        acquire_execution_lock(args.mpspdz_home.resolve(), ".fedkg-execution.lock"),
+    ]
     config_path = fixture / "config.json"
     config = RelationPageConfig.load(config_path)
     queries = read_json(fixture / "queries.json", list)
@@ -94,6 +116,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         stop = min(start + args.batch_size, len(queries))
         batch_index = start // args.batch_size
         batch_dir = output / f"batch_{batch_index:02d}_{start}_{stop}"
+        batch_queries = list(queries[start:stop])
+        expected = list(expected_all[start:stop])
+        genuine_count = len(batch_queries)
+        if args.pad_final_batch and genuine_count < args.batch_size:
+            while len(batch_queries) < args.batch_size:
+                batch_queries.append(batch_queries[-1])
+                expected.append(expected[-1])
+        executed_count = len(batch_queries)
         summary_path = batch_dir / "summary.json"
         if args.resume and summary_path.exists():
             existing = read_json(summary_path, dict)
@@ -101,13 +131,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 existing.get("status") == "completed"
                 and existing.get("exact_oracle_match")
                 and existing.get("network_profile") == network_metadata
+                and existing.get("query_count") == genuine_count
+                and existing.get("executed_query_count", genuine_count) == executed_count
             ):
                 batches.append(existing)
                 print(f"batch {batch_index}: reusing completed exact result")
                 continue
         batch_dir.mkdir(parents=True, exist_ok=True)
         query_path = batch_dir / "queries.json"
-        write_json(query_path, queries[start:stop], private=True)
+        write_json(query_path, batch_queries, private=True)
         query_shards = create_packed_query_batch_shards(
             config.base, query_path, batch_dir / "query_shards"
         )
@@ -117,19 +149,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             assemble_paged_batch_from_paths(
                 config,
                 server,
-                stop - start,
+                executed_count,
                 query_shards[server],
                 [owner_shards[owner_index][server] for owner_index in range(len(owner_shards))],
                 instance / f"Input-P{server}-0",
             )
-        expected = expected_all[start:stop]
         write_json(batch_dir / "expected.json", expected, private=True)
         pending = {
             "status": "running",
             "batch": batch_index,
             "start": start,
             "stop": stop,
-            "query_count": stop - start,
+            "query_count": genuine_count,
+            "executed_query_count": executed_count,
+            "padding_query_count": executed_count - genuine_count,
             "protocol": args.protocol,
             "network_profile": network_metadata,
         }
@@ -139,7 +172,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         source_logs = run_mpspdz(
             instance,
             config_path,
-            stop - start,
+            executed_count,
             args.mpspdz_home,
             log_label=label,
             compile_timeout=args.compile_timeout,
@@ -156,14 +189,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             shutil.copyfile(source, destination)
             os.chmod(destination, 0o600)
             local_logs.append(destination)
-        decoded = decode_batch_logs(config.base, stop - start, local_logs)
+        decoded = decode_batch_logs(config.base, executed_count, local_logs)
         exact = decoded == expected
         metrics = parse_party_zero_log(local_logs[0])
         completed = {
             **pending,
             "status": "completed",
             "exact_oracle_match": exact,
-            "fields_compared": (stop - start) * config.base.top_k * 4,
+            "fields_compared": executed_count * config.base.top_k * 4,
+            "genuine_query_fields_compared": genuine_count * config.base.top_k * 4,
             "runner_wall_seconds_including_compile_if_needed": wall,
             "mpc_seconds_including_preprocessing": metrics["mpc_seconds"],
             "global_data_mb": metrics["global_data_mb"],
@@ -177,25 +211,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             raise RuntimeError(f"batch {batch_index} disagrees with cleartext oracle")
         batches.append(completed)
         print(
-            f"batch {batch_index}: {stop-start} queries exact; "
+            f"batch {batch_index}: {genuine_count} genuine / "
+            f"{executed_count} executed queries exact; "
             f"{metrics['mpc_seconds']:.3f}s, {metrics['global_data_mb']:.2f} MB"
         )
 
     total_queries = sum(batch["query_count"] for batch in batches)
+    total_executed_queries = sum(
+        batch.get("executed_query_count", batch["query_count"]) for batch in batches
+    )
     total_mpc = sum(batch["mpc_seconds_including_preprocessing"] for batch in batches)
     total_data = sum(batch["global_data_mb"] for batch in batches)
     capacity_path = fixture / "capacity_report.json"
     capacity = read_json(capacity_path, dict) if capacity_path.exists() else {}
+    evaluation_label = oracle.get(
+        "evaluation_label", "KQA Pro snapshot-equivalent two-hop subset"
+    )
     summary = {
-        "evaluation_label": oracle.get(
-            "evaluation_label", "KQA Pro snapshot-equivalent two-hop subset"
-        ),
-        "full_kqapro_accuracy": False,
+        "evaluation_label": evaluation_label,
         "fixture_scope": capacity.get(
             "fixture_semantics", "public-query workload closure, not full KQA Pro KB"
         ),
         "protocol": args.protocol,
         "queries": total_queries,
+        "executed_queries_including_padding": total_executed_queries,
+        "padding_queries": total_executed_queries - total_queries,
         "batches": batches,
         "all_exact": all(batch["exact_oracle_match"] for batch in batches),
         "total_mpc_seconds_including_preprocessing": total_mpc,
@@ -216,7 +256,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "round_note": "MP-SPDZ reports multithreaded rounds with double-counting; do not interpret them as sequential WAN round trips.",
         "security_note": "Temi is semi-honest dishonest-majority MPC; this localhost harness centralizes shares and is not a three-host deployment.",
     }
+    if "KQA Pro" in evaluation_label:
+        summary["full_kqapro_accuracy"] = False
     write_json(output / "summary.json", summary)
+    del execution_locks
     return summary
 
 
@@ -234,6 +277,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--compile-timeout", type=int, default=1800)
     parser.add_argument("--runtime-timeout", type=int, default=3600)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--pad-final-batch",
+        action="store_true",
+        help=(
+            "repeat the final genuine query to fill its batch; padding outputs are "
+            "checked but excluded from the reported distinct-query count"
+        ),
+    )
     parser.add_argument(
         "--wan-rtt-ms",
         type=float,

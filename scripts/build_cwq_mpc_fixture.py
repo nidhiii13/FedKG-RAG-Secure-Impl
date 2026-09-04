@@ -65,6 +65,16 @@ def select_diverse(rows, count: int, seed: int):
     return picked
 
 
+def relation_domain(row) -> str:
+    """Return the Freebase domain of a row's first-hop relation."""
+
+    hops = query_graph_to_hops(row["query_graph"])
+    relation = hops.relation_1
+    if relation.endswith("_inverse"):
+        relation = relation[:-len("_inverse")]
+    return relation.split(".", 1)[0]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compatible", type=Path,
@@ -79,12 +89,73 @@ def main() -> int:
     parser.add_argument("--partition", default="subject-hash",
                         choices=("subject-hash", "edge-hash", "relation-domain"))
     parser.add_argument("--seed", type=int, default=4242)
+    parser.add_argument(
+        "--first-relation-domain",
+        default=None,
+        help=(
+            "restrict the fixed workload to one public Freebase first-relation "
+            "domain (for example, location); omitted means domain-diverse selection"
+        ),
+    )
+    parser.add_argument(
+        "--query-ids",
+        type=Path,
+        help=(
+            "optional JSON list of exact question IDs to include, in the given "
+            "order; when supplied, --queries is ignored"
+        ),
+    )
+    parser.add_argument(
+        "--relation-allowlist",
+        type=Path,
+        help=(
+            "optional JSON list of directed relation identifiers; graph records "
+            "outside this public vocabulary are excluded before closure building"
+        ),
+    )
+    parser.add_argument(
+        "--full-filtered-union",
+        action="store_true",
+        help=(
+            "retain the complete selected-subgraph union after any relation "
+            "filter instead of reducing it to a bounded workload closure"
+        ),
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     splits = [s.strip() for s in args.splits.split(",") if s.strip()]
 
     rows = load_compatible(args.compatible, splits)
-    picked = select_diverse(rows, args.queries, args.seed)
+    if args.first_relation_domain is not None:
+        rows = [
+            row for row in rows
+            if relation_domain(row) == args.first_relation_domain
+        ]
+        if not rows:
+            raise SystemExit(
+                "no compatible questions found for first-relation domain "
+                f"{args.first_relation_domain!r}"
+            )
+    if args.query_ids is not None:
+        requested = json.loads(args.query_ids.read_text(encoding="utf-8"))
+        if not isinstance(requested, list) or not all(
+            isinstance(value, str) for value in requested
+        ):
+            raise SystemExit("--query-ids must contain a JSON list of strings")
+        if len(requested) != len(set(requested)):
+            raise SystemExit("--query-ids contains duplicate question IDs")
+        by_id = {row["id"]: row for row in rows}
+        missing = [qid for qid in requested if qid not in by_id]
+        if missing:
+            raise SystemExit(
+                f"{len(missing)} requested IDs are unavailable after split/domain "
+                f"filtering; first missing ID: {missing[0]}"
+            )
+        picked = [by_id[qid] for qid in requested]
+        selection_method = "explicit-query-id-manifest"
+    else:
+        picked = select_diverse(rows, args.queries, args.seed)
+        selection_method = "seeded-domain-diverse"
     print(f"selected {len(picked)} diverse questions "
           f"({len({r['id'] for r in picked})} unique ids)")
     adjacency, _, forward = build_fixed_union(
@@ -92,11 +163,49 @@ def main() -> int:
     )
     print(f"union over selected subgraphs: {len(adjacency):,} entities, "
           f"{forward:,} forward edges")
+    relation_allowlist = None
+    if args.relation_allowlist is not None:
+        allowed = json.loads(args.relation_allowlist.read_text(encoding="utf-8"))
+        if not isinstance(allowed, list) or not all(
+            isinstance(value, str) for value in allowed
+        ):
+            raise SystemExit(
+                "--relation-allowlist must contain a JSON list of strings"
+            )
+        if len(allowed) != len(set(allowed)):
+            raise SystemExit("--relation-allowlist contains duplicate relations")
+        relation_allowlist = set(allowed)
+        asked = {
+            relation
+            for row in picked
+            for hops in [query_graph_to_hops(row["query_graph"])]
+            for relation in (hops.relation_1, hops.relation_2)
+        }
+        missing = sorted(asked - relation_allowlist)
+        if missing:
+            raise SystemExit(
+                "relation allowlist excludes a selected query relation: " + missing[0]
+            )
+        filtered_adjacency = {
+            source: [
+                (relation, target)
+                for relation, target in records
+                if relation in relation_allowlist
+            ]
+            for source, records in adjacency.items()
+        }
+        adjacency = defaultdict(list, filtered_adjacency)
+        retained = sum(len(records) for records in adjacency.values())
+        print(
+            f"public relation filter: {len(relation_allowlist)} relations, "
+            f"{retained:,} directed records retained"
+        )
 
     args.out.mkdir(parents=True, exist_ok=True)
     config_doc, budgets, edges_available, edges_kept = build_fixture(
         picked, adjacency, args.out, args.bound, args.neighbourhood_cap,
         args.seed, partitioner(args.owners, args.partition), args.topk,
+        full_union=args.full_filtered_union,
     )
     (args.out / "config_paged.json").rename(args.out / "config.json")
     # Temi is an HE-based protocol and requires field_prime == 1 mod 32768;
@@ -130,20 +239,47 @@ def main() -> int:
     (args.out / "queries.json").write_text(
         json.dumps(queries, indent=2) + "\n", encoding="utf-8"
     )
+    evaluation_shape = (
+        "complete public relation-filtered selected-subgraph union"
+        if args.full_filtered_union
+        else "bounded workload closure"
+    )
     (args.out / "cleartext_validation.json").write_text(json.dumps({
         "evaluation_label": (
             "CWQ 1.1 strict two-hop gold-SPARQL subset, "
-            f"{len(picked)}-query workload closure"
+            f"{len(picked)} queries over a {evaluation_shape}"
         ),
         "records": records,
     }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     frontier = check_global_frontier(config, owner_edges)
     report = {
         "fixture_semantics": (
-            "bounded two-hop neighbourhood closure of "
-            f"{len(picked)} public CWQ query anchors and gold-SPARQL relation "
-            "pairs; no answer-based edge selection; synthetic "
-            f"{args.owners}-owner {args.partition} split"
+            (
+                "complete public relation-filtered union of the selected "
+                f"{len(picked)} CWQ subgraphs"
+                if args.full_filtered_union
+                else (
+                    "bounded two-hop neighbourhood closure of "
+                    f"{len(picked)} public CWQ query anchors and gold-SPARQL "
+                    "relation pairs"
+                )
+            )
+            + "; no answer-based edge selection; synthetic "
+            + f"{args.owners}-owner {args.partition} split"
+        ),
+        "first_relation_domain": args.first_relation_domain,
+        "selection_method": selection_method,
+        "graph_scope": (
+            "complete-selected-subgraph-filtered-union"
+            if args.full_filtered_union
+            else "bounded-workload-closure"
+        ),
+        "query_id_manifest": str(args.query_ids) if args.query_ids else None,
+        "relation_allowlist": (
+            str(args.relation_allowlist) if args.relation_allowlist else None
+        ),
+        "relation_allowlist_size": (
+            len(relation_allowlist) if relation_allowlist is not None else None
         ),
         "entities": len(config_doc["entities"]),
         "relations": len(config_doc["relations"]),

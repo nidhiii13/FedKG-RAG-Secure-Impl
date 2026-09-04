@@ -1,0 +1,201 @@
+{
+  "fixture_semantics": "all MetaQA entities, relations and directed source-relation keys; each key retains its first 8 lexicographically ordered targets",
+  "query_selection": "seeded sample from templates parsed without consulting gold answers",
+  "seed": 4242,
+  "test_questions_total": 14872,
+  "compatible_templates": 14654,
+  "template_rejections": {
+    "first relation has no edge from the topic entity": 212,
+    "second relation has no edge from the first-hop frontier": 6
+  },
+  "selected_queries": 500,
+  "synthetic_ownership": "SHA-256(source) modulo 3",
+  "entities": 43234,
+  "relations": 18,
+  "directed_edges_before_bound": 267164,
+  "directed_edges_after_bound": 207320,
+  "maximum_unclipped_key_degree": 4176,
+  "clipped_keys": 2924,
+  "clipped_edges": 59844,
+  "public_per_key_bound": 8,
+  "dense_directory_rows_including_dummy_entity_row": 778230,
+  "actual_directory_rows": 174539,
+  "directory_optimisation": "type-blocked plus relation-partitioned residual",
+  "dense_to_actual_row_reduction": 4.45877425675637,
+  "maximum_public_type_block_width": 16413,
+  "residual_capacity": {
+    "residual_key_occurrences": 9418,
+    "nonempty_owner_relation_partitions": 35,
+    "chosen": {
+      "buckets": 4,
+      "slots": 327,
+      "logical_rows": 72,
+      "padded_rows": 128,
+      "width": 981,
+      "model_products_per_address": 141264
+    },
+    "candidates": [
+      {
+        "buckets": 1,
+        "slots": 1187,
+        "logical_rows": 18,
+        "padded_rows": 32,
+        "width": 3561,
+        "model_products_per_address": 170928
+      },
+      {
+        "buckets": 2,
+        "slots": 629,
+        "logical_rows": 36,
+        "padded_rows": 64,
+        "width": 1887,
+        "model_products_per_address": 150960
+      },
+      {
+        "buckets": 4,
+        "slots": 327,
+        "logical_rows": 72,
+        "padded_rows": 128,
+        "width": 981,
+        "model_products_per_address": 141264
+      },
+      {
+        "buckets": 8,
+        "slots": 174,
+        "logical_rows": 144,
+        "padded_rows": 256,
+        "width": 522,
+        "model_products_per_address": 141984
+      },
+      {
+        "buckets": 16,
+        "slots": 92,
+        "logical_rows": 288,
+        "padded_rows": 512,
+        "width": 276,
+        "model_products_per_address": 145728
+      },
+      {
+        "buckets": 32,
+        "slots": 54,
+        "logical_rows": 576,
+        "padded_rows": 1024,
+        "width": 162,
+        "model_products_per_address": 168480
+      },
+      {
+        "buckets": 64,
+        "slots": 28,
+        "logical_rows": 1152,
+        "padded_rows": 2048,
+        "width": 84,
+        "model_products_per_address": 173376
+      },
+      {
+        "buckets": 128,
+        "slots": 18,
+        "logical_rows": 2304,
+        "padded_rows": 4096,
+        "width": 54,
+        "model_products_per_address": 222048
+      },
+      {
+        "buckets": 256,
+        "slots": 12,
+        "logical_rows": 4608,
+        "padded_rows": 8192,
+        "width": 36,
+        "model_products_per_address": 295488
+      },
+      {
+        "buckets": 512,
+        "slots": 7,
+        "logical_rows": 9216,
+        "padded_rows": 16384,
+        "width": 21,
+        "model_products_per_address": 344400
+      },
+      {
+        "buckets": 1024,
+        "slots": 6,
+        "logical_rows": 18432,
+        "padded_rows": 32768,
+        "width": 18,
+        "model_products_per_address": 590112
+      }
+    ]
+  },
+  "owner_key_counts": {
+    "owner_0": 37546,
+    "owner_1": 37794,
+    "owner_2": 37524
+  },
+  "owner_layouts": {
+    "owner_0": {
+      "audit_scope": "supplied_file_only",
+      "owner": "owner_0",
+      "directory_rows": 174539,
+      "directory_capacity_slots_per_owner": 175847,
+      "occupied_directory_rows": 37546,
+      "occupied_type_block_rows": 35749,
+      "occupied_hashed_residual_keys": 1797,
+      "directory_occupancy": 0.21351515806354388,
+      "realized_page_count": 37547,
+      "page_budget": 37795,
+      "page_budget_headroom": 248,
+      "stored_edge_count": 69180,
+      "padded_edge_slots": 302360,
+      "slot_amplification": 4.370627348944781
+    },
+    "owner_1": {
+      "audit_scope": "supplied_file_only",
+      "owner": "owner_1",
+      "directory_rows": 174539,
+      "directory_capacity_slots_per_owner": 175847,
+      "occupied_directory_rows": 37794,
+      "occupied_type_block_rows": 35938,
+      "occupied_hashed_residual_keys": 1856,
+      "directory_occupancy": 0.21492547498677828,
+      "realized_page_count": 37795,
+      "page_budget": 37795,
+      "page_budget_headroom": 0,
+      "stored_edge_count": 69464,
+      "padded_edge_slots": 302360,
+      "slot_amplification": 4.352758263273063
+    },
+    "owner_2": {
+      "audit_scope": "supplied_file_only",
+      "owner": "owner_2",
+      "directory_rows": 174539,
+      "directory_capacity_slots_per_owner": 175847,
+      "occupied_directory_rows": 37524,
+      "occupied_type_block_rows": 35718,
+      "occupied_hashed_residual_keys": 1806,
+      "directory_occupancy": 0.2133900493042247,
+      "realized_page_count": 37525,
+      "page_budget": 37795,
+      "page_budget_headroom": 270,
+      "stored_edge_count": 68676,
+      "padded_edge_slots": 302360,
+      "slot_amplification": 4.4027025452851065
+    }
+  },
+  "global_frontier_check": {
+    "global_frontier": 8,
+    "distinct_keys_federation_wide": 112864,
+    "max_key_degree_federation_wide": 8,
+    "headroom": 0,
+    "checked_owners": [
+      "owner_0",
+      "owner_1",
+      "owner_2"
+    ],
+    "enforcement": "offline plaintext check over the union; a deployment needs the equivalent one-time MPC pass, which is not implemented"
+  },
+  "privacy_scope": "one full MetaQA relation ontology is public; source and both exact relations remain secret-shared, with no public relation-domain selection",
+  "warnings": [
+    "MetaQA has no owner provenance; ownership is synthetic.",
+    "The public per-key bound clips high-degree keys before owner-local preparation.",
+    "Deterministic handles are for reproducibility, not deployment randomness."
+  ]
+}

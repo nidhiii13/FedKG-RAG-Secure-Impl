@@ -229,7 +229,7 @@ def recorded_split(edge_owner: dict, owner_count: int):
 
 
 def build_fixture(questions, adjacency, out: Path, bound: int, cap: int, seed: int,
-                  split, top_k: int = 4):
+                  split, top_k: int = 4, full_union: bool = False):
     """Cover each question's two-hop neighbourhood and split it across owners."""
 
     keep = set()
@@ -252,10 +252,22 @@ def build_fixture(questions, adjacency, out: Path, bound: int, cap: int, seed: i
             keep.add(mid)
             for _, tail in adjacency[mid][:cap]:
                 keep.add(tail)
-    edges = sorted(
-        {(h, r, t) for h in keep for r, t in adjacency[h] if t in keep}
+    if full_union:
+        edges = sorted({
+            (head, relation, target)
+            for head, records in adjacency.items()
+            for relation, target in records
+        })
+    else:
+        edges = sorted(
+            {(h, r, t) for h in keep for r, t in adjacency[h] if t in keep}
+        )
+    query_sources = {
+        query_graph_to_hops(row["query_graph"]).source for row in questions
+    }
+    nodes = sorted(
+        {h for h, _, _ in edges} | {t for _, _, t in edges} | query_sources
     )
-    nodes = sorted({h for h, _, _ in edges} | {t for _, _, t in edges})
     # Restricting the vocabulary to relations actually present in the subgraph
     # is load-bearing, not tidiness: the directory is dense in
     # entities x relations, and WebQSP's full 3,800-relation vocabulary would
