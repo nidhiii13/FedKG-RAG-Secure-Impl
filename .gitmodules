@@ -1,0 +1,15 @@
+[submodule "external/MP-SPDZ"]
+	path = external/MP-SPDZ
+	url = https://github.com/data61/MP-SPDZ.git
+[submodule "external/SEAL-4.0.0"]
+	path = external/SEAL-4.0.0
+	url = https://github.com/microsoft/SEAL.git
+[submodule "external/SealPIR"]
+	path = external/SealPIR
+	url = https://github.com/microsoft/SealPIR.git
+[submodule "external/lattigo"]
+	path = external/lattigo
+	url = https://github.com/tuneinsight/lattigo.git
+[submodule "third_party/myl7-fss"]
+	path = third_party/myl7-fss
+	url = https://github.com/myl7/fss.git

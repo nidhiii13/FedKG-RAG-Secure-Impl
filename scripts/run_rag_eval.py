@@ -66,7 +66,7 @@ from doram_t2_3pc.relation_pages import (  # noqa: E402
     evaluate_paged_cleartext,
 )
 
-SIMGRAG = Path("/media/mmaheri/mohamad_ssd/nidhi/SimGRAG")
+SIMGRAG = ROOT.parent / "SimGRAG"
 DEFAULT_KB = SIMGRAG / "data/raw/metaQA/kb.txt"
 DEFAULT_QA = SIMGRAG / "data/raw/metaQA/2-hop/vanilla/qa_test.txt"
 WEBQSP = SIMGRAG / "data/webqsp"

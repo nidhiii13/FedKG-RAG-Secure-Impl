@@ -1,0 +1,46 @@
+{
+  "evaluation_label": "controlled 100k-entity/160k-record RoG-CWQ scale fixture",
+  "fixture_scope": "controlled density-selected slice of the held-out RoG-CWQ snapshot; 100,000 active entities, 160,000 genuine snapshot-derived records, six relations, one real strict two-hop CWQ query, and synthetic three-owner subject-hash partitioning",
+  "protocol": "temi",
+  "queries": 1,
+  "batches": [
+    {
+      "status": "completed",
+      "batch": 0,
+      "start": 0,
+      "stop": 1,
+      "query_count": 1,
+      "protocol": "temi",
+      "network_profile": {
+        "name": "localhost",
+        "emulator": "none"
+      },
+      "exact_oracle_match": true,
+      "fields_compared": 16,
+      "runner_wall_seconds_including_compile_if_needed": 1223.4766816161573,
+      "mpc_seconds_including_preprocessing": 14.9131,
+      "global_data_mb": 5722.3,
+      "party0_data_mb": 2859.49,
+      "party0_reported_rounds": 32484,
+      "logs": [
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_scale_100k_160k_temi_20260904/batch_00_0_1/logs/server_0.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_scale_100k_160k_temi_20260904/batch_00_0_1/logs/server_1.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_scale_100k_160k_temi_20260904/batch_00_0_1/logs/server_2.log"
+      ]
+    }
+  ],
+  "all_exact": true,
+  "total_mpc_seconds_including_preprocessing": 14.9131,
+  "total_global_data_mb": 5722.3,
+  "amortized_mpc_seconds_per_query": 14.9131,
+  "amortized_global_mb_per_query": 5722.3,
+  "runner_wall_seconds_sum_including_compile_if_needed": 1223.4766816161573,
+  "measurement_scope": "three MP-SPDZ parties on localhost",
+  "network_profile": {
+    "name": "localhost",
+    "emulator": "none"
+  },
+  "timing_note": "MPC seconds include Temi preprocessing but exclude compilation and share preparation.",
+  "round_note": "MP-SPDZ reports multithreaded rounds with double-counting; do not interpret them as sequential WAN round trips.",
+  "security_note": "Temi is semi-honest dishonest-majority MPC; this localhost harness centralizes shares and is not a three-host deployment."
+}

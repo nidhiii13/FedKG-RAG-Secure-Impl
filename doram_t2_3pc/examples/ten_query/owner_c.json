@@ -1,0 +1,44 @@
+[
+ {
+  "source": "alice",
+  "relation": "referred_to",
+  "target": "carol",
+  "evidence": 874558235173570,
+  "score": 1
+ },
+ {
+  "source": "alice",
+  "relation": "diagnosed_with",
+  "target": "cancer",
+  "evidence": 37506417550639,
+  "score": 10
+ },
+ {
+  "source": "carol",
+  "relation": "diagnosed_with",
+  "target": "flu",
+  "evidence": 69910641702708,
+  "score": 5
+ },
+ {
+  "source": "cancer",
+  "relation": "treated_with",
+  "target": "drug_x",
+  "evidence": 52573345804688,
+  "score": 8
+ },
+ {
+  "source": "flu",
+  "relation": "treated_with",
+  "target": "drug_y",
+  "evidence": 148483513491309,
+  "score": 7
+ },
+ {
+  "source": "dave",
+  "relation": "treated_with",
+  "target": "drug_x",
+  "evidence": 220097962472276,
+  "score": 2
+ }
+]

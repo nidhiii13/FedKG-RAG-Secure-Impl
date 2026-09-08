@@ -1,0 +1,17 @@
+{
+  "exact_oracle_match": true,
+  "fields_compared": 16,
+  "global_data_mb": 2608.22,
+  "mpc_seconds_including_preprocessing": 8.78199,
+  "party0_data_mb": 1303.47,
+  "party0_reported_rounds": 16686,
+  "private_input_bytes_all_servers": 73186895,
+  "query": {
+    "relation_1": "r1",
+    "relation_2": "r2",
+    "source": "e000100"
+  },
+  "query_share_and_input_assembly_seconds": 9.559382966719568,
+  "runner_wall_seconds": 22.529425331391394,
+  "trial": 2
+}

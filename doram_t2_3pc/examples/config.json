@@ -1,0 +1,9 @@
+{
+  "owners": ["hospital_a", "hospital_b"],
+  "entities": {"alice": 1, "bob": 2, "carol": 3, "dave": 4},
+  "relations": {"referred_to": 1, "diagnosed_with": 2},
+  "fanout_per_owner": 2,
+  "top_k": 2,
+  "score_bits": 20,
+  "evidence_bits": 50
+}

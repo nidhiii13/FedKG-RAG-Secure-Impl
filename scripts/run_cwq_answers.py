@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
 from scripts.run_rag_eval import wilson  # noqa: E402
 
 DEFAULT_LLM_CONFIG = Path(
-    "/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/configs/federated/webqsp_party_0.json"
+    ROOT.parent / "SimGRAG/configs/federated/webqsp_party_0.json"
 )
 
 

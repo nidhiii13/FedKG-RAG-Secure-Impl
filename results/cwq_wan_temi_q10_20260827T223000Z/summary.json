@@ -1,0 +1,312 @@
+{
+  "evaluation": "CWQ Temi controlled network-sensitivity experiment",
+  "execution_scope": "three MP-SPDZ processes on one physical host",
+  "wan_method": "unprivileged userspace TCP payload proxy",
+  "real_wan_deployment": false,
+  "profiles": [
+    {
+      "profile": "localhost",
+      "attempted_repetitions": 3,
+      "completed_repetitions": 3,
+      "all_exact": true,
+      "median_mpc_seconds_per_query": 1.822033,
+      "min_mpc_seconds_per_query": 1.7015689999999999,
+      "max_mpc_seconds_per_query": 1.8257019999999997,
+      "median_global_mb_per_query": 198.59980000000002,
+      "median_runner_wall_seconds": 29.759901608340442,
+      "mpc_slowdown_vs_direct_localhost": 1.0,
+      "mpc_slowdown_vs_zero_delay_proxy": 0.6364980664363391
+    },
+    {
+      "profile": "campus_2ms_1000mbps",
+      "attempted_repetitions": 3,
+      "completed_repetitions": 3,
+      "all_exact": true,
+      "median_mpc_seconds_per_query": 8.52144,
+      "min_mpc_seconds_per_query": 8.51791,
+      "max_mpc_seconds_per_query": 8.54146,
+      "median_global_mb_per_query": 198.59980000000002,
+      "median_runner_wall_seconds": 97.3110190955922,
+      "mpc_slowdown_vs_direct_localhost": 4.676885654650602,
+      "mpc_slowdown_vs_zero_delay_proxy": 2.97682867612896
+    },
+    {
+      "profile": "regional_20ms_100mbps",
+      "attempted_repetitions": 3,
+      "completed_repetitions": 3,
+      "all_exact": true,
+      "median_mpc_seconds_per_query": 48.946400000000004,
+      "min_mpc_seconds_per_query": 48.9188,
+      "max_mpc_seconds_per_query": 48.9522,
+      "median_global_mb_per_query": 198.59980000000002,
+      "median_runner_wall_seconds": 504.6539124380797,
+      "mpc_slowdown_vs_direct_localhost": 26.86361882578417,
+      "mpc_slowdown_vs_zero_delay_proxy": 17.09864144009446
+    },
+    {
+      "profile": "proxy_control_0ms_1000mbps",
+      "attempted_repetitions": 3,
+      "completed_repetitions": 3,
+      "all_exact": true,
+      "median_mpc_seconds_per_query": 2.86259,
+      "min_mpc_seconds_per_query": 2.83672,
+      "max_mpc_seconds_per_query": 2.86876,
+      "median_global_mb_per_query": 198.59980000000002,
+      "median_runner_wall_seconds": 40.29008036199957,
+      "mpc_slowdown_vs_direct_localhost": 1.5710966815639453,
+      "mpc_slowdown_vs_zero_delay_proxy": 1.0
+    }
+  ],
+  "runs": [
+    {
+      "profile": "localhost",
+      "repetition": 1,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 29.80956711806357,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/localhost/rep_01",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/localhost/rep_01/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 1.822033,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "localhost",
+        "emulator": "none"
+      }
+    },
+    {
+      "profile": "localhost",
+      "repetition": 2,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 28.706104245968163,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/localhost/rep_02",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/localhost/rep_02/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 1.7015689999999999,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "localhost",
+        "emulator": "none"
+      }
+    },
+    {
+      "profile": "localhost",
+      "repetition": 3,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 29.759901608340442,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/localhost/rep_03",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/localhost/rep_03/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 1.8257019999999997,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "localhost",
+        "emulator": "none"
+      }
+    },
+    {
+      "profile": "campus_2ms_1000mbps",
+      "repetition": 1,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 97.3110190955922,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/campus_2ms_1000mbps/rep_01",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/campus_2ms_1000mbps/rep_01/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 8.52144,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "campus_2ms_1000mbps",
+        "configured_rtt_ms": 2.0,
+        "configured_bandwidth_mbps_per_direction": 1000.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "campus_2ms_1000mbps",
+      "repetition": 2,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 97.85812018346041,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/campus_2ms_1000mbps/rep_02",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/campus_2ms_1000mbps/rep_02/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 8.54146,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "campus_2ms_1000mbps",
+        "configured_rtt_ms": 2.0,
+        "configured_bandwidth_mbps_per_direction": 1000.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "campus_2ms_1000mbps",
+      "repetition": 3,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 97.2715649176389,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/campus_2ms_1000mbps/rep_03",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/campus_2ms_1000mbps/rep_03/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 8.51791,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "campus_2ms_1000mbps",
+        "configured_rtt_ms": 2.0,
+        "configured_bandwidth_mbps_per_direction": 1000.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "regional_20ms_100mbps",
+      "repetition": 1,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 504.6317734634504,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/regional_20ms_100mbps/rep_01",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/regional_20ms_100mbps/rep_01/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 48.9188,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "regional_20ms_100mbps",
+        "configured_rtt_ms": 20.0,
+        "configured_bandwidth_mbps_per_direction": 100.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "regional_20ms_100mbps",
+      "repetition": 2,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 504.6539124380797,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/regional_20ms_100mbps/rep_02",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/regional_20ms_100mbps/rep_02/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 48.9522,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "regional_20ms_100mbps",
+        "configured_rtt_ms": 20.0,
+        "configured_bandwidth_mbps_per_direction": 100.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "regional_20ms_100mbps",
+      "repetition": 3,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 505.3124879570678,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/regional_20ms_100mbps/rep_03",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/regional_20ms_100mbps/rep_03/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 48.946400000000004,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "regional_20ms_100mbps",
+        "configured_rtt_ms": 20.0,
+        "configured_bandwidth_mbps_per_direction": 100.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "proxy_control_0ms_1000mbps",
+      "repetition": 1,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 40.29008036199957,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/proxy_control_0ms_1000mbps/rep_01",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/proxy_control_0ms_1000mbps/rep_01/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 2.86876,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "proxy_control_0ms_1000mbps",
+        "configured_rtt_ms": 0.0,
+        "configured_bandwidth_mbps_per_direction": 1000.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "proxy_control_0ms_1000mbps",
+      "repetition": 2,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 40.808525836095214,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/proxy_control_0ms_1000mbps/rep_02",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/proxy_control_0ms_1000mbps/rep_02/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 2.86259,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "proxy_control_0ms_1000mbps",
+        "configured_rtt_ms": 0.0,
+        "configured_bandwidth_mbps_per_direction": 1000.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    },
+    {
+      "profile": "proxy_control_0ms_1000mbps",
+      "repetition": 3,
+      "status": "completed",
+      "returncode": 0,
+      "wall_seconds": 39.989326420240104,
+      "result_directory": "results/cwq_wan_temi_q10_20260827T223000Z/proxy_control_0ms_1000mbps/rep_03",
+      "terminal_log": "results/cwq_wan_temi_q10_20260827T223000Z/proxy_control_0ms_1000mbps/rep_03/terminal.log",
+      "all_exact": true,
+      "queries": 10,
+      "mpc_seconds_per_query": 2.83672,
+      "global_mb_per_query": 198.59980000000002,
+      "network_profile": {
+        "name": "proxy_control_0ms_1000mbps",
+        "configured_rtt_ms": 0.0,
+        "configured_bandwidth_mbps_per_direction": 1000.0,
+        "emulator": "userspace TCP payload proxy",
+        "packet_loss_percent": 0,
+        "jitter_ms": 0,
+        "limitations": "Models propagation delay and serialization rate on established TCP byte streams; does not model TCP handshake delay, packet loss, kernel queueing, route variation, or independently administered hosts."
+      }
+    }
+  ],
+  "claim_limitations": "Emulated profiles model byte-stream propagation delay and throughput, not packet loss, kernel queues, route variation, separate host compute, or independently administered MPC servers."
+}

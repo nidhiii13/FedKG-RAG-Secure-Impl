@@ -563,7 +563,7 @@ def build_fixture(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def parse_args() -> argparse.Namespace:
-    simgrag = Path("/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/data/raw/metaQA")
+    simgrag = ROOT.parent / "SimGRAG/data/raw/metaQA"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kb", type=Path, default=simgrag / "kb.txt")
     parser.add_argument("--qa", type=Path, default=simgrag / "2-hop/vanilla/qa_test.txt")

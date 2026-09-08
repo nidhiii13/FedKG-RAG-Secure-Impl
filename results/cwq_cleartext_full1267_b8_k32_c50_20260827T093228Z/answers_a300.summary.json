@@ -1,0 +1,22 @@
+{
+  "run": "results/cwq_cleartext_full1267_b8_k32_c50_20260827T093228Z",
+  "llm_model": "llama3:70b-q2-4k",
+  "llm_timeout": 120.0,
+  "llm_max_tokens": 80,
+  "questions_sampled": 300,
+  "unique_ids": 300,
+  "answers_scored": 300,
+  "answer_errors": 0,
+  "answer_error_types": {},
+  "overall_correct": 233,
+  "overall_accuracy": 0.7766666666666666,
+  "overall_accuracy_ci95": [
+    0.726207930343667,
+    0.8201293717242524
+  ],
+  "retrieval_hits_in_sample": 270,
+  "generation_correct_given_retrieval_hit": 233,
+  "generation_accuracy_given_retrieval_hit": 0.8629629629629629,
+  "retrieval_misses_included_not_dropped": true,
+  "answer_seconds": 3636.160981655121
+}

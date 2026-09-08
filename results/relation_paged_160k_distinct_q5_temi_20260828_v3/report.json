@@ -1,0 +1,115 @@
+{
+  "aggregate": {
+    "exact_trials": 5,
+    "global_data_mb": {
+      "maximum": 2608.22,
+      "median": 2608.22,
+      "minimum": 2608.22
+    },
+    "mpc_seconds": {
+      "maximum": 8.78199,
+      "mean": 8.444912,
+      "median": 8.38645,
+      "minimum": 8.26185,
+      "sample_stdev": 0.19945747120626986
+    },
+    "trials": 5
+  },
+  "config": "/tmp/doram-160k-he/config/config.json",
+  "date": "2026-08-28",
+  "distinct_queries": 5,
+  "entities": 100000,
+  "name": "relation_paged_large_distinct_query_sweep",
+  "oracle_input_reconstruction": "All three owner page shares were combined offline to recover exact input target/relation/score fields before running the independent cleartext evaluator.",
+  "owners": 3,
+  "protocol": "temi",
+  "relations": 3,
+  "scope_warning": "Distinct queries reuse one fixed owner-share epoch and one compiled circuit. Three MPC parties execute on one localhost and timings include protocol preprocessing but exclude owner preparation, input assembly, and compilation.",
+  "trials": [
+    {
+      "exact_oracle_match": true,
+      "fields_compared": 16,
+      "global_data_mb": 2608.22,
+      "mpc_seconds_including_preprocessing": 8.44195,
+      "party0_data_mb": 1303.47,
+      "party0_reported_rounds": 16686,
+      "private_input_bytes_all_servers": 73186893,
+      "query": {
+        "relation_1": "r1",
+        "relation_2": "r2",
+        "source": "e000000"
+      },
+      "query_share_and_input_assembly_seconds": 9.34146230109036,
+      "runner_wall_seconds": 22.173645867034793,
+      "trial": 1
+    },
+    {
+      "exact_oracle_match": true,
+      "fields_compared": 16,
+      "global_data_mb": 2608.22,
+      "mpc_seconds_including_preprocessing": 8.78199,
+      "party0_data_mb": 1303.47,
+      "party0_reported_rounds": 16686,
+      "private_input_bytes_all_servers": 73186895,
+      "query": {
+        "relation_1": "r1",
+        "relation_2": "r2",
+        "source": "e000100"
+      },
+      "query_share_and_input_assembly_seconds": 9.559382966719568,
+      "runner_wall_seconds": 22.529425331391394,
+      "trial": 2
+    },
+    {
+      "exact_oracle_match": true,
+      "fields_compared": 16,
+      "global_data_mb": 2608.22,
+      "mpc_seconds_including_preprocessing": 8.26185,
+      "party0_data_mb": 1303.47,
+      "party0_reported_rounds": 16686,
+      "private_input_bytes_all_servers": 73186895,
+      "query": {
+        "relation_1": "r1",
+        "relation_2": "r2",
+        "source": "e001000"
+      },
+      "query_share_and_input_assembly_seconds": 9.391824686899781,
+      "runner_wall_seconds": 21.87018491886556,
+      "trial": 3
+    },
+    {
+      "exact_oracle_match": true,
+      "fields_compared": 16,
+      "global_data_mb": 2608.22,
+      "mpc_seconds_including_preprocessing": 8.35232,
+      "party0_data_mb": 1303.47,
+      "party0_reported_rounds": 16686,
+      "private_input_bytes_all_servers": 73186895,
+      "query": {
+        "relation_1": "r1",
+        "relation_2": "r2",
+        "source": "e010000"
+      },
+      "query_share_and_input_assembly_seconds": 9.450882846489549,
+      "runner_wall_seconds": 21.869319292716682,
+      "trial": 4
+    },
+    {
+      "exact_oracle_match": true,
+      "fields_compared": 16,
+      "global_data_mb": 2608.22,
+      "mpc_seconds_including_preprocessing": 8.38645,
+      "party0_data_mb": 1303.47,
+      "party0_reported_rounds": 16686,
+      "private_input_bytes_all_servers": 73186893,
+      "query": {
+        "relation_1": "r1",
+        "relation_2": "r2",
+        "source": "e049999"
+      },
+      "query_share_and_input_assembly_seconds": 9.332911087200046,
+      "runner_wall_seconds": 22.105600805021822,
+      "trial": 5
+    }
+  ]
+}

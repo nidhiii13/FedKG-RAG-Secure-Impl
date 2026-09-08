@@ -1,0 +1,72 @@
+{
+  "dataset": "ComplexWebQuestions 1.1 (RoG-CWQ graph snapshot)",
+  "evaluation_scope": "gold-SPARQL dependent two-hop retrieval core over one fixed selected-subgraph union; cleartext oracle",
+  "relation_paths_from": "gold SPARQL logical forms, never gold answers",
+  "results_are_mpc": false,
+  "splits": [
+    "test",
+    "validation"
+  ],
+  "compatible_available": 1267,
+  "questions_sampled": 1267,
+  "unique_ids": 1267,
+  "duplicate_ids": 0,
+  "evidence_hits": 1184,
+  "evidence_hit_rate": 0.9344909234411997,
+  "evidence_hit_ci95": [
+    0.9195108152841653,
+    0.946844204885146
+  ],
+  "empty_retrievals": 79,
+  "questions_with_multi_owner_evidence": 780,
+  "questions_with_cross_owner_chain": 780,
+  "retrieval_seconds": 1.1412928104400635,
+  "retrieval_seconds_per_query": 0.0009007835915075481,
+  "layout_preparation_seconds": 164.9192192554474,
+  "batch_size": 100,
+  "seed": 4242,
+  "fixed_union_entities": 293028,
+  "fixed_union_unique_forward_edges": 854421,
+  "fixed_union_directed_records_incl_inverses": 1708842,
+  "fixture": {
+    "entities": 75611,
+    "relations": 5203,
+    "directory_rows": 393404033,
+    "edges_available": 634946,
+    "edges_kept": 472793,
+    "owners": 3,
+    "partition": "subject-hash",
+    "owner_key_counts": [
+      108243,
+      105091,
+      105583
+    ],
+    "owner_key_skew": 1.029993053639227,
+    "owner_edge_counts": {
+      "owner_0": 161258,
+      "owner_1": 154035,
+      "owner_2": 157500
+    },
+    "owner_distinct_key_counts": {
+      "owner_0": 108243,
+      "owner_1": 105091,
+      "owner_2": 105583
+    },
+    "edge_volume_skew": 1.046891940143474,
+    "adjacency_keys_total": 318917,
+    "adjacency_keys_spanning_multiple_owners": 0,
+    "global_frontier": 8,
+    "max_federation_degree": 8
+  },
+  "bound": 8,
+  "top_k": 32,
+  "neighbourhood_cap": 50,
+  "plaintext_same_bound": 0.9344909234411997,
+  "fixture_ceiling_unclipped": 0.936069455406472,
+  "loss_before_fixture_ceiling_points": 6.393054459352799,
+  "bound_and_topk_loss_points": 0.15785319652723562,
+  "paged_vs_plaintext_same_bound_points": 0.0,
+  "handles_owner_blind": true,
+  "owners_are_synthetic_partitions": true,
+  "total_wall_seconds": 261.89955139160156
+}

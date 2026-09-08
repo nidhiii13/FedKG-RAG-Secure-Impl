@@ -39,7 +39,7 @@ go: command not found
 Install Go first, then run:
 
 ```bash
-cd /media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/external/lattigo
+cd <repository>/external/lattigo
 go run ./examples/multiparty/int_pir 3 2 1
 ```
 
@@ -69,14 +69,14 @@ encoded KG bucket records
 Build the FedKG-specific native threshold-PIR CLI:
 
 ```bash
-cd /media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/tools/lattigo_threshold_pir
+cd <repository>/tools/lattigo_threshold_pir
 /usr/local/go/bin/go build -o lattigo-fedkg-threshold-pir fedkg_lattigo_threshold_pir.go
 ```
 
 Build a small real-data smoke index:
 
 ```bash
-cd /media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl
+cd <repository>
 
 FEDKG_SETUP_KEY=dev-secure-test-key python3 scripts/build_pir_bucket_index.py \
   --manifest ../SimGRAG/configs/federated/metaqa_manifest.json \

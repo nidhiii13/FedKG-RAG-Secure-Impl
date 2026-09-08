@@ -1,0 +1,4 @@
+[
+  {"source": "alice", "relation": "referred_to", "target": "dave", "evidence": 21, "score": 5},
+  {"source": "dave", "relation": "diagnosed_with", "target": "carol", "evidence": 22, "score": 1}
+]

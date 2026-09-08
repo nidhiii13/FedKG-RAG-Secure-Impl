@@ -41,7 +41,7 @@ from scripts.run_rag_eval import build_fixture, plaintext_rate, wilson  # noqa: 
 
 
 DEFAULT_INPUT = Path(
-    "/media/mmaheri/mohamad_ssd/nidhi/SimGRAG/data/raw/rog_webqsp/test.jsonl"
+    ROOT.parent / "SimGRAG/data/raw/rog_webqsp/test.jsonl"
 )
 
 

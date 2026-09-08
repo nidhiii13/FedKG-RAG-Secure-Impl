@@ -1,0 +1,12 @@
+[
+  {"source": "alice", "relation_1": "referred_to", "relation_2": "diagnosed_with"},
+  {"source": "alice", "relation_1": "referred_to", "relation_2": "treated_with"},
+  {"source": "carol", "relation_1": "referred_to", "relation_2": "diagnosed_with"},
+  {"source": "carol", "relation_1": "referred_to", "relation_2": "treated_with"},
+  {"source": "alice", "relation_1": "diagnosed_with", "relation_2": "treated_with"},
+  {"source": "bob", "relation_1": "diagnosed_with", "relation_2": "treated_with"},
+  {"source": "dave", "relation_1": "diagnosed_with", "relation_2": "treated_with"},
+  {"source": "eve", "relation_1": "diagnosed_with", "relation_2": "treated_with"},
+  {"source": "bob", "relation_1": "treated_with", "relation_2": "diagnosed_with"},
+  {"source": "frank", "relation_1": "referred_to", "relation_2": "diagnosed_with"}
+]

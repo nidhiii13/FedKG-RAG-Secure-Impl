@@ -1,0 +1,51 @@
+{
+  "owners": ["owner_a", "owner_b", "owner_c"],
+  "entities": {
+    "alice": 1,
+    "bob": 2,
+    "carol": 3,
+    "dave": 4,
+    "eve": 5,
+    "frank": 6,
+    "cancer": 7,
+    "flu": 8,
+    "drug_x": 9,
+    "drug_y": 10
+  },
+  "relations": {
+    "referred_to": 1,
+    "diagnosed_with": 2,
+    "treated_with": 3
+  },
+  "fanout_per_owner": 2,
+  "top_k": 4,
+  "score_bits": 20,
+  "evidence_bits": 50,
+  "field_prime": 170141183460469231731687303715884105727,
+  "relation_page_layout": {
+    "page_size": 2,
+    "pages_per_key": 1,
+    "page_budget": 16,
+    "directory_buckets": 8,
+    "bucket_slots": 2
+  },
+  "type_block_layout": {
+    "entity_types": {
+      "alice": "person",
+      "bob": "person",
+      "carol": "person",
+      "dave": "person",
+      "eve": "person",
+      "frank": "person",
+      "cancer": "disease",
+      "flu": "disease",
+      "drug_x": "drug",
+      "drug_y": "drug"
+    },
+    "relation_domains": {
+      "referred_to": "person",
+      "diagnosed_with": "person",
+      "treated_with": "disease"
+    }
+  }
+}

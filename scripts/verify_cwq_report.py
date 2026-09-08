@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed verification of the CWQ numbers quoted in the thesis report."""
+"""Fail-closed verification of the principal numbers quoted in the report."""
 
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ FILES = {
     "mpc_q10": ROOT / "results/cwq_mpc_temi_q10c3_20260827T100757Z/summary.json",
     "mpc_q25": ROOT / "results/cwq_mpc_temi_q25c3_20260827T102849Z/summary.json",
     "wan": ROOT / "results/cwq_wan_temi_q10_20260827T223000Z/summary.json",
+    "mpc_domain1000": ROOT / "results/cwq_mpc_temi_domain1000_20260904/summary.json",
+    "mpc_metaqa500": ROOT / "results/metaqa_mpc_temi_q500_private_bucket_20260904/summary.json",
     "ablations": ROOT / "results/cwq_runs_table.json",
     "per_question": ROOT / "results/cwq_cleartext_full1267_b8_k32_c50_20260827T093228Z/per_question.jsonl",
 }
@@ -56,6 +58,8 @@ def main() -> None:
     q10 = load(FILES["mpc_q10"])
     q25 = load(FILES["mpc_q25"])
     wan = load(FILES["wan"])
+    domain1000 = load(FILES["mpc_domain1000"])
+    metaqa500 = load(FILES["mpc_metaqa500"])
     ablations = load(FILES["ablations"])
     per_question = load_jsonl(FILES["per_question"])
 
@@ -159,6 +163,41 @@ def main() -> None:
     require(all(abs(profile[name]["median_mpc_seconds_per_query"] - value) < 1e-9
                 for name, value in expected_medians.items()), "WAN median changed")
 
+    require(domain1000["status"] == "completed", "CWQ domain suite is incomplete")
+    require(domain1000["selected_questions"] == 1000 and
+            domain1000["securely_executed_distinct_questions"] == 1000,
+            "CWQ domain-suite question count changed")
+    require(domain1000["domains_completed"] == 17 and domain1000["domains_total"] == 17,
+            "CWQ domain-suite coverage changed")
+    require(domain1000["executed_queries_including_padding"] == 1021 and
+            domain1000["padding_queries"] == 21,
+            "CWQ domain-suite padding count changed")
+    require(domain1000["all_exact"] is True and
+            domain1000["genuine_query_fields_compared"] == 16_000,
+            "CWQ domain-suite correctness changed")
+    require(abs(domain1000["amortized_mpc_seconds_per_distinct_query"] -
+                5.61099452) < 1e-9,
+            "CWQ domain-suite amortized time changed")
+    require(abs(domain1000["amortized_global_mb_per_distinct_query"] -
+                1301.475467) < 1e-6,
+            "CWQ domain-suite communication changed")
+
+    require(metaqa500["status"] == "completed", "MetaQA suite is incomplete")
+    require(metaqa500["selected_questions"] == 500 and
+            metaqa500["securely_executed_distinct_questions"] == 500,
+            "MetaQA question count changed")
+    require(metaqa500["buckets_completed"] == 2 and metaqa500["buckets_total"] == 2,
+            "MetaQA bucket coverage changed")
+    require(metaqa500["all_exact"] is True and
+            metaqa500["genuine_query_fields_compared"] == 8_000,
+            "MetaQA correctness changed")
+    require(abs(metaqa500["amortized_mpc_seconds_per_distinct_query"] -
+                28.0637778) < 1e-9,
+            "MetaQA amortized time changed")
+    require(abs(metaqa500["amortized_global_mb_per_distinct_query"] -
+                7374.15086) < 1e-6,
+            "MetaQA communication changed")
+
     full_runs = [row for row in ablations if row["questions"] == 1267]
     require(len(full_runs) == 15, "full-workload ablation count changed")
     by_run = {row["run"]: row for row in full_runs}
@@ -182,6 +221,14 @@ def main() -> None:
                 batch["fields_compared"] for run in (q10, q25) for batch in run["batches"]
             ),
             "wan_query_executions_exact": sum(run["queries"] for run in wan["runs"]),
+            "cwq_domain_mpc_questions_exact": domain1000[
+                "securely_executed_distinct_questions"
+            ],
+            "cwq_domain_mpc_fields_exact": domain1000["genuine_query_fields_compared"],
+            "metaqa_mpc_questions_exact": metaqa500[
+                "securely_executed_distinct_questions"
+            ],
+            "metaqa_mpc_fields_exact": metaqa500["genuine_query_fields_compared"],
         },
         "sha256": {name: sha256(path) for name, path in FILES.items()},
     }

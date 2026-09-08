@@ -1,0 +1,59 @@
+{
+  "evaluation_label": "CWQ 1.1 strict two-hop gold-SPARQL subset, 10-query workload closure",
+  "full_kqapro_accuracy": false,
+  "fixture_scope": "bounded two-hop neighbourhood closure of 10 public CWQ query anchors and gold-SPARQL relation pairs; no answer-based edge selection; synthetic 3-owner subject-hash split",
+  "protocol": "temi",
+  "queries": 10,
+  "batches": [
+    {
+      "status": "completed",
+      "batch": 0,
+      "start": 0,
+      "stop": 5,
+      "query_count": 5,
+      "protocol": "temi",
+      "exact_oracle_match": true,
+      "fields_compared": 80,
+      "runner_wall_seconds_including_compile_if_needed": 1178.2587787723169,
+      "mpc_seconds_including_preprocessing": 10.4147,
+      "global_data_mb": 992.999,
+      "party0_data_mb": 468.641,
+      "party0_reported_rounds": 40058,
+      "logs": [
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_mpc_temi_q10c3_20260827T100757Z/batch_00_0_5/logs/server_0.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_mpc_temi_q10c3_20260827T100757Z/batch_00_0_5/logs/server_1.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_mpc_temi_q10c3_20260827T100757Z/batch_00_0_5/logs/server_2.log"
+      ]
+    },
+    {
+      "status": "completed",
+      "batch": 1,
+      "start": 5,
+      "stop": 10,
+      "query_count": 5,
+      "protocol": "temi",
+      "exact_oracle_match": true,
+      "fields_compared": 80,
+      "runner_wall_seconds_including_compile_if_needed": 14.503708309493959,
+      "mpc_seconds_including_preprocessing": 10.0331,
+      "global_data_mb": 992.999,
+      "party0_data_mb": 468.641,
+      "party0_reported_rounds": 40058,
+      "logs": [
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_mpc_temi_q10c3_20260827T100757Z/batch_01_5_10/logs/server_0.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_mpc_temi_q10c3_20260827T100757Z/batch_01_5_10/logs/server_1.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/cwq_mpc_temi_q10c3_20260827T100757Z/batch_01_5_10/logs/server_2.log"
+      ]
+    }
+  ],
+  "all_exact": true,
+  "total_mpc_seconds_including_preprocessing": 20.4478,
+  "total_global_data_mb": 1985.998,
+  "amortized_mpc_seconds_per_query": 2.0447800000000003,
+  "amortized_global_mb_per_query": 198.59980000000002,
+  "runner_wall_seconds_sum_including_compile_if_needed": 1192.7624870818108,
+  "measurement_scope": "three MP-SPDZ parties on localhost",
+  "timing_note": "MPC seconds include Temi preprocessing but exclude compilation and share preparation.",
+  "round_note": "MP-SPDZ reports multithreaded rounds with double-counting; do not interpret them as sequential WAN round trips.",
+  "security_note": "Temi is semi-honest dishonest-majority MPC; this localhost harness centralizes shares and is not a three-host deployment."
+}

@@ -1,0 +1,60 @@
+{
+  "amortized_global_mb_per_query": 137.792,
+  "amortized_mpc_seconds_per_query": 0.679433,
+  "bound_check_fixture_report": {
+    "checked_owners": [
+      "owner_0",
+      "owner_1"
+    ],
+    "distinct_keys_federation_wide": 128,
+    "enforcement": "offline plaintext check over the union; a deployment needs the equivalent one-time MPC pass, which is not implemented",
+    "global_frontier": 2,
+    "headroom": 0,
+    "max_key_degree_federation_wide": 2
+  },
+  "cost_estimate": {
+    "candidate_count_per_query": 8,
+    "compaction_selection_cells": 4,
+    "directory_rows": 1608,
+    "first_hop_products": 2124,
+    "frontier_slots": 2,
+    "pool_rows": 129,
+    "private_input_values_per_server": 2127,
+    "query_count": 1,
+    "second_hop_products": 4248,
+    "second_width": 4,
+    "topk_candidate_visits": 32
+  },
+  "directory_columns": 1,
+  "directory_rows": 1608,
+  "distinct_queries": 1,
+  "exact_oracle_match": true,
+  "fields_compared": 16,
+  "global_data_mb": 137.792,
+  "global_edges": 256,
+  "global_frontier": 2,
+  "input_assembly_seconds": 0.1127601433545351,
+  "logs": [
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-2/logs/server-0.log",
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-2/logs/server-1.log",
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-2/logs/server-2.log"
+  ],
+  "mpc_seconds_including_preprocessing": 0.679433,
+  "owner_share_preparation_seconds": 0.13083810545504093,
+  "owners": 2,
+  "page_budget_per_owner": 129,
+  "page_size": 2,
+  "party0_data_mb": 68.2108,
+  "party0_reported_rounds": 5662,
+  "per_owner_real_edges": [
+    128,
+    128
+  ],
+  "private_input_bytes_all_servers": 251025,
+  "private_input_values_per_server": 2127,
+  "program": "paged_kg_3pc_d1da5903e82e8394",
+  "query_count": 1,
+  "runner_wall_seconds_including_compile_if_needed": 1.7320957761257887,
+  "status": "completed",
+  "strict_first_run_wall_seconds": 1.9756940249353647
+}

@@ -1,0 +1,37 @@
+[
+ {
+  "source": "alice",
+  "relation": "referred_to",
+  "target": "bob",
+  "evidence": 32637832828899,
+  "score": 5
+ },
+ {
+  "source": "bob",
+  "relation": "diagnosed_with",
+  "target": "cancer",
+  "evidence": 808393383656998,
+  "score": 7
+ },
+ {
+  "source": "bob",
+  "relation": "treated_with",
+  "target": "drug_x",
+  "evidence": 620594956106082,
+  "score": 4
+ },
+ {
+  "source": "carol",
+  "relation": "referred_to",
+  "target": "dave",
+  "evidence": 321252551242423,
+  "score": 2
+ },
+ {
+  "source": "dave",
+  "relation": "diagnosed_with",
+  "target": "flu",
+  "evidence": 76415594793181,
+  "score": 6
+ }
+]

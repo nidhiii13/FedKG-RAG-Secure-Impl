@@ -1,0 +1,58 @@
+{
+  "amortized_global_mb_per_query": 136.346,
+  "amortized_mpc_seconds_per_query": 0.697184,
+  "bound_check_fixture_report": {
+    "checked_owners": [
+      "owner_0"
+    ],
+    "distinct_keys_federation_wide": 128,
+    "enforcement": "offline plaintext check over the union; a deployment needs the equivalent one-time MPC pass, which is not implemented",
+    "global_frontier": 2,
+    "headroom": 0,
+    "max_key_degree_federation_wide": 2
+  },
+  "cost_estimate": {
+    "candidate_count_per_query": 4,
+    "compaction_selection_cells": 4,
+    "directory_rows": 1608,
+    "first_hop_products": 1866,
+    "frontier_slots": 2,
+    "pool_rows": 129,
+    "private_input_values_per_server": 1869,
+    "query_count": 1,
+    "second_hop_products": 3732,
+    "second_width": 2,
+    "topk_candidate_visits": 16
+  },
+  "directory_columns": 1,
+  "directory_rows": 1608,
+  "distinct_queries": 1,
+  "exact_oracle_match": true,
+  "fields_compared": 16,
+  "global_data_mb": 136.346,
+  "global_edges": 256,
+  "global_frontier": 2,
+  "input_assembly_seconds": 0.09491530619561672,
+  "logs": [
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-1/logs/server-0.log",
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-1/logs/server-1.log",
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-1/logs/server-2.log"
+  ],
+  "mpc_seconds_including_preprocessing": 0.697184,
+  "owner_share_preparation_seconds": 0.05679011158645153,
+  "owners": 1,
+  "page_budget_per_owner": 129,
+  "page_size": 2,
+  "party0_data_mb": 67.6368,
+  "party0_reported_rounds": 4742,
+  "per_owner_real_edges": [
+    256
+  ],
+  "private_input_bytes_all_servers": 220668,
+  "private_input_values_per_server": 1869,
+  "program": "paged_kg_3pc_4a375d4cf6da24d8",
+  "query_count": 1,
+  "runner_wall_seconds_including_compile_if_needed": 1.7313291626051068,
+  "status": "completed",
+  "strict_first_run_wall_seconds": 1.883034580387175
+}

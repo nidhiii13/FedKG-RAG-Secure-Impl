@@ -1,0 +1,64 @@
+{
+  "amortized_global_mb_per_query": 149.835,
+  "amortized_mpc_seconds_per_query": 0.927248,
+  "bound_check_fixture_report": {
+    "checked_owners": [
+      "owner_0",
+      "owner_1",
+      "owner_2",
+      "owner_3"
+    ],
+    "distinct_keys_federation_wide": 128,
+    "enforcement": "offline plaintext check over the union; a deployment needs the equivalent one-time MPC pass, which is not implemented",
+    "global_frontier": 2,
+    "headroom": 0,
+    "max_key_degree_federation_wide": 2
+  },
+  "cost_estimate": {
+    "candidate_count_per_query": 16,
+    "compaction_selection_cells": 4,
+    "directory_rows": 1608,
+    "first_hop_products": 2640,
+    "frontier_slots": 2,
+    "pool_rows": 129,
+    "private_input_values_per_server": 2643,
+    "query_count": 1,
+    "second_hop_products": 5280,
+    "second_width": 8,
+    "topk_candidate_visits": 64
+  },
+  "directory_columns": 1,
+  "directory_rows": 1608,
+  "distinct_queries": 1,
+  "exact_oracle_match": true,
+  "fields_compared": 16,
+  "global_data_mb": 149.835,
+  "global_edges": 256,
+  "global_frontier": 2,
+  "input_assembly_seconds": 0.13731248676776886,
+  "logs": [
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-4/logs/server-0.log",
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-4/logs/server-1.log",
+    "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/relation_paged_owner_scaling_temi_20260828_v6/owners-4/logs/server-2.log"
+  ],
+  "mpc_seconds_including_preprocessing": 0.927248,
+  "owner_share_preparation_seconds": 0.27578877937048674,
+  "owners": 4,
+  "page_budget_per_owner": 129,
+  "page_size": 2,
+  "party0_data_mb": 73.6661,
+  "party0_reported_rounds": 7508,
+  "per_owner_real_edges": [
+    64,
+    64,
+    64,
+    64
+  ],
+  "private_input_bytes_all_servers": 311935,
+  "private_input_values_per_server": 2643,
+  "program": "paged_kg_3pc_f83ec20187e01f20",
+  "query_count": 1,
+  "runner_wall_seconds_including_compile_if_needed": 2.0258810808882117,
+  "status": "completed",
+  "strict_first_run_wall_seconds": 2.4389823470264673
+}

@@ -1,0 +1,79 @@
+{
+  "evaluation_label": "KQA Pro snapshot-equivalent two-hop validation subset",
+  "full_kqapro_accuracy": false,
+  "fixture_scope": "validation-query workload closure, not full KQA Pro KB",
+  "protocol": "temi",
+  "queries": 21,
+  "batches": [
+    {
+      "status": "completed",
+      "batch": 0,
+      "start": 0,
+      "stop": 10,
+      "query_count": 10,
+      "protocol": "temi",
+      "exact_oracle_match": true,
+      "fields_compared": 120,
+      "runner_wall_seconds_including_compile_if_needed": 179.6593763064593,
+      "mpc_seconds_including_preprocessing": 18.2175,
+      "global_data_mb": 3213.99,
+      "party0_data_mb": 1600.8,
+      "party0_reported_rounds": 19256,
+      "logs": [
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_00_0_10/logs/server_0.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_00_0_10/logs/server_1.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_00_0_10/logs/server_2.log"
+      ]
+    },
+    {
+      "status": "completed",
+      "batch": 1,
+      "start": 10,
+      "stop": 20,
+      "query_count": 10,
+      "protocol": "temi",
+      "exact_oracle_match": true,
+      "fields_compared": 120,
+      "runner_wall_seconds_including_compile_if_needed": 20.9590132990852,
+      "mpc_seconds_including_preprocessing": 17.865,
+      "global_data_mb": 3213.99,
+      "party0_data_mb": 1600.8,
+      "party0_reported_rounds": 19256,
+      "logs": [
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_01_10_20/logs/server_0.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_01_10_20/logs/server_1.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_01_10_20/logs/server_2.log"
+      ]
+    },
+    {
+      "status": "completed",
+      "batch": 2,
+      "start": 20,
+      "stop": 21,
+      "query_count": 1,
+      "protocol": "temi",
+      "exact_oracle_match": true,
+      "fields_compared": 12,
+      "runner_wall_seconds_including_compile_if_needed": 49.05188881419599,
+      "mpc_seconds_including_preprocessing": 2.36692,
+      "global_data_mb": 366.002,
+      "party0_data_mb": 182.305,
+      "party0_reported_rounds": 6886,
+      "logs": [
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_02_20_21/logs/server_0.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_02_20_21/logs/server_1.log",
+        "/media/mmaheri/mohamad_ssd/nidhi/FedKG-RAG-Secure-Impl/results/kqapro_relation_mpc_temi_q21_20260826_v2/batch_02_20_21/logs/server_2.log"
+      ]
+    }
+  ],
+  "all_exact": true,
+  "total_mpc_seconds_including_preprocessing": 38.449419999999996,
+  "total_global_data_mb": 6793.982,
+  "amortized_mpc_seconds_per_query": 1.8309247619047617,
+  "amortized_global_mb_per_query": 323.5229523809524,
+  "runner_wall_seconds_sum_including_compile_if_needed": 249.6702784197405,
+  "measurement_scope": "three MP-SPDZ parties on localhost",
+  "timing_note": "MPC seconds include Temi preprocessing but exclude compilation and share preparation.",
+  "round_note": "MP-SPDZ reports multithreaded rounds with double-counting; do not interpret them as sequential WAN round trips.",
+  "security_note": "Temi is semi-honest dishonest-majority MPC; this localhost harness centralizes shares and is not a three-host deployment."
+}

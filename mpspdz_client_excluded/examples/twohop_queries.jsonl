@@ -1,0 +1,2 @@
+{"query":"Kismet to Angel through shared actor/movie relation","edges":[["Kismet","starred_actors","UNKNOWN"],["UNKNOWN","starred_actors","Angel"]]}
+{"query":"Kismet to Morocco through natural-language relation aliases","edges":[["Kismet","acted in","UNKNOWN"],["UNKNOWN","acted in","Morocco"]]}
